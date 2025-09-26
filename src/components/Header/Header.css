@@ -1,0 +1,77 @@
+.header {
+  background-color: #ff6600;
+  padding: 10px 0;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 10;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.nav-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+}
+
+.nav-links li {
+  margin: 0 15px;
+}
+
+.nav-links a {
+  color: white;
+  text-decoration: none;
+  font-size: 25px;
+}
+
+.nav-links a:hover {
+  text-decoration: underline;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.auth-button {
+  text-decoration: none; /* Loại bỏ dấu gạch chân */
+  color: black; /* Giữ nguyên màu chữ, nếu muốn */
+  padding: 10px 20px; /* Thêm padding cho button */
+  border: 1px solid #ccc; /* Thêm border nếu muốn */
+  border-radius: 4px; /* Bo tròn góc */
+  transition: background-color 0.3s;
+  background-color: white; /* Màu xám nhạt */
+}
+.auth-button-login {
+  cursor: pointer;
+  color: #fff;
+}
+
+.auth-button:hover {
+  background-color: rgb(238, 129, 129);
+}
+.logo {
+  color: white;
+  font-size: 40px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.content-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.cart-icon {
+  padding-left: 10px;
+}
+

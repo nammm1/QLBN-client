@@ -1,0 +1,159 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+}
+
+.modal-container {
+  background: linear-gradient(to bottom, #b3ecff, #e6faff);
+  padding: 25px 30px;
+  border-radius: 12px;
+  width: 600px;
+  max-width: 95%;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Header modal */
+.modal-header-title {
+  background-color: #5184f3;
+  color: #fff;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 18px;
+}
+
+/* Hiệu ứng xuất hiện */
+@keyframes fadeIn {
+  from { transform: translateY(-25px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Dấu * màu đỏ */
+.form-label::before {
+  content: "* ";
+  color: red;
+  font-weight: bold;
+}
+
+/* ===================== */
+/* Nút chọn loại dịch vụ */
+/* ===================== */
+.service-buttons {
+  display: flex;
+  margin-top: 6px;
+}
+
+.service-buttons .btn {
+  flex: 1;
+  border-radius: 0;
+}
+
+.service-buttons .btn:first-child {
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
+}
+
+.service-buttons .btn:last-child {
+  border-top-right-radius: 20px;
+  border-bottom-right-radius: 20px;
+}
+
+/* ================ */
+/* Nút chọn buổi    */
+/* ================ */
+.session-buttons {
+  display: flex;
+  margin-top: 6px;
+}
+
+.session-buttons .btn {
+  flex: 1;
+  border-radius: 0;
+}
+
+.session-buttons .btn:first-child {
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
+}
+
+.session-buttons .btn:last-child {
+  border-top-right-radius: 20px;
+  border-bottom-right-radius: 20px;
+}
+
+/* ======================== */
+/* Khung giờ                */
+/* ======================== */
+.time-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.time-slots .btn {
+  flex: 1 1 calc(33.33% - 10px); /* 3 cột */
+  min-width: 95px;
+  font-size: 13px;
+}
+
+/* ======================== */
+/* Buttons hành động        */
+/* ======================== */
+.form-actions {
+  display: flex;
+  justify-content: space-between; /* tách xa nhau */
+  margin-top: 25px;
+}
+
+.form-actions .btn {
+  padding: 6px 14px;
+  font-size: 14px;
+  min-width: 85px;
+  border-radius: 6px;
+}
+/* Ô chọn ngày */
+.react-datepicker-wrapper {
+  width: 100%; /* cho dài bằng ô input khác */
+}
+
+.react-datepicker__input-container input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  font-size: 14px;
+  color: #333;
+  outline: none;
+  box-shadow: none;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Khi focus vào input */
+.react-datepicker__input-container input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+}
+
+/* Icon lịch trong input */
+.react-datepicker__calendar-icon {
+  position: absolute;
+  right: 12px;   /* canh phải */
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #666;
+  font-size: 16px;
+}
+.react-datepicker__input-container {
+  position: relative;
+}

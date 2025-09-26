@@ -1,0 +1,37 @@
+.about-container {
+  line-height: 1.7;
+}
+
+.about-title {
+  font-size: 1.6rem;
+  font-weight: bold;
+  margin-top: 20px;
+  color: #222;
+  border-left: 4px solid #00bfff;
+  padding-left: 10px;
+}
+
+.about-text {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 15px;
+}
+
+.about-img {
+  width: 630px;       /* chiều rộng chuẩn */
+  height: 320px;      /* chiều cao chuẩn */
+  object-fit: cover;  /* cắt ảnh gọn trong khung, không méo */
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.core-values h5 {
+  color: #0077b6;
+  font-weight: bold;
+  margin-top: 15px;
+}
+
+.core-values p {
+  color: #444;
+  font-size: 0.95rem;
+}

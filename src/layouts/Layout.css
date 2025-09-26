@@ -1,0 +1,24 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Thay đổi từ 10vh thành 100vh */
+}
+
+.content {
+  flex: 1 0 auto; /* Cho phép phần content mở rộng */
+}
+
+/* Đảm bảo footer luôn ở dưới cùng */
+.footer {
+  background-color: #101929;
+  color: white;
+  padding: 20px 0;
+  text-align: left;
+  flex-shrink: 0; /* đảm bảo không bị co */
+}

@@ -1,0 +1,15 @@
+.medical-records table {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.medical-records th,
+.medical-records td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.medical-records h2 {
+  color: #00b5f1;
+}

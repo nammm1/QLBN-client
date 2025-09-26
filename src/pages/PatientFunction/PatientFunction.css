@@ -1,0 +1,16 @@
+.patient-function .function-card {
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.patient-function .function-card:hover .card {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+.patient-function .card-title {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #00b5f1;
+}

@@ -1,0 +1,109 @@
+
+.home-container {
+  min-height: 100vh; /* đảm bảo trang ít nhất cao bằng màn hình */
+  padding-bottom: 40px;
+  background-color: #ffffff; /* màu nền nhẹ */
+}
+
+/* Tạo lớp xám phủ ảnh */
+.banner-overlay {
+  position: relative;
+}
+
+.banner-overlay img {
+  filter: brightness(60%); /* làm tối ảnh */
+  width: 100%;
+  height: auto;
+}
+
+.carousel img {
+  max-height: 500px;
+  object-fit: cover;
+}
+
+.why-choose-us .card {
+  transition: transform 0.3s;
+}
+
+.why-choose-us .card:hover {
+  transform: translateY(-10px); /* hiệu ứng hover nâng card */
+}
+
+.why-choose-us img {
+  max-width: 100%;
+  height: 611px;
+}
+
+.why-choose-us .card {
+  border-radius: 10px;
+  transition: 0.3s;
+}
+
+.why-choose-us .card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.custom-heading {
+  display: inline-block;         /* gạch chỉ dài theo text */
+  margin-left: 120px;            /* chỉnh để ngang với ảnh bác sĩ, thay số cho phù hợp */
+}
+
+.custom-heading::after {
+  content: "";
+  display: block;
+  width: 25%;                   /* độ dài gạch */
+  height: 4px;                  /* độ dày gạch */
+  background-color: #45bd21;     /* màu xanh */
+  margin-top: 6px;               /* khoảng cách với chữ */
+  border-radius: 2px;
+}
+
+/* Partners / Glide styling */
+.partners-glide {
+  margin-top: 20px;
+}
+
+/* đảm bảo slide item có kích thước giống ví dụ (350px + gap 15) trên desktop */
+.hospital_slide {
+  width: 350px;
+  margin: 0 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hospital_slide img {
+  max-width: 100%;
+  height: auto;
+  max-height: 100px;
+  object-fit: contain;
+  filter: grayscale(100%);
+  transition: transform .3s ease, filter .3s ease;
+}
+
+.hospital_slide img:hover {
+  filter: grayscale(0%);
+  transform: scale(1.03);
+}
+
+/* Glide slides row alignment */
+.glide__slides {
+  display: flex;
+  align-items: center;
+}
+
+/* (tweak) override glide theme spacing if needed */
+.glide__slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991px) {
+  .hospital_slide { width: 260px; margin: 0 12px; }
+}
+
+@media (max-width: 575px) {
+  .hospital_slide { width: 180px; margin: 0 8px; }
+}

@@ -1,0 +1,81 @@
+/* Container */
+.news-container {
+  margin-top: 40px;
+}
+
+/* Tiêu đề + gạch xanh */
+.news-container h2 {
+  font-weight: bold;
+  margin-bottom: 20px;
+  position: relative;
+  display: inline-block;
+}
+
+.news-container h2::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background-color: #45bd21;
+  border-radius: 2px;
+}
+
+/* Danh mục */
+.news-category {
+  margin-bottom: 25px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.news-category span {
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+  color: #333;
+}
+
+.news-category span:hover {
+  opacity: 0.6;
+}
+
+.news-category .active {
+  font-weight: 700;
+  color: #000000;
+}
+
+/* Card */
+.news-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.news-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+.news-card .card-img-top {
+  height: 180px;
+  background: #b9d6f2;
+}
+
+/* Tiêu đề bài viết */
+.news-card .card-title {
+  color: #0077c1;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+/* Nút xem thêm */
+.news-card a {
+  color: #6c757d;
+  font-size: 0.9rem;
+  text-decoration: none; 
+  transition: 0.2s;
+}
+
+.news-card a:hover {
+  color: #0d6efd;
+}
