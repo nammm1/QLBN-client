@@ -12,6 +12,7 @@ import Nutritionist from "./pages/Nutritionist/Nutritionist";
 import UpdateProfile from "./pages/UpdateProfile/UpdateProfile";
 import PatientFunction from "./pages/PatientFunction/PatientFunction";
 import MedicalRecords from "./pages/MedicalRecords/MedicalRecords";
+import Appointments from "./pages/Appointments/Appointments";
 // import Register from "./Pages/Register/Register";
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
           <Route path="/updateprofile" element={<UpdateProfile />} />
           <Route path="/patient-function" element={<PatientFunction />} />
           <Route path="/medical-records" element={<MedicalRecords />} />
+          <Route path="/appointments" element={<Appointments />} />
         </Route>
 
         <Route>
