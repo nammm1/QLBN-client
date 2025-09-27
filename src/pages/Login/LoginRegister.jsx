@@ -7,6 +7,7 @@ import { IoMailSharp } from "react-icons/io5";
 import { BsCalendarDateFill } from "react-icons/bs";
 import { PiGenderIntersexBold } from "react-icons/pi";
 import apiAuth from '../../api/auth/index';
+import API_CONFIG from "../../configs/api_configs.js";
 const LoginRegister = () => {
   const navigate = useNavigate();
   const [isRegister, setIsRegister] = useState(false);
@@ -45,18 +46,29 @@ const LoginRegister = () => {
 
   // Submit Login
   const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await axios.post("http://localhost:5005/nguoi-dung/login", loginData);
-    //   const res = await apiAuth.login()
-      console.log("Login success:", res.data);
+  e.preventDefault();
+  try {
+    const res  = await apiAuth.login(loginData);
+    const { success } = res;
+    const { user, accessToken, refreshToken } = res.data;
+    if (success && accessToken && refreshToken) {
+
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("isLogin", "true");
+      localStorage.setItem("userInfo", JSON.stringify({ user }));
+
       alert("Đăng nhập thành công!");
       navigate("/");
-    } catch (err) {
-      console.error("Login failed:", err);
-      alert("Đăng nhập thất bại!");
+
+    } else {
+      alert("Tên đăng nhập hoặc mật khẩu không đúng!");
     }
-  };
+  } catch (err) {
+    console.error("Login failed:", err);
+    alert("Đăng nhập thất bại!");
+  }
+};
 
   // Submit Register
   const handleRegisterSubmit = async (e) => {

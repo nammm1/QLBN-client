@@ -1,5 +1,7 @@
 .about-container {
   line-height: 1.7;
+  min-height: 100vh; 
+  background-color: #ffffff;
 }
 
 .about-title {

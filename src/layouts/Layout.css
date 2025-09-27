@@ -7,18 +7,22 @@ html, body {
 .layout {
   display: flex;
   flex-direction: column;
-  min-height: 100vh; /* Thay đổi từ 10vh thành 100vh */
+  min-height: 100vh; /* để layout ít nhất full màn hình */
+}
+
+.header {
+  flex-shrink: 0;
 }
 
 .content {
-  flex: 1 0 auto; /* Cho phép phần content mở rộng */
+  min-height: 100vh; /* luôn full màn hình riêng biệt */
+  background: #fff;
 }
 
-/* Đảm bảo footer luôn ở dưới cùng */
 .footer {
-  background-color: #101929;
+  flex-shrink: 0;
+  background: #101929;
   color: white;
   padding: 20px 0;
   text-align: left;
-  flex-shrink: 0; /* đảm bảo không bị co */
 }

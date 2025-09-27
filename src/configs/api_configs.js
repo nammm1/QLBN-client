@@ -1,7 +1,8 @@
 const API_CONFIG = {
   BASE_URL: "http://localhost:5005/",
   RESOURCES: {
-    NguoiDung: "nguoidung",
+    NguoiDung: "nguoi-dung",
+    CHUYENKHOA: "chuyenKhoa"
   },
 };
 

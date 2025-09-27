@@ -22,43 +22,18 @@ function App() {
           {/* Trang mặc định */}
           <Route index element={<Home />} />
           {/* Hoặc có thể dùng: <Route path="/" element={<Home />} /> */}
+          <Route path="/news" element={<News />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/specialties" element={<Specialties />} />
+          <Route path="/doctors" element={<Doctors />} />
+          <Route path="/nutritionist" element={<Nutritionist />} />
+          <Route path="/updateprofile" element={<UpdateProfile />} />
+          <Route path="/patient-function" element={<PatientFunction />} />
+          <Route path="/medical-records" element={<MedicalRecords />} />
         </Route>
 
         <Route>
           <Route path="/login" element={<Login />} />
-          {/* <Route path="/register" element={<Register />} /> */}
-        </Route>
-
-        <Route path="/news" element={<Layout />}>
-          <Route index element={<News />} />
-        </Route>
-
-        <Route path="/about" element={<Layout />}>
-          <Route index element={<About />} />
-        </Route>
-
-        <Route path="/specialties" element={<Layout />}>
-          <Route index element={<Specialties />} />
-        </Route>
-
-        <Route path="/doctors" element={<Layout />}>
-          <Route index element={<Doctors />} />
-        </Route>
-
-        <Route path="/nutritionist" element={<Layout />}>
-          <Route index element={<Nutritionist />} />
-        </Route>
-
-        <Route path="/updateprofile" element={<Layout />}>
-          <Route index element={<UpdateProfile />} />
-        </Route>
-
-        <Route path="/patient-function" element={<Layout />}>
-          <Route index element={<PatientFunction />} />
-        </Route>
-
-        <Route path="/medical-records" element={<Layout />}>
-          <Route index element={<MedicalRecords />} />
         </Route>
       </Routes>
     </Router>

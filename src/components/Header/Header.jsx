@@ -1,16 +1,38 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
-import BookingModal from "./BookingModal"; // import modal đặt lịch khám
-import NutritionBookingModal from "./NutritionBookingModal"; // import modal tư vấn dinh dưỡng
+import BookingModal from "./BookingModal";
+import NutritionBookingModal from "./NutritionBookingModal";
 
 const Header = () => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [showNutritionModal, setShowNutritionModal] = useState(false);
+  const [isLogin, setIsLogin] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+
+  useEffect(() => {
+    const loginStatus = localStorage.getItem("isLogin");
+    if (loginStatus === "true") {
+      setIsLogin(true);
+      const savedUser = JSON.parse(localStorage.getItem("userInfo"));
+      setUserInfo(savedUser?.user);
+    }
+  }, []);
 
   const handleLoginClick = () => {
     navigate("/login");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("isLogin");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("userInfo");
+
+    setIsLogin(false);
+    setUserInfo(null);
+    navigate("/");
   };
 
   return (
@@ -44,10 +66,40 @@ const Header = () => {
 
           {/* Buttons bên phải */}
           <div className="d-flex gap-2">
-            <button className="btn btn-info text-white">👤 Đăng Ký</button>
-            <button className="btn btn-info text-white" onClick={handleLoginClick}>
-              👤 Đăng nhập
-            </button>
+            {!isLogin ? (
+              <>
+                <button className="btn btn-info text-white">👤 Đăng Ký</button>
+                <button
+                  className="btn btn-info text-white"
+                  onClick={handleLoginClick}
+                >
+                  👤 Đăng nhập
+                </button>
+              </>
+            ) : (
+              <div className="dropdown">
+                <button
+                  className="btn btn-info text-white dropdown-toggle"
+                  id="userMenuButton"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  👤 {userInfo?.ho_ten || "Người dùng"}
+                </button>
+                <ul className="dropdown-menu" aria-labelledby="userMenuButton">
+                  <li>
+                    <Link className="dropdown-item" to="/profile">
+                      Thông tin cá nhân
+                    </Link>
+                  </li>
+                  <li>
+                    <button className="dropdown-item" onClick={handleLogout}>
+                      Đăng xuất
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -83,7 +135,10 @@ const Header = () => {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link className="nav-link text-white fw-bold" to="/nutritionist">
+                <Link
+                  className="nav-link text-white fw-bold"
+                  to="/nutritionist"
+                >
                   Chuyên gia dinh dưỡng
                 </Link>
               </li>
@@ -106,7 +161,10 @@ const Header = () => {
                 </span>
               </li>
               <li className="nav-item">
-                <Link className="nav-link text-white fw-bold" to="/patient-function">
+                <Link
+                  className="nav-link text-white fw-bold"
+                  to="/patient-function"
+                >
                   Dành cho Bệnh nhân
                 </Link>
               </li>

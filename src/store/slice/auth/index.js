@@ -4,7 +4,7 @@ const initialState = {
     isLogin: false,
     accessToken: null,
     userInfo: {},
-    role: null
+    vai_tro: null
 }
 
 export const counterSlice = createSlice({
@@ -15,13 +15,13 @@ export const counterSlice = createSlice({
             state.isLogin = true;
             state.userInfo = action.payload.userInfo;
             state.accessToken = action.payload.accessToken;
-            state.role = action.payload.role;
+            state.vai_tro = action.payload.vai_tro;
         },
         logout: (state) => {
             state.isLogin = false;
             state.userInfo = {};
             state.accessToken = null;
-            state.role = null;
+            state.vai_tro = null;
         }
     },
 })
