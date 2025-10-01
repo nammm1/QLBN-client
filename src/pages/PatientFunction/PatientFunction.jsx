@@ -18,6 +18,17 @@ const PatientFunction = () => {
             </div>
           </Link>
         </div>
+        {/* Hồ sơ dinh dưỡng */}
+        <div className="col-md-4">
+          <Link to="/nutrition-records" className="function-card">
+            <div className="card h-100 shadow-sm">
+              <div className="card-body text-center">
+                <h5 className="card-title">Hồ sơ dinh dưỡng</h5>
+                <p className="card-text">Xem thông tin hồ sơ và lịch sử tư vấn dinh dưỡng</p>
+              </div>
+            </div>
+          </Link>
+        </div>
 
         {/* Lịch hẹn */}
         <div className="col-md-4">

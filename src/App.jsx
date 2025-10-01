@@ -18,6 +18,7 @@ import MedicalRecords from "./pages/MedicalRecords/MedicalRecords";
 import Appointments from "./pages/Appointments/Appointments";
 import DoctorFunction from "./pages/DoctorFunction/DoctorFunction";
 import DoctorMedicalRecords from "./pages/DoctorMedicalRecords/DoctorMedicalRecords";
+import NutritionRecords from "./pages/NutritionRecords/NutritionRecords";
 // import Register from "./Pages/Register/Register";
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
           <Route path="/updateprofile" element={<UpdateProfile />} />
           <Route path="/patient-function" element={<PatientFunction />} />
           <Route path="/medical-records" element={<MedicalRecords />} />
+          <Route path="/nutrition-records" element={<NutritionRecords />} />
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/doctor-function" element={<DoctorFunction />} />
           <Route path="/doctor-medical-records" element={<DoctorMedicalRecords />} />
