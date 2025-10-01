@@ -3,6 +3,7 @@ const API_CONFIG = {
   RESOURCES: {
     NguoiDung: "nguoi-dung",
     CHUYENKHOA: "chuyenKhoa"
+    
   },
 };
 

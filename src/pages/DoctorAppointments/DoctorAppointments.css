@@ -1,0 +1,102 @@
+.doctor-appointments-container {
+  max-width: 900px;
+  margin: 32px auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 24px;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.filter-bar input[type="text"], .filter-bar input[type="date"] {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.appointments-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.appointments-table th, .appointments-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+.appointments-table tr.selected-row {
+  background: #e6f7ff;
+}
+
+.appointment-detail-card {
+  margin-top: 24px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.info-columns {
+  display: flex;
+  gap: 32px;
+}
+
+.left-info, .right-info {
+  flex: 1;
+}
+
+.info-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.record-status {
+  margin: 12px 0;
+}
+
+.finish-btn {
+  background: #1890ff;
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.finish-btn:hover {
+  background: #1765ad;
+}
+
+.modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 32px 24px;
+  border-radius: 10px;
+  min-width: 320px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  text-align: center;
+}

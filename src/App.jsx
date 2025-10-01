@@ -13,6 +13,9 @@ import UpdateProfile from "./pages/UpdateProfile/UpdateProfile";
 import PatientFunction from "./pages/PatientFunction/PatientFunction";
 import MedicalRecords from "./pages/MedicalRecords/MedicalRecords";
 import Appointments from "./pages/Appointments/Appointments";
+import DoctorFunction from "./pages/DoctorFunction/DoctorFunction";
+import DoctorMedicalRecords from "./pages/DoctorMedicalRecords/DoctorMedicalRecords";
+import DoctorAppointments from "./pages/DoctorAppointments/DoctorAppointments";
 // import Register from "./Pages/Register/Register";
 
 function App() {
@@ -32,6 +35,10 @@ function App() {
           <Route path="/patient-function" element={<PatientFunction />} />
           <Route path="/medical-records" element={<MedicalRecords />} />
           <Route path="/appointments" element={<Appointments />} />
+          <Route path="/doctor-function" element={<DoctorFunction />} />
+          <Route path="/doctor-medical-records" element={<DoctorMedicalRecords />} />
+          <Route path="/doctor-appointments" element={<DoctorAppointments />} />
+          
         </Route>
 
         <Route>

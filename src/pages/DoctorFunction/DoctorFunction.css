@@ -1,0 +1,16 @@
+.doctor-function .function-card {
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.doctor-function .function-card:hover .card {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+.doctor-function .card-title {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #00b5f1;
+}

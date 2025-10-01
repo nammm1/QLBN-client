@@ -168,6 +168,14 @@ const Header = () => {
                   Dành cho Bệnh nhân
                 </Link>
               </li>
+              <li className="nav-item">
+                <Link
+                  className="nav-link text-white fw-bold"
+                  to="/doctor-function"
+                >
+                  Dành cho Bác sĩ
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
