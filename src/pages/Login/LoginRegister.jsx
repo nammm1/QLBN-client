@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import axios from "axios";
 import styles from "./LoginRegister.module.css";
 import { FaUser, FaEye, FaEyeSlash, FaPhone } from "react-icons/fa";
@@ -7,10 +8,15 @@ import { IoMailSharp } from "react-icons/io5";
 import { BsCalendarDateFill } from "react-icons/bs";
 import { PiGenderIntersexBold } from "react-icons/pi";
 import apiAuth from '../../api/auth/index';
+import apiChuyenKhoa from '../../api/ChuyenKhoa/index.js';
 import API_CONFIG from "../../configs/api_configs.js";
+import { login } from "../../store/slice/auth"; 
+
 const LoginRegister = () => {
   const navigate = useNavigate();
   const [isRegister, setIsRegister] = useState(false);
+
+  const dispatch = useDispatch();
 
   // Login form
   const [loginData, setLoginData] = useState({
@@ -48,7 +54,10 @@ const LoginRegister = () => {
   const handleLoginSubmit = async (e) => {
   e.preventDefault();
   try {
+    const response = await apiChuyenKhoa.getAllChuyenKhoa();
+    console.log(response);
     const res  = await apiAuth.login(loginData);
+    console.log(res);
     const { success } = res;
     const { user, accessToken, refreshToken } = res.data;
     if (success && accessToken && refreshToken) {
@@ -58,6 +67,12 @@ const LoginRegister = () => {
       localStorage.setItem("isLogin", "true");
       localStorage.setItem("userInfo", JSON.stringify({ user }));
 
+      dispatch(login({
+        userInfo: user,
+        accessToken,
+        vai_tro: user.vai_tro
+      }));
+      
       alert("Đăng nhập thành công!");
       navigate("/");
 

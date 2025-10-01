@@ -1,12 +1,13 @@
 import axiosInstance from "../axios";
 import API_CONFIG from "../../configs/api_configs.js";
+import axios from "axios";
 
 const apiChuyenKhoa = {
   // Lấy tất cả chuyên khoa
   getAllChuyenKhoa: async () => {
     try {
-      const response = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CHUYENKHOA}`
+      const response = await axios.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenKhoa}/`
       );
       return response.data.data;
     } catch (error) {
@@ -18,8 +19,8 @@ const apiChuyenKhoa = {
   // Lấy chi tiết chuyên khoa theo ID
   getChuyenKhoaById: async (id_chuyen_khoa) => {
     try {
-      const response = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CHUYENKHOA}/${id_chuyen_khoa}`
+      const response = await axios.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenKhoa}/${id_chuyen_khoa}`
       );
       return response.data.data;
     } catch (error) {
@@ -32,7 +33,7 @@ const apiChuyenKhoa = {
   createChuyenKhoa: async (data) => {
     try {
       const response = await axiosInstance.post(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CHUYENKHOA}`,
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenKhoa}`,
         data
       );
       return response.data.data;
@@ -46,7 +47,7 @@ const apiChuyenKhoa = {
   updateChuyenKhoa: async (id_chuyen_khoa, data) => {
     try {
       const response = await axiosInstance.put(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CHUYENKHOA}/${id_chuyen_khoa}`,
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenKhoa}/${id_chuyen_khoa}`,
         data
       );
       return response.data.data;
@@ -60,7 +61,7 @@ const apiChuyenKhoa = {
   deleteChuyenKhoa: async (id_chuyen_khoa) => {
     try {
       const response = await axiosInstance.delete(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CHUYENKHOA}/${id_chuyen_khoa}`
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenKhoa}/${id_chuyen_khoa}`
       );
       return response.data.data;
     } catch (error) {
