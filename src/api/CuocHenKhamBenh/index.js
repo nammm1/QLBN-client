@@ -15,6 +15,18 @@ const apiCuocHenKhamBenh = {
       throw err;
     }
   },
+   // Lấy tất cả cuộc hẹn của bệnh nhân
+  getById: async (id_cuoc_hen) => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenKhamBenh}/${id_cuoc_hen}`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error fetching cuoc hen kham by Id:", err);
+      throw err;
+    }
+  },
 
   // Lấy tất cả cuộc hẹn của bệnh nhân
   getByBenhNhan: async (id_benh_nhan) => {
@@ -28,6 +40,19 @@ const apiCuocHenKhamBenh = {
       throw err;
     }
   },
+  //Lấy lịch sử khám bệnh của bệnh nhân 
+  getLichSuByBenhNhan: async (id_benh_nhan) => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenKhamBenh}/lich-su/${id_benh_nhan}`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error fetching cuoc hen kham by benh nhan:", err);
+      throw err;
+    }
+  },
+
   getByBacSi: async (id_bac_si) => {
     try {
       const res = await axiosInstance.get(

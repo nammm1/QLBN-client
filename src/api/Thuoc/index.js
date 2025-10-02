@@ -6,7 +6,7 @@ const apiThuoc = {
   createThuoc: async (data) => {
     try {
       const res = await axiosInstance.post(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.THUOC}/`,
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.Thuoc}/`,
         data
       );
       return res.data.data;
@@ -20,7 +20,7 @@ const apiThuoc = {
   getAllThuoc: async () => {
     try {
       const res = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.THUOC}/`
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.Thuoc}/`
       );
       return res.data.data;
     } catch (err) {
@@ -33,7 +33,7 @@ const apiThuoc = {
   getThuocById: async (id_thuoc) => {
     try {
       const res = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.THUOC}/${id_thuoc}`
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.Thuoc}/${id_thuoc}`
       );
       return res.data.data;
     } catch (err) {
@@ -46,7 +46,7 @@ const apiThuoc = {
   updateThuoc: async (id_thuoc, data) => {
     try {
       const res = await axiosInstance.put(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.THUOC}/${id_thuoc}`,
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.Thuoc}/${id_thuoc}`,
         data
       );
       return res.data.data;
@@ -60,7 +60,7 @@ const apiThuoc = {
   deleteThuoc: async (id_thuoc) => {
     try {
       const res = await axiosInstance.delete(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.THUOC}/${id_thuoc}`
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.Thuoc}/${id_thuoc}`
       );
       return res.data.data;
     } catch (err) {

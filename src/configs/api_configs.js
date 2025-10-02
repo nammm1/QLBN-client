@@ -6,6 +6,7 @@ const API_CONFIG = {
     HoSoKhamBenh: "hoSoKhamBenh",
     HoSoDinhDuong: "hoSoDinhDuong",
     DonThuoc: "donThuoc",
+    ChiTietDonThuoc : "chiTietDonThuoc",
     CuocHenKhamBenh: "cuocHenKhamBenh",
     CuocHenTuVan: "cuocHenTuVan",
     KhungGioKham: "khungGioKham",

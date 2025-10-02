@@ -8,6 +8,7 @@ import Layout from "./layouts";
 import DoctorLayout from "./layouts/DoctorLayout";
 import DoctorDashboard from "./pages/Doctors/DoctorDashboard";
 import DoctorAppointments from "./pages/BacSi/Appointments/DoctorAppointments";
+import DoctorAppointmentDetail from "./pages/BacSi/Appointments/AppointmentDetail";
 import Login from "./pages/Login/LoginRegister";
 import Specialties from "./pages/Specialties/Specialties";
 import Doctors from "./pages/Doctors/Doctors";
@@ -46,6 +47,7 @@ function App() {
         <Route path="/doctor" element={<DoctorLayout />}>
           <Route index element={<DoctorDashboard />} />
           <Route path="appointments" element={<DoctorAppointments />} />
+          <Route path="appointment/:id_cuoc_hen" element={<DoctorAppointmentDetail />} />
         </Route>
 
         <Route>

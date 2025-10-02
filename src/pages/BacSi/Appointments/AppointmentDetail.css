@@ -1,0 +1,6 @@
+h2.title-align {
+  margin: 0;               /* bỏ margin mặc định */
+  line-height: 1.2;        /* giảm chiều cao chữ */
+  display: flex;           
+  align-items: center;     /* căn giữa dọc chữ */
+}

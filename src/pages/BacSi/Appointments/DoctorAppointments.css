@@ -1,5 +1,6 @@
 .doctor-appointments-container {
-  max-width: 900px;
+  max-width: 1500px;
+  min-height: 87vh;
   margin: 32px auto;
   background: #fff;
   border-radius: 12px;
@@ -99,4 +100,30 @@
   min-width: 320px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.12);
   text-align: center;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center; /* canh giữa theo chiều ngang */
+  gap: 5px; /* khoảng cách giữa các nút */
+  margin-top: 20px;
+  flex-wrap: wrap; /* nếu nhiều nút thì xuống hàng */
+}
+
+.pagination button {
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #f0f0f0;
+}
+
+.pagination button.active {
+  background-color: #007bff;
+  color: #fff;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  background-color: #eee;
 }
