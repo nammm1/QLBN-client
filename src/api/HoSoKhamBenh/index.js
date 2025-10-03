@@ -30,6 +30,18 @@ const apiHoSoKhamBenh = {
       throw err;
     }
   },
+  // Lấy hồ sơ theo ID
+  getAll: async () => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${RESOURCE}/all/`
+      );
+      return res.data?.data;
+    } catch (err) {
+      console.error("Error fetching hồ sơ khám bệnh by ID:", err);
+      throw err;
+    }
+  },
 
   // Lấy danh sách hồ sơ theo bệnh nhân
   getByBenhNhan: async (id_benh_nhan) => {

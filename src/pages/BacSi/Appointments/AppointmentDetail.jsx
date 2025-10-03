@@ -49,7 +49,6 @@ const DoctorAppointmentDetail = () => {
   const handleOpenDichVu = async () => {
     try {
       const res = await apiDichVu.getAll();
-      console.log(res.data);
       setDsDichVu(res.data || []);
       setModalDichVu(true);
     } catch (err) {
@@ -61,7 +60,6 @@ const DoctorAppointmentDetail = () => {
   const handleOpenDonThuoc = async () => {
     try {
       const res = await apiThuoc.getAllThuoc();
-      console.log(res);
       setDsThuoc(res || []);
       setModalDonThuoc(true);
     } catch (err) {
@@ -130,7 +128,7 @@ const DoctorAppointmentDetail = () => {
         0
       );
       const hoaDon = await apiHoaDon.create({
-        id_cuoc_hen_kham: appointment?.id_cuoc_hen_kham || null,
+        id_cuoc_hen_kham: appointment?.id_cuoc_hen || null,
         id_cuoc_hen_tu_van: null,
         tong_tien,
         chi_tiet: dichVuTamThoi,
@@ -227,7 +225,6 @@ const DoctorAppointmentDetail = () => {
   if (!appointment) return <p>Không tìm thấy cuộc hẹn</p>;
 
   const { khungGio } = appointment;
-
   // Mở modal tạo hồ sơ
   const openCreateModal = () => {
     setFormData({
@@ -362,7 +359,7 @@ const DoctorAppointmentDetail = () => {
       </div>
 
       {/* === Nút hành động === */}
-      {!appointment.trang_thai === "da_hoan_thanh" && (
+     {appointment.trang_thai !== "da_hoan_thanh" && (
         <div className="mt-3 d-flex gap-2 flex-wrap">
           <button className="btn btn-warning" onClick={handleOpenDonThuoc}>
             Kê đơn thuốc
@@ -375,7 +372,6 @@ const DoctorAppointmentDetail = () => {
           </button>
         </div>
       )}
-
 
       
 
@@ -890,18 +886,14 @@ const DoctorAppointmentDetail = () => {
                   </div>
                     
                   {/* Lịch sử khám bệnh */}
+                  {/* === Lịch sử khám bệnh === */}
                   <hr />
                   <h6>Lịch sử khám bệnh</h6>
                   <div className="accordion" id="lichSuAccordion">
                     {lichSu && lichSu.length > 0 ? (
                       lichSu.map((h, i) => {
-                        const ngayKham = h.ngay_kham
-                          ? new Date(h.ngay_kham).toLocaleDateString("vi-VN")
-                          : "Không có";
-                        const gioKham =
-                          h.gio_bat_dau && h.gio_ket_thuc
-                            ? `${h.gio_bat_dau} - ${h.gio_ket_thuc}`
-                            : "Không có";
+                        const ngayKham = h.ngay_kham ? new Date(h.ngay_kham).toLocaleDateString("vi-VN") : "Không có";
+                        const gioKham = h.gio_bat_dau && h.gio_ket_thuc ? `${h.gio_bat_dau} - ${h.gio_ket_thuc}` : "Không có";
                         const trieuChung = h.trieu_chung || "Không có";
                         const trangThai = h.trang_thai || "Không có";
                       
@@ -916,7 +908,7 @@ const DoctorAppointmentDetail = () => {
                                 aria-expanded="false"
                                 aria-controls={`collapse${i}`}
                               >
-                                {ngayKham} - {gioKham} - {trieuChung} - {trangThai}
+                                {ngayKham} - {trieuChung} - {trangThai}
                               </button>
                             </h2>
                             <div
@@ -927,15 +919,13 @@ const DoctorAppointmentDetail = () => {
                             >
                               <div className="accordion-body">
                                 {/* Hóa đơn */}
-                                {h.hoa_don ? (
+                                {h.hoaDon ? (
                                   <div className="mb-3">
                                     <h6>Hóa đơn</h6>
                                     <p>
-                                      Mã HĐ: {h.hoa_don.id_hoa_don} | Tổng tiền:{" "}
-                                      {h.hoa_don.tong_tien} | Trạng thái: {h.hoa_don.trang_thai} | Phương thức thanh toán:{" "}
-                                      {h.hoa_don.phuong_thuc_thanh_toan}
+                                  Tổng tiền: {h.hoaDon.tong_tien} | Trạng thái: {h.hoaDon.trang_thai} | Phương thức: {h.hoaDon.phuong_thuc_thanh_toan || "Chưa chọn"}
                                     </p>
-                                    {h.hoa_don.chi_tiet_hoa_don && h.hoa_don.chi_tiet_hoa_don.length > 0 && (
+                                    {h.chiTietHoaDon && h.chiTietHoaDon.length > 0 && (
                                       <table className="table table-sm table-bordered">
                                         <thead>
                                           <tr>
@@ -946,9 +936,9 @@ const DoctorAppointmentDetail = () => {
                                           </tr>
                                         </thead>
                                         <tbody>
-                                          {h.hoa_don.chi_tiet_hoa_don.map((ct, j) => (
+                                          {h.chiTietHoaDon.map((ct, j) => (
                                             <tr key={j}>
-                                              <td>{ct.id_dich_vu}</td>
+                                              <td>{ct.ten_dich_vu || ct.id_dich_vu}</td>
                                               <td>{ct.so_luong}</td>
                                               <td>{ct.don_gia}</td>
                                               <td>{ct.thanh_tien}</td>
@@ -963,26 +953,24 @@ const DoctorAppointmentDetail = () => {
                                 )}
 
                                 {/* Đơn thuốc */}
-                                {h.don_thuoc ? (
-                                  <div>
+                                {h.donThuoc ? (
+                                  <div className="mb-3">
                                     <h6>Đơn thuốc</h6>
-                                    <p>Mã đơn thuốc: {h.don_thuoc.id_don_thuoc} | Trạng thái: {h.don_thuoc.trang_thai}</p>
-                                    {h.don_thuoc.chi_tiet_don_thuoc && h.don_thuoc.chi_tiet_don_thuoc.length > 0 && (
+                                    {h.chiTietDonThuoc && h.chiTietDonThuoc.length > 0 && (
                                       <table className="table table-sm table-bordered">
                                         <thead>
                                           <tr>
                                             <th>Thuốc</th>
                                             <th>Liều dùng</th>
                                             <th>Tần suất</th>
-                                            <th>Thời gian dùng</th>
                                             <th>Số lượng</th>
                                             <th>Ghi chú</th>
                                           </tr>
                                         </thead>
                                         <tbody>
-                                          {h.don_thuoc.chi_tiet_don_thuoc.map((ct, j) => (
+                                          {h.chiTietDonThuoc.map((ct, j) => (
                                             <tr key={j}>
-                                              <td>{ct.id_thuoc}</td>
+                                              <td>{ct.ten_thuoc || ct.id_thuoc}</td>
                                               <td>{ct.lieu_dung}</td>
                                               <td>{ct.tan_suat}</td>
                                               <td>{ct.so_luong}</td>
@@ -1005,6 +993,7 @@ const DoctorAppointmentDetail = () => {
                       <p>Chưa có lịch sử khám bệnh</p>
                     )}
                   </div>
+
                   
                 </div>
                   

@@ -84,12 +84,11 @@ const apiLichLamViec = {
   },
 
   // Lọc theo tuần
-  getByWeek: async (week, year) => {
+  getByWeek: async (ngay,id) => {
     try {
       const res = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/filter/week`,
-        { params: { week, year } }
-      );
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/filter/week/${id}`,{
+         params: { ngay }});
       return res.data.data;
     } catch (err) {
       console.error("Error fetching lich lam viec by week:", err);

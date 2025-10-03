@@ -7,12 +7,9 @@ const DoctorSidebar = () => {
 
   const menuItems = [
     { path: "/doctor", label: "Trang tổng quan", icon: "bi bi-speedometer2" },
-    { path: "/doctor/patients", label: "Bệnh nhân", icon: "bi bi-people" },
     { path: "/doctor/appointments", label: "Lịch hẹn", icon: "bi bi-calendar-check" },
     { path: "/doctor/records", label: "Hồ sơ bệnh án", icon: "bi bi-folder2" },
-    { path: "/doctor/prescriptions", label: "Quản lý đơn thuốc", icon: "bi bi-capsule-pill" },
-    { path: "/doctor/recheck", label: "Lịch tái khám", icon: "bi bi-calendar-event" },
-    { path: "/doctor/consultations", label: "Tư vấn trực tuyến", icon: "bi bi-chat-dots" },
+    { path: "/doctor/consultations", label: "Tin nhắn", icon: "bi bi-chat-dots" },
     { path: "/doctor/work-schedule", label: "Lịch làm việc", icon: "bi bi-clock-history" },
     { path: "/doctor/reports", label: "Báo cáo", icon: "bi bi-bar-chart" },
   ];
