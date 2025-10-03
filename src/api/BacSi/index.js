@@ -1,11 +1,11 @@
 import axiosInstance from "../axios";
 import API_CONFIG from "../../configs/api_configs.js";
-
+import axios from "axios";
 const apiBacSi = {
   // Lấy tất cả bác sĩ
   getAll: async () => {
     try {
-      const res = await axiosInstance.get(
+      const res = await axios.get(
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.BacSi}/`
       );
       return res.data;
@@ -18,7 +18,7 @@ const apiBacSi = {
   // Lấy bác sĩ theo ID
   getById: async (id_bac_si) => {
     try {
-      const res = await axiosInstance.get(
+      const res = await axios.get(
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.BacSi}/${id_bac_si}`
       );
       return res.data;

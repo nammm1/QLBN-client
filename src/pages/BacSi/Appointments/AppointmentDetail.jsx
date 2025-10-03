@@ -5,9 +5,17 @@ import apiBenhNhan from "../../../api/BenhNhan";
 import apiHoSoKhamBenh from "../../../api/HoSoKhamBenh";
 import apiDonThuoc from "../../../api/DonThuoc";
 import apiThuoc from "../../../api/Thuoc";
-import apiChiTietDonThuoc from "../../../api/ChiTietDonThuoc";
+import apiHoaDon from "../../../api/HoaDon";
+import apiDichVu from "../../../api/DichVu";
+import {calculateAge} from "../../../utils/calculateAge";
+import { Select, Button } from "antd";
+
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+
 import "./AppointmentDetail.css";
 const DoctorAppointmentDetail = () => {
+
   const { id_cuoc_hen } = useParams();
   const userInfo = JSON.parse(localStorage.getItem("userInfo"));
 
@@ -18,10 +26,11 @@ const DoctorAppointmentDetail = () => {
   const [lichSu, setLichSu] = useState([]);
   
   const [dsThuoc, setDsThuoc] = useState([]);
-  const [donThuocTamThoi, setDonThuocTamThoi] = useState([
-  { id_thuoc: "", so_luong: 1, lieu_dung: "" }
-  ]);
+  const [donThuocTamThoi, setDonThuocTamThoi] = useState([]);
   const [ghiChuDonThuoc, setGhiChuDonThuoc] = useState("");
+
+  const [dsDichVu, setDsDichVu] = useState([]);
+  const [dichVuTamThoi, setDichVuTamThoi] = useState([]);
 
   const [hoSo, setHoSo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,21 +39,29 @@ const DoctorAppointmentDetail = () => {
   const [modalCreateOpen, setModalCreateOpen] = useState(false);
   const [modalViewOpen, setModalViewOpen] = useState(false);
   const [modalDonThuoc, setModalDonThuoc] = useState(false);
+  const [modalDichVu, setModalDichVu] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
 
   const [formData, setFormData] = useState({});
 
-  // Hàm tính tuổi
-  const calculateAge = (ngaySinh) => {
-    if (!ngaySinh) return "";
-    const birth = new Date(ngaySinh);
-    const diff = Date.now() - birth.getTime();
-    return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+  // Lấy danh sách dịch vụ khi mở modal
+  const handleOpenDichVu = async () => {
+    try {
+      const res = await apiDichVu.getAll();
+      console.log(res.data);
+      setDsDichVu(res.data || []);
+      setModalDichVu(true);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Lấy danh sách thuốc khi mở modal kê đơn
   const handleOpenDonThuoc = async () => {
     try {
       const res = await apiThuoc.getAllThuoc();
+      console.log(res);
       setDsThuoc(res || []);
       setModalDonThuoc(true);
     } catch (err) {
@@ -52,44 +69,128 @@ const DoctorAppointmentDetail = () => {
     }
   };
 
+  const handleRemoveThuoc = (index) => {
+    setDonThuocTamThoi(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveDichVu = (index) => {
+    setDichVuTamThoi(prev => prev.filter((_, i) => i !== index));
+  };
+
   // Thêm dòng thuốc mới
   const handleAddThuocRow = () => {
     setDonThuocTamThoi([...donThuocTamThoi, { id_thuoc: "", so_luong: 1, lieu_dung: "" }]);
   };
+  // Thêm dòng dịch vụ
+  const handleAddDichVuRow = () => {
+    setDichVuTamThoi([...dichVuTamThoi, { id_dich_vu: "", so_luong: 1, don_gia: 0 }]);
+  };
   
-  // Cập nhật dữ liệu nhập
+
+  // Thay đổi dịch vụ
+  const handleChangeDichVu = (index, field, value) => {
+    const updated = [...dichVuTamThoi];
+    updated[index][field] = value;
+
+    // Nếu chọn dịch vụ thì tự động fill đơn giá
+    if (field === "id_dich_vu") {
+      const selected = dsDichVu.find((dv) => dv.id_dich_vu === value);
+      if (selected) updated[index] = { ...updated[index], don_gia: selected.don_gia || 0, ten_dich_vu: selected.ten_dich_vu };
+    }
+
+    setDichVuTamThoi(updated);
+  };
+  // Cập nhật dữ liệu nhập Thuoc
   const handleChangeThuoc = (index, field, value) => {
     const updated = [...donThuocTamThoi];
     updated[index][field] = value;
+    if (field === "id_thuoc") {
+      const selected = dsThuoc.find(t => t.id_thuoc === value);
+      if (selected) {
+        updated[index] = { ...updated[index], don_gia: selected.don_gia || 0, ten_thuoc: selected.ten_thuoc, ham_luong: selected.ham_luong };
+      }
+    }
     setDonThuocTamThoi(updated);
   };
 
-  const handleFinish = async () => {
-  try {
+  const handleExportPdf = async () => {
     if (donThuocTamThoi.length > 0 && donThuocTamThoi[0].id_thuoc) {
       // Tạo đơn thuốc
       const donThuoc = await apiDonThuoc.create({
         id_ho_so: hoSo?.id_ho_so,
         ghi_chu: ghiChuDonThuoc || "",
-        trang_thai: "Đang điều trị"
+        trang_thai: "Đang điều trị",
+        chi_tiet : donThuocTamThoi
       });
+    }
+    if (dichVuTamThoi.length > 0 && dichVuTamThoi[0].id_dich_vu) {
+      // Tạo đơn thuốc
+      const tong_tien = dichVuTamThoi.reduce(
+        (sum, dv) => sum + dv.so_luong * dv.don_gia,
+        0
+      );
+      const hoaDon = await apiHoaDon.create({
+        id_cuoc_hen_kham: appointment?.id_cuoc_hen_kham || null,
+        id_cuoc_hen_tu_van: null,
+        tong_tien,
+        chi_tiet: dichVuTamThoi,
+      });
+    }
+    await apiCuocHenKham.updateTrangThai(id_cuoc_hen ,{trang_thai : "da_hoan_thanh"});
+    const input = document.getElementById("invoicePreview");
+    if (!input) return;
 
-      const id_don_thuoc = donThuoc.data.id_don_thuoc;
+    // Chuyển div thành canvas
+    const canvas = await html2canvas(input, {
+      scale: 2,
+      useCORS: true,     
+      logging: false,
+    });
 
-      // Tạo chi tiết đơn thuốc
-      for (const ct of donThuocTamThoi) {
-        await apiChiTietDonThuoc.create({
-          id_don_thuoc,
-          id_thuoc: ct.id_thuoc,
-          lieu_dung: ct.lieu_dung,
-          tan_suat: ct.tan_suat,
-          thoi_gian_dung: ct.thoi_gian_dung,
-          so_luong: ct.so_luong,
-          ghi_chu: ct.ghi_chu
-        });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4"); 
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    // Kích thước ảnh trên PDF
+    const imgProps = {
+      width: pdfWidth,
+      height: (canvas.height * pdfWidth) / canvas.width,
+    };
+
+    let position = 0;
+
+    // Nếu nội dung cao hơn 1 trang
+    if (imgProps.height <= pdfHeight) {
+      pdf.addImage(imgData, "PNG", 0, 0, imgProps.width, imgProps.height);
+    } else {
+      // Chia nội dung thành nhiều trang
+      let heightLeft = imgProps.height;
+      let y = 0;
+      while (heightLeft > 0) {
+        pdf.addImage(
+          imgData,
+          "PNG",
+          0,
+          y,
+          imgProps.width,
+          imgProps.height
+        );
+        heightLeft -= pdfHeight;
+        y -= pdfHeight;
+        if (heightLeft > 0) pdf.addPage();
       }
     }
-    alert("Kết thúc khám & xuất hóa đơn thành công!");
+
+    pdf.save(`HoaDon_${id_cuoc_hen}.pdf`);
+
+    navigate(`/doctor/appointments`);
+
+  };
+
+  const handleFinish = async () => {
+  try {
+    setShowPreview(true);
   } catch (err) {
     console.error(err);
   }
@@ -110,6 +211,7 @@ const DoctorAppointmentDetail = () => {
           if (hs) setHoSo(hs);
 
           const ls = await apiCuocHenKham.getLichSuByBenhNhan(appt.id_benh_nhan);
+          console.log(ls);
           setLichSu(ls);
         }
       } catch (error) {
@@ -260,11 +362,20 @@ const DoctorAppointmentDetail = () => {
       </div>
 
       {/* === Nút hành động === */}
-      <div className="mt-3 d-flex gap-2 flex-wrap">
-        <button className="btn btn-warning" onClick={handleOpenDonThuoc}>Kê đơn thuốc</button>
-        <button className="btn btn-secondary">Chọn dịch vụ kèm theo</button>
-        <button className="btn btn-success" onClick={handleFinish}>Kết thúc khám / Xuất hóa đơn</button>
-      </div>
+      {!appointment.trang_thai === "da_hoan_thanh" && (
+        <div className="mt-3 d-flex gap-2 flex-wrap">
+          <button className="btn btn-warning" onClick={handleOpenDonThuoc}>
+            Kê đơn thuốc
+          </button>
+          <button className="btn btn-secondary" onClick={handleOpenDichVu}>
+            Chọn dịch vụ kèm theo
+          </button>
+          <button className="btn btn-success" onClick={handleFinish}>
+            Kết thúc khám / Xuất hóa đơn
+          </button>
+        </div>
+      )}
+
 
       
 
@@ -343,10 +454,97 @@ const DoctorAppointmentDetail = () => {
           </div>
         </div>
       )}
-      
-      {modalDonThuoc && (
+
+      {modalDichVu && (
         <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
           <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Thêm dịch vụ vào hóa đơn</h5>
+                <button className="btn-close" onClick={() => setModalDichVu(false)}></button>
+              </div>
+              <div className="modal-body">
+                {dichVuTamThoi.map((row, i) => (
+                  <div key={i} className="row g-2 align-items-center mb-2">
+                    {/* Dịch vụ */}
+                    <div className="col-md-5">
+                      <Select
+                        showSearch
+                        style={{ width: "100%" }}  
+                        size="large"
+                        placeholder="Chọn dịch vụ"
+                        value={row.id_dich_vu}
+                        onChange={(value) => handleChangeDichVu(i, "id_dich_vu", value)}
+                        filterOption={(input, option) =>
+                          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                        }
+                        options={dsDichVu.map(dv => ({
+                          value: dv.id_dich_vu,
+                          label: `${dv.ten_dich_vu} - ${dv.don_gia} VNĐ`
+                        }))}
+                      />
+                    </div>
+                      
+                    {/* Số lượng */}
+                    <div className="col-md-2">
+                      <input
+                        type="number"
+                        className="form-control"
+                        placeholder="SL"
+                        value={row.so_luong}
+                        onChange={(e) => handleChangeDichVu(i, "so_luong", e.target.value)}
+                      />
+                    </div>
+                      
+                    {/* Đơn giá */}
+                    <div className="col-md-2">
+                      <input
+                        type="number"
+                        className="form-control"
+                        placeholder="Đơn giá"
+                        value={row.don_gia}
+                        onChange={(e) => handleChangeDichVu(i, "don_gia", e.target.value)}
+                      />
+                    </div>
+                      
+                    {/* Thành tiền */}
+                    <div className="col-md-2">
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={row.so_luong * row.don_gia}
+                        readOnly
+                      />
+                    </div>
+                    <div className="col-md-1">
+                      <Button 
+                        danger 
+                        onClick={() => handleRemoveDichVu(i)}
+                      >
+                        X
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
+                <button className="btn btn-sm btn-outline-primary mt-2" onClick={handleAddDichVuRow}>
+                  + Thêm dịch vụ
+                </button>
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={() => setModalDichVu(false)}>
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {modalDonThuoc && (
+        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+          <div className="modal-dialog modal-xl" >
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Kê đơn thuốc</h5>
@@ -356,19 +554,22 @@ const DoctorAppointmentDetail = () => {
                 {donThuocTamThoi.map((row, i) => (
                   <div key={i} className="row g-2 align-items-center mb-2">
                     {/* Thuốc */}
-                    <div className="col-md-3">
-                      <select
-                        className="form-select"
+                    <div className="col-md-4">
+                      <Select
+                        showSearch
+                        style={{ width: "100%" }}  
+                        size="large"
+                        placeholder="Chọn thuốc"
                         value={row.id_thuoc}
-                        onChange={(e) => handleChangeThuoc(i, "id_thuoc", e.target.value)}
-                      >
-                        <option value="">-- Chọn thuốc --</option>
-                        {dsThuoc.map((t) => (
-                          <option key={t.id_thuoc} value={t.id_thuoc}>
-                            {t.ten_thuoc} ({t.don_vi_tinh})
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(value) => handleChangeThuoc(i, "id_thuoc", value)}
+                        filterOption={(input, option) =>
+                          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                        }
+                        options={dsThuoc.map(t => ({
+                          value: t.id_thuoc,
+                          label: `${t.ten_thuoc} (${t.hang_bao_che})`
+                        }))}
+                      />
                     </div>
                       
                     {/* Liều dùng */}
@@ -393,17 +594,6 @@ const DoctorAppointmentDetail = () => {
                       />
                     </div>
                       
-                    {/* Thời gian dùng */}
-                    <div className="col-md-2">
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Thời gian dùng"
-                        value={row.thoi_gian_dung}
-                        onChange={(e) => handleChangeThuoc(i, "thoi_gian_dung", e.target.value)}
-                      />
-                    </div>
-                      
                     {/* Số lượng */}
                     <div className="col-md-1">
                       <input
@@ -424,6 +614,14 @@ const DoctorAppointmentDetail = () => {
                         value={row.ghi_chu || ""}
                         onChange={(e) => handleChangeThuoc(i, "ghi_chu", e.target.value)}
                       />
+                    </div>
+                    <div className="col-md-1">
+                      <Button 
+                        danger 
+                        onClick={() => handleRemoveThuoc(i)}
+                      >
+                        X
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -452,6 +650,144 @@ const DoctorAppointmentDetail = () => {
           </div>
         </div>
       )}
+        {showPreview && (
+          <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
+            <div className="modal-dialog modal-xl">
+              <div className="modal-content bg-white p-3">
+                <div className="modal-header border-0">
+                  <h5 className="modal-title">Xem trước hóa đơn</h5>
+                  <button className="btn-close" onClick={() => setShowPreview(false)}></button>
+                </div>
+
+                <div className="modal-body">
+                  <div id="invoicePreview">
+
+                    <h3 className="text-center mb-4">PHÒNG KHÁM ABC</h3>
+
+                    {/* Thông tin bệnh nhân */}
+                    <div className="mb-4">
+                      <h5 className="text-center mb-3">Thông tin bệnh nhân</h5>
+                      <div className="row mb-2 text-start">
+                        <div className="col-md-2 fw-bold ">Mã cuộc hẹn:</div>
+                        <div className="col-md-4">{id_cuoc_hen}</div>
+                        <div className="col-md-2 fw-bold">Họ tên:</div>
+                        <div className="col-md-4">{hoSo.ho_ten}</div>
+                      </div>
+                      <div className="row mb-2 text-start">
+                        <div className="col-md-2 fw-bold">Giới tính:</div>
+                        <div className="col-md-4">{hoSo.gioi_tinh}</div>
+                        <div className="col-md-2 fw-bold">Dân tộc:</div>
+                        <div className="col-md-4">{hoSo.dan_toc}</div>
+                      </div>
+                      <div className="row mb-2 text-start">
+                        <div className="col-md-2 fw-bold ">Địa chỉ:</div>
+                        <div className="col-md-4">{hoSo.dia_chi}</div>
+                        <div className="col-md-2 fw-bold">Mã BHYT:</div>
+                        <div className="col-md-4">{hoSo.ma_BHYT}</div>
+                      </div>
+                      <div className="row mb-2 text-start">
+                        <div className="col-md-2 fw-bold">Ngày khám:</div>
+                        <div className="col-md-4">{new Date().toLocaleDateString()}</div>
+                        <div className="col-md-2 fw-bold"></div>
+                        <div className="col-md-4"></div>
+                      </div>
+                    </div>
+
+                    {/* Lý do khám, Chuẩn đoán, Phương án điều trị */}
+                    <div className="mb-3 p-2 border rounded shadow-sm bg-light">
+                      <label className="fw-bold mb-1">Lý do khám bệnh:</label>
+                      <div style={{ whiteSpace: "pre-wrap" }}>{hoSo.ly_do_kham}</div>
+                    </div>
+
+                    <div className="mb-3 p-2 border rounded shadow-sm bg-light">
+                      <label className="fw-bold mb-1">Chuẩn đoán bệnh:</label>
+                      <div style={{ whiteSpace: "pre-wrap" }}>{hoSo.chuan_doan}</div>
+                    </div>
+
+                    <div className="mb-3 p-2 border rounded shadow-sm bg-light">
+                      <label className="fw-bold mb-1">Phương án điều trị:</label>
+                      <div style={{ whiteSpace: "pre-wrap" }}>{hoSo.dieu_tri}</div>
+                    </div>
+
+                    {/* Dịch vụ */}
+                    <h5 className="mt-4">Dịch vụ</h5>
+                    <table className="table table-bordered table-striped">
+                      <thead className="table-dark">
+                        <tr>
+                          <th>STT</th>
+                          <th>Tên DV</th>
+                          <th>SL</th>
+                          <th>Đơn giá</th>
+                          <th>Thành tiền</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dichVuTamThoi.map((d, i) => (
+                          <tr key={i}>
+                            <td>{i + 1}</td>
+                            <td>{d.ten_dich_vu}</td>
+                            <td>{d.so_luong}</td>
+                            <td>{d.don_gia.toLocaleString()}</td>
+                            <td>{(d.don_gia * d.so_luong).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                      
+                    {/* Thuốc */}
+                    <h5 className="mt-4">Thuốc</h5>
+                    <table className="table table-bordered table-striped">
+                      <thead className="table-dark">
+                        <tr>
+                          <th>STT</th>
+                          <th>Thuốc</th>
+                          <th>SL</th>
+                          <th>Liều dùng</th>
+                          <th>Tần suất</th>
+                          <th>Ghi chú</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {donThuocTamThoi.map((t, i) => (
+                          <tr key={i}>
+                            <td>{i + 1}</td>
+                            <td>{t.ten_thuoc} ({t.ham_luong})</td>
+                            <td>{t.so_luong}</td>
+                            <td>{t.lieu_dung}</td>
+                            <td>{t.tan_suat}</td>
+                            <td>{t.ghi_chu}</td>
+                          </tr>
+                        ))}
+                        <tr>
+                          <td colSpan={6}>
+                            <div className="p-2 border rounded shadow-sm bg-light" style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                              <label className="fw-bold" style={{ minWidth: "120px", marginTop: "6px" }}>Ghi chú:</label>
+                              <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>{ghiChuDonThuoc}</div>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                      
+                    {/* Tổng cộng */}
+                    <h4 className="text-end mt-3 text-success fw-bold">
+                      Tổng cộng: {(dichVuTamThoi.reduce((sum,d)=>sum+d.so_luong*d.don_gia,0) + donThuocTamThoi.reduce((sum,t)=>sum+t.so_luong*t.don_gia,0)).toLocaleString()} VND
+                    </h4>
+                      
+                  </div>
+                </div>
+                      
+                <div className="modal-footer">
+                  <button className="btn btn-secondary" onClick={() => setShowPreview(false)}>Đóng</button>
+                  <button className="btn btn-success" onClick={handleExportPdf}>
+                    Xuất PDF & Kết thúc khám
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
 
 
 
@@ -649,7 +985,6 @@ const DoctorAppointmentDetail = () => {
                                               <td>{ct.id_thuoc}</td>
                                               <td>{ct.lieu_dung}</td>
                                               <td>{ct.tan_suat}</td>
-                                              <td>{ct.thoi_gian_dung}</td>
                                               <td>{ct.so_luong}</td>
                                               <td>{ct.ghi_chu}</td>
                                             </tr>
