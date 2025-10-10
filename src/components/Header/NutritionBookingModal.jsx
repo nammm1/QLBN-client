@@ -1,156 +1,214 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./BookingModal.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-const services = ["Tư vấn trực tiếp", "Tư vấn online"];
-const topics = ["Dinh dưỡng thể thao", "Giảm cân", "Tăng cân"];
-const expertsByTopic = {
-  "Dinh dưỡng thể thao": ["CG A", "CG B"],
-  "Giảm cân": ["CG C", "CG D"],
-  "Tăng cân": ["CG E", "CG F"],
-};
+import apiChuyenGiaDinhDuong from "../../api/ChuyenGiaDinhDuong";
+import apiLichLamViec from "../../api/LichLamViec";
+import apiKhungGioTuVan from "../../api/KhungGioKham";
+import apiNguoiDung from "../../api/NguoiDung";
+import apiCuocHenTuVan from "../../api/CuocHenTuVan";
 
-// Giả sử lịch làm việc của chuyên gia
-const expertSchedule = {
-  "CG A": {
-    "2025-09-25": ["Sáng"],
-    "2025-09-26": ["Chiều"],
-    "2025-09-27": ["Sáng", "Chiều"],
-  },
-  "CG B": {
-    "2025-09-29": ["Chiều"],
-    "2025-09-30": ["Sáng"],
-  },
-};
-
-const timeSlotsBySession = {
-  Sáng: [
-    "7:00-7:30",
-    "7:30-8:00",
-    "8:00-8:30",
-    "8:30-9:00",
-    "9:00-9:30",
-    "9:30-10:00",
-    "10:00-10:30",
-    "10:30-11:00",
-  ],
-  Chiều: [
-    "13:00-13:30",
-    "13:30-14:00",
-    "14:00-14:30",
-    "14:30-15:00",
-    "15:00-15:30",
-    "15:30-16:00",
-    "16:00-16:30",
-    "16:30-17:00",
-  ],
-};
-
-const NutritionBookingModal = ({ show, onClose }) => {
-  const [service, setService] = useState("");
-  const [topic, setTopic] = useState("");
-  const [expert, setExpert] = useState("");
+const BookingModalChuyenGia = ({ show, onClose }) => {
+  const [serviceType, setServiceType] = useState(""); // truc_tiep/online
+  const [topic, setTopic] = useState(""); // loai_dinh_duong
+  const [expert, setExpert] = useState(null);
   const [date, setDate] = useState(null);
   const [session, setSession] = useState("");
   const [timeSlot, setTimeSlot] = useState("");
   const [desc, setDesc] = useState("");
 
+  const [experts, setExperts] = useState([]);
+  const [expertSchedule, setExpertSchedule] = useState({});
+  const [timeSlots, setTimeSlots] = useState([]);
+
+  // ✅ Hàm format ngày local (YYYY-MM-DD)
+  const formatDateLocal = (dateObj) => {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const d = String(dateObj.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  // load chuyên gia
+  useEffect(() => {
+    const fetchExperts = async () => {
+      try {
+        const allExperts = await apiChuyenGiaDinhDuong.getAll();
+        const mergedExperts = await Promise.all(
+          allExperts.data.map(async (cg) => {
+            try {
+              const user = await apiNguoiDung.getUserById(cg.id_chuyen_gia);
+              return { ...cg, ...user.data };
+            } catch (err) {
+              console.error("Lỗi khi lấy user cho chuyên gia:", err);
+              return cg;
+            }
+          })
+        );
+        setExperts(mergedExperts);
+      } catch (err) {
+        console.error("Lỗi khi tải chuyên gia:", err);
+      }
+    };
+    fetchExperts();
+  }, []);
+
+  // load lịch làm việc theo chuyên gia
+  useEffect(() => {
+    if (expert) {
+      const fetchSchedule = async () => {
+        try {
+          const data = await apiLichLamViec.getAll();
+          const filtered = data.filter(
+            (item) => item.id_nguoi_dung === expert.id_nguoi_dung
+          );
+
+          const schedule = {};
+          filtered.forEach((item) => {
+            const ngay = formatDateLocal(new Date(item.ngay_lam_viec));
+            if (!schedule[ngay]) schedule[ngay] = [];
+            schedule[ngay].push(item.ca);
+          });
+
+          setExpertSchedule(schedule);
+        } catch (err) {
+          console.error("Lỗi khi tải lịch làm việc:", err);
+        }
+      };
+      fetchSchedule();
+    } else {
+      setExpertSchedule({});
+    }
+  }, [expert]);
+
+  // load khung giờ
+  useEffect(() => {
+    if (session) {
+      const fetchTimeSlots = async () => {
+        try {
+          const data = await apiKhungGioTuVan.getAll();
+          const filtered = data.filter((kg) => kg.ca === session);
+          setTimeSlots(filtered);
+        } catch (err) {
+          console.error("Lỗi khi tải khung giờ:", err);
+        }
+      };
+      fetchTimeSlots();
+    } else {
+      setTimeSlots([]);
+    }
+  }, [session]);
+
   if (!show) return null;
 
-  // danh sách ngày chuyên gia có lịch
-  const allowedDates = expert ? Object.keys(expertSchedule[expert] || {}) : [];
-
+  const allowedDates = expert ? Object.keys(expertSchedule) : [];
   const isAllowedDate = (dateObj) => {
-    const d = dateObj.toISOString().split("T")[0];
+    const d = formatDateLocal(dateObj);
     return allowedDates.includes(d);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!service || !topic || !expert || !date || !session || !timeSlot) {
-      alert("Vui lòng chọn đầy đủ thông tin!");
+    if (!serviceType || !topic || !expert || !date || !session || !timeSlot || !desc) {
+      alert("Vui lòng nhập đầy đủ thông tin!");
       return;
     }
-    alert(
-      `Đặt lịch thành công với ${expert} - ${topic} vào ${date.toLocaleDateString()} (${session}, ${timeSlot})`
-    );
-    onClose();
+
+    try {
+      const payload = {
+        id_chuyen_gia: expert.id_chuyen_gia,
+        id_khung_gio: timeSlot,
+        ngay_kham: formatDateLocal(date), // ✅ fix timezone
+        loai_hen: serviceType, // online | truc_tiep
+        loai_dinh_duong: topic, // Giảm cân, Tăng cân...
+        ly_do_tu_van: desc,
+      };
+
+      console.log("Payload gửi lên:", payload);
+
+      await apiCuocHenTuVan.create(payload);
+
+      alert("Đặt lịch tư vấn thành công!");
+      onClose();
+    } catch (err) {
+      alert("Có lỗi khi đặt lịch tư vấn!");
+      console.error(err);
+    }
   };
 
   return (
     <div className="modal-overlay">
       <div className="modal-container">
         <h4 className="modal-header-title fw-bold text-center mb-3">
-          Đặt lịch tư vấn dinh dưỡng
+          Đăng ký tư vấn dinh dưỡng
         </h4>
 
         <form onSubmit={handleSubmit}>
-          {/* Dịch vụ */}
+          {/* loại hẹn */}
           <div className="mb-3">
-            <label className="form-label">Chọn loại dịch vụ</label>
-            <div className="service-buttons">
-              {services.map((s) => (
+            <label className="form-label">Chọn loại hẹn</label>
+            <div className="d-flex gap-2">
+              {[
+                { label: "Trực tiếp", value: "truc_tiep" },
+                { label: "Online", value: "online" },
+              ].map((opt) => (
                 <button
-                  key={s}
+                  key={opt.value}
                   type="button"
                   className={`btn ${
-                    service === s ? "btn-primary" : "btn-outline-primary"
+                    serviceType === opt.value ? "btn-primary" : "btn-outline-primary"
                   }`}
-                  onClick={() => setService(s)}
+                  onClick={() => setServiceType(opt.value)}
                 >
-                  {s}
+                  {opt.label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Tư vấn về */}
+          {/* loại dinh dưỡng */}
           <div className="mb-3">
-            <label className="form-label">Tư vấn về</label>
+            <label className="form-label">Loại dinh dưỡng</label>
             <select
               className="form-select"
               value={topic}
-              onChange={(e) => {
-                setTopic(e.target.value);
-                setExpert("");
-              }}
-              disabled={!service}
+              onChange={(e) => setTopic(e.target.value)}
             >
-              <option value="">Chọn chủ đề</option>
-              {topics.map((tp) => (
-                <option key={tp} value={tp}>
-                  {tp}
+              <option value="">Chọn loại dinh dưỡng</option>
+              <option value="Giảm cân">Giảm cân</option>
+              <option value="Tăng cân">Tăng cân</option>
+              <option value="Dinh dưỡng thể thao">Dinh dưỡng thể thao</option>
+              <option value="Tiểu đường">Tiểu đường</option>
+            </select>
+          </div>
+
+          {/* chuyên gia */}
+          <div className="mb-3">
+            <label className="form-label">Chọn chuyên gia</label>
+            <select
+              className="form-select"
+              value={expert ? expert.id_chuyen_gia : ""}
+              onChange={(e) => {
+                const selectedExpert = experts.find(
+                  (d) => String(d.id_chuyen_gia) === String(e.target.value)
+                );
+                setExpert(selectedExpert || null);
+                setDate(null);
+                setSession("");
+                setTimeSlot("");
+              }}
+            >
+              <option value="">Chọn chuyên gia</option>
+              {experts.map((cg) => (
+                <option key={cg.id_chuyen_gia} value={cg.id_chuyen_gia}>
+                  {cg.ho_ten}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Chuyên gia */}
-          <div className="mb-3">
-            <label className="form-label">Chọn chuyên gia</label>
-            <select
-              className="form-select"
-              value={expert}
-              onChange={(e) => {
-                setExpert(e.target.value);
-                setDate(null);
-                setSession("");
-                setTimeSlot("");
-              }}
-              disabled={!topic}
-            >
-              <option value="">Chọn chuyên gia</option>
-              {topic &&
-                expertsByTopic[topic].map((exp) => (
-                  <option key={exp} value={exp}>
-                    {exp}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          {/* Ngày & Buổi */}
+          {/* ngày + ca + khung giờ */}
           <div className="mb-3">
             <label className="form-label">Chọn ngày tư vấn</label>
             <DatePicker
@@ -164,21 +222,12 @@ const NutritionBookingModal = ({ show, onClose }) => {
               placeholderText="Chọn ngày"
               minDate={new Date()}
               filterDate={isAllowedDate}
-              showIcon
-              popperPlacement="bottom"
-              calendarClassName="custom-calendar"
-              dayClassName={(d) => {
-                const dStr = d.toISOString().split("T")[0];
-                return allowedDates.includes(dStr) ? "highlight-day" : undefined;
-              }}
               disabled={!expert}
             />
 
-            {/* Chọn buổi */}
             {date && (
               <div className="session-buttons mt-2">
-                {(expertSchedule[expert][date.toISOString().split("T")[0]] ||
-                  []).map((s) => (
+                {(expertSchedule[formatDateLocal(date)] || []).map((s) => (
                   <button
                     key={s}
                     type="button"
@@ -196,38 +245,37 @@ const NutritionBookingModal = ({ show, onClose }) => {
               </div>
             )}
 
-            {/* Chọn khung giờ */}
             {session && (
               <div className="time-slots mt-2">
-                {timeSlotsBySession[session].map((slot) => (
+                {timeSlots.map((slot) => (
                   <button
-                    key={slot}
+                    key={slot.id_khung_gio}
                     type="button"
                     className={`btn ${
-                      timeSlot === slot ? "btn-info" : "btn-outline-info"
+                      timeSlot === slot.id_khung_gio ? "btn-info" : "btn-outline-info"
                     } mx-1 my-1`}
-                    onClick={() => setTimeSlot(slot)}
+                    onClick={() => setTimeSlot(slot.id_khung_gio)}
                   >
-                    {slot}
+                    {slot.gio_bat_dau} - {slot.gio_ket_thuc}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Mô tả */}
+          {/* lý do tư vấn */}
           <div className="mb-3">
-            <label className="form-label">Mô tả vấn đề dinh dưỡng</label>
+            <label className="form-label">Lý do tư vấn</label>
             <textarea
               className="form-control"
               rows="3"
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
-              placeholder="Hãy mô tả vấn đề dinh dưỡng bạn cần tư vấn..."
+              placeholder="Hãy mô tả chi tiết mong muốn tư vấn..."
             ></textarea>
           </div>
 
-          {/* Buttons */}
+          {/* buttons */}
           <div className="form-actions d-flex justify-content-between">
             <button
               type="button"
@@ -246,4 +294,4 @@ const NutritionBookingModal = ({ show, onClose }) => {
   );
 };
 
-export default NutritionBookingModal;
+export default BookingModalChuyenGia;

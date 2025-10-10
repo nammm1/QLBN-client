@@ -88,7 +88,7 @@ const Header = () => {
                 </button>
                 <ul className="dropdown-menu" aria-labelledby="userMenuButton">
                   <li>
-                    <Link className="dropdown-item" to="/profile">
+                    <Link className="dropdown-item" to="/UpdateProfile">
                       Thông tin cá nhân
                     </Link>
                   </li>
@@ -176,6 +176,14 @@ const Header = () => {
                   Dành cho Bác sĩ
                 </Link>
               </li>
+              {/* <li className="nav-item">
+                <Link
+                  className="nav-link text-white fw-bold"
+                  to="/admin-function"
+                >
+                  Admin
+                </Link>
+              </li> */}
             </ul>
           </div>
         </div>

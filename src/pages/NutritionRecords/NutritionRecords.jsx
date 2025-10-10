@@ -7,13 +7,13 @@ const personalInfo = {
   gioi_tinh: "Nam",
   tuoi: 39,
   dan_toc: "Kinh",
-  sdt: "0123456789",
+  so_dien_thoai: "0123456789",
   dia_chi: "123 Đường ABC, Phường XYZ, Quận 1, TP.HCM",
 };
 
 const nutritionData = [
   {
-    ngay_tu_van: "2024-10-01",
+    ngay_tao: "2024-10-01",
     chuyen_gia: "PGS.TS Nguyễn Thị B",
     loai_tu_van: "Giảm cân",
     phuong_thuc: "Trực tiếp",
@@ -23,11 +23,11 @@ const nutritionData = [
       vong_eo: "85 cm",
       mo_co_the: "22%",
       khoi_co: "58 kg",
-      nuoc: "60%",
+      nuoc_trong_co_the: "60%",
     },
     nhan_xet: "Thừa cân nhẹ, tỷ lệ mỡ cơ thể cao hơn bình thường. Cần điều chỉnh chế độ ăn và tăng vận động.",
-    ke_hoach: "Giảm 500-750 kcal/ngày so với nhu cầu duy trì. Tăng protein, giảm carb đơn giản, tăng chất xơ.",
-    calo: "1800 kcal/ngày",
+    ke_hoach_dinh_duong: "Giảm 500-750 kcal/ngày so với nhu cầu duy trì. Tăng protein, giảm carb đơn giản, tăng chất xơ.",
+    nhu_cau_calo: "1800 kcal/ngày",
     cham_soc: "Uống đủ nước, tập thể dục 150 phút/tuần, theo dõi cân nặng hàng tuần",
     ghi_chu: "Tái khám sau 2 tuần để đánh giá tiến triển",
     thuc_don: {
@@ -39,7 +39,7 @@ const nutritionData = [
     },
   },
   {
-    ngay_tu_van: "2024-11-15",
+    ngay_tao: "2024-11-15",
     chuyen_gia: "ThS. Trần Văn C",
     loai_tu_van: "Thể thao",
     phuong_thuc: "Online",
@@ -49,11 +49,11 @@ const nutritionData = [
       vong_eo: "83 cm",
       mo_co_the: "20%",
       khoi_co: "60 kg",
-      nuoc: "62%",
+      nuoc_trong_co_the: "62%",
     },
     nhan_xet: "Thể trạng tốt, cần tăng cường protein và tập luyện sức mạnh.",
-    ke_hoach: "Tăng 300 kcal/ngày, bổ sung thực phẩm giàu protein, tập gym 3 buổi/tuần.",
-    calo: "2300 kcal/ngày",
+    ke_hoach_dinh_duong: "Tăng 300 kcal/ngày, bổ sung thực phẩm giàu protein, tập gym 3 buổi/tuần.",
+    nhu_cau_calo: "2300 kcal/ngày",
     cham_soc: "Ngủ đủ 8h, uống 2 lít nước/ngày, tập thể dục đều đặn",
     ghi_chu: "Theo dõi cân nặng và khối cơ hàng tháng",
     thuc_don: {
@@ -117,7 +117,7 @@ const NutritionRecords = () => {
             </div>
             <div>
               <div><b>Dân tộc:</b> {personalInfo.dan_toc}</div>
-              <div><b>Số điện thoại:</b> {personalInfo.sdt}</div>
+              <div><b>Số điện thoại:</b> {personalInfo.so_dien_thoai}</div>
               <div><b>Địa chỉ:</b> {personalInfo.dia_chi}</div>
             </div>
           </div>
@@ -159,7 +159,7 @@ const NutritionRecords = () => {
                     setShowMenu(false);
                   }}
                 >
-                  <td style={{ padding: "10px 8px" }}>{record.ngay_tu_van}</td>
+                  <td style={{ padding: "10px 8px" }}>{record.ngay_tao}</td>
                   <td style={{ padding: "10px 8px" }}>{record.chuyen_gia}</td>
                   <td style={{ padding: "10px 8px" }}>
                     <span style={{
@@ -196,7 +196,7 @@ const NutritionRecords = () => {
           <div className="modal-content" style={{ maxWidth: 540 }}>
             <div className="modal-header" style={{ background: "#fff" }}>
               <span className="modal-title" style={{ color: "#389e0d" }}>
-                Chi tiết tư vấn dinh dưỡng - {selectedNutrition.ngay_tu_van}
+                Chi tiết tư vấn dinh dưỡng - {selectedNutrition.ngay_tao}
               </span>
               <button
                 type="button"
@@ -212,7 +212,7 @@ const NutritionRecords = () => {
               <div className="modal-col">
                 <h6>Thông tin tư vấn</h6>
                 <div className="modal-box">
-                  <b>Ngày tư vấn:</b> {selectedNutrition.ngay_tu_van}
+                  <b>Ngày tư vấn:</b> {selectedNutrition.ngay_tao}
                   <br />
                   <b>Chuyên gia:</b> {selectedNutrition.chuyen_gia}
                   <br />
@@ -245,7 +245,7 @@ const NutritionRecords = () => {
                   <div><b>Vòng eo:</b> {selectedNutrition.chi_so.vong_eo}</div>
                   <div><b>Mỡ cơ thể:</b> {selectedNutrition.chi_so.mo_co_the}</div>
                   <div><b>Khối cơ:</b> {selectedNutrition.chi_so.khoi_co}</div>
-                  <div><b>Nước trong cơ thể:</b> {selectedNutrition.chi_so.nuoc}</div>
+                  <div><b>Nước trong cơ thể:</b> {selectedNutrition.chi_so.nuoc_trong_co_the}</div>
                 </div>
                 <h6>Nhu cầu calo hàng ngày</h6>
                 <div className="modal-box" style={{
@@ -255,7 +255,7 @@ const NutritionRecords = () => {
                   fontSize: 18,
                   textAlign: "center"
                 }}>
-                  {selectedNutrition.calo}
+                  {selectedNutrition.nhu_cau_calo}
                 </div>
               </div>
               {/* Cột phải: nhận xét, kế hoạch, chăm sóc, ghi chú */}
@@ -266,7 +266,7 @@ const NutritionRecords = () => {
                 </div>
                 <h6>Kế hoạch dinh dưỡng</h6>
                 <div className="modal-box modal-box-success">
-                  {selectedNutrition.ke_hoach}
+                  {selectedNutrition.ke_hoach_dinh_duong}
                 </div>
                 <h6>Chăm sóc</h6>
                 <div className="modal-box modal-box-note">

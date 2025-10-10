@@ -1,60 +1,56 @@
-import React, { useState } from "react";
-import "./Nutritionist.css"; 
-
-const nutritionistsList = [
-  {
-    id_chuyen_gia: 1,
-    ho_ten: "TS.DS Nguyễn Văn A",
-    hoc_vi: "Tiến sĩ, Dược sĩ",
-    linh_vuc_chuyen_sau: "Dinh dưỡng lâm sàng",
-    chuc_vu: "Trưởng khoa",
-    anh_dai_dien: "https://via.placeholder.com/150x200.png?text=Nutritionist+A",
-    gioi_thieu_ban_than:
-      "Chuyên gia dinh dưỡng lâm sàng, hơn 20 năm kinh nghiệm xây dựng chế độ ăn cho bệnh nhân tim mạch, tiểu đường.",
-  },
-  {
-    id_chuyen_gia: 2,
-    ho_ten: "ThS.DS Trần Thị B",
-    hoc_vi: "Thạc sĩ, Dược sĩ",
-    linh_vuc_chuyen_sau: "Dinh dưỡng cộng đồng",
-    chuc_vu: "Phó khoa",
-    anh_dai_dien: "https://via.placeholder.com/150x200.png?text=Nutritionist+B",
-    gioi_thieu_ban_than:
-      "Chuyên nghiên cứu chế độ ăn cân bằng cho trẻ em và người cao tuổi.",
-  },
-  {
-    id_chuyen_gia: 3,
-    ho_ten: "CN Dinh dưỡng Lê Văn C",
-    hoc_vi: "Cử nhân Dinh dưỡng",
-    linh_vuc_chuyen_sau: "Dinh dưỡng vận động",
-    chuc_vu: "Chuyên gia",
-    anh_dai_dien: "https://via.placeholder.com/150x200.png?text=Nutritionist+C",
-    gioi_thieu_ban_than:
-      "Tư vấn dinh dưỡng cho vận động viên chuyên nghiệp và người tập luyện thể hình.",
-  },
-  {
-    id_chuyen_gia: 4,
-    ho_ten: "BSCKI Phạm Thị D",
-    hoc_vi: "Bác sĩ chuyên khoa I",
-    linh_vuc_chuyen_sau: "Dinh dưỡng nhi khoa",
-    chuc_vu: "Bác sĩ điều trị",
-    anh_dai_dien: "https://via.placeholder.com/150x200.png?text=Nutritionist+D",
-    gioi_thieu_ban_than:
-      "Chuyên điều trị suy dinh dưỡng, béo phì ở trẻ em và tư vấn chế độ ăn khoa học.",
-  },
-  // 👉 Bạn có thể thêm tiếp danh sách tùy ý
-];
+import React, { useState, useEffect } from "react";
+import "./Nutritionist.css";
+import apiChuyenGia from "../../api/ChuyenGiaDinhDuong";
+import apiNguoiDung from "../../api/NguoiDung";
 
 const Nutritionist = () => {
+  const [nutritionists, setNutritionists] = useState([]);
   const [selectedNutritionist, setSelectedNutritionist] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
 
   const nutritionistsPerPage = 8;
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await apiChuyenGia.getAll();
+        const chuyenGiaList = res.data; // backend trả { success, data }
+
+        const mergedData = await Promise.all(
+          chuyenGiaList.map(async (cg) => {
+            try {
+              // gọi thêm thông tin user bằng id_chuyen_gia
+              const userRes = await apiNguoiDung.getUserById(cg.id_chuyen_gia);
+              const user = userRes.data;
+              return { ...cg, ...user };
+            } catch (err) {
+              console.error("Lỗi lấy user:", err);
+              return cg;
+            }
+          })
+        );
+
+        setNutritionists(mergedData);
+      } catch (err) {
+        console.error("Lỗi khi lấy danh sách chuyên gia:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Pagination
   const indexOfLast = currentPage * nutritionistsPerPage;
   const indexOfFirst = indexOfLast - nutritionistsPerPage;
-  const currentNutritionists = nutritionistsList.slice(indexOfFirst, indexOfLast);
+  const currentNutritionists = nutritionists.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(nutritionists.length / nutritionistsPerPage);
 
-  const totalPages = Math.ceil(nutritionistsList.length / nutritionistsPerPage);
+  if (loading) {
+    return <div className="text-center mt-5">Đang tải dữ liệu...</div>;
+  }
 
   return (
     <div className="container doctors-container">
@@ -89,33 +85,35 @@ const Nutritionist = () => {
       </div>
 
       {/* Pagination */}
-      <div className="pagination mt-4 d-flex justify-content-center">
-        <button
-          className="btn btn-sm btn-outline-primary mx-1"
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage(currentPage - 1)}
-        >
-          &lt;
-        </button>
-        {[...Array(totalPages)].map((_, i) => (
+      {totalPages > 1 && (
+        <div className="pagination mt-4 d-flex justify-content-center">
           <button
-            key={i}
-            className={`btn btn-sm mx-1 ${
-              currentPage === i + 1 ? "btn-primary" : "btn-outline-primary"
-            }`}
-            onClick={() => setCurrentPage(i + 1)}
+            className="btn btn-sm btn-outline-primary mx-1"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(currentPage - 1)}
           >
-            {i + 1}
+            &lt;
           </button>
-        ))}
-        <button
-          className="btn btn-sm btn-outline-primary mx-1"
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage(currentPage + 1)}
-        >
-          &gt;
-        </button>
-      </div>
+          {[...Array(totalPages)].map((_, i) => (
+            <button
+              key={i}
+              className={`btn btn-sm mx-1 ${
+                currentPage === i + 1 ? "btn-primary" : "btn-outline-primary"
+              }`}
+              onClick={() => setCurrentPage(i + 1)}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            className="btn btn-sm btn-outline-primary mx-1"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(currentPage + 1)}
+          >
+            &gt;
+          </button>
+        </div>
+      )}
 
       {/* Modal chi tiết */}
       {selectedNutritionist && (
@@ -126,7 +124,9 @@ const Nutritionist = () => {
           <div className="modal-dialog modal-lg modal-dialog-centered">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title fw-bold">{selectedNutritionist.ho_ten}</h5>
+                <h5 className="modal-title fw-bold">
+                  {selectedNutritionist.ho_ten}
+                </h5>
                 <button
                   type="button"
                   className="btn-close"
@@ -138,20 +138,26 @@ const Nutritionist = () => {
                   src={selectedNutritionist.anh_dai_dien}
                   alt={selectedNutritionist.ho_ten}
                   className="me-3"
-                  style={{ width: "150px", height: "180px", objectFit: "cover" }}
+                  style={{
+                    width: "150px",
+                    height: "180px",
+                    objectFit: "cover",
+                  }}
                 />
                 <div>
                   <p>
                     <strong>Chức danh:</strong> {selectedNutritionist.hoc_vi}
                   </p>
                   <p>
-                    <strong>Chuyên ngành:</strong> {selectedNutritionist.linh_vuc_chuyen_sau}
+                    <strong>Chuyên ngành:</strong>{" "}
+                    {selectedNutritionist.linh_vuc_chuyen_sau}
                   </p>
                   <p>
                     <strong>Chức vụ:</strong> {selectedNutritionist.chuc_vu}
                   </p>
                   <p>
-                    <strong>Giới thiệu:</strong> {selectedNutritionist.gioi_thieu_ban_than}
+                    <strong>Giới thiệu:</strong>{" "}
+                    {selectedNutritionist.gioi_thieu_ban_than}
                   </p>
                 </div>
               </div>

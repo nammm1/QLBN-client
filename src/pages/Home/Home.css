@@ -58,6 +58,10 @@
   border-radius: 2px;
 }
 
+.card-title {
+  justify-content: center;
+}
+
 /* Partners / Glide styling */
 .partners-glide {
   margin-top: 20px;

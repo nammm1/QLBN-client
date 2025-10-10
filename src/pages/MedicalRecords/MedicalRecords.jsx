@@ -5,18 +5,18 @@ import "./MedicalRecords.css";
 const personalInfo = {
   ho_ten: "Nguyễn Văn A",
   gioi_tinh: "Nam",
-  nam_sinh: 1985,
+  ngay_sinh: 30-4-1985,
   tuoi: 39,
   dan_toc: "Kinh",
-  sdt: "0123456789",
+  so_dien_thoai: "0123456789",
   dia_chi: "123 Đường ABC, Phường XYZ, Quận 1, TP.HCM",
   doi_tuong: "BH",
-  ma_bhyt: "DN4010123456789",
+  ma_BHYT: "DN4010123456789",
 };
 
 const medicalData = [
   {
-    thoi_gian_kham: "2024-10-01",
+    thoi_gian_tao: "2024-10-01",
     bac_si: "BS. Nguyễn Văn B",
     ly_do_kham: "Đau bụng",
     chuan_doan: "Viêm dạ dày",
@@ -39,7 +39,7 @@ const medicalData = [
     ],
   },
   {
-    thoi_gian_kham: "2024-11-15",
+    thoi_gian_tao: "2024-11-15",
     bac_si: "BS. Trần Văn C",
     ly_do_kham: "Ho khan",
     chuan_doan: "Viêm phế quản",
@@ -110,12 +110,12 @@ const MedicalRecords = () => {
             <div>
               <div><b>Họ tên:</b> {personalInfo.ho_ten}</div>
               <div><b>Giới tính:</b> {personalInfo.gioi_tinh}</div>
-              <div><b>Năm sinh:</b> {personalInfo.nam_sinh}</div>
+              <div><b>Năm sinh:</b> {personalInfo.ngay_sinh}</div>
               <div><b>Tuổi:</b> {personalInfo.tuoi}</div>
             </div>
             <div>
               <div><b>Dân tộc:</b> {personalInfo.dan_toc}</div>
-              <div><b>Số điện thoại:</b> {personalInfo.sdt}</div>
+              <div><b>Số điện thoại:</b> {personalInfo.so_dien_thoai}</div>
               <div><b>Địa chỉ:</b> {personalInfo.dia_chi}</div>
             </div>
             <div>
@@ -134,7 +134,7 @@ const MedicalRecords = () => {
                   color: "#389e0d",
                   fontWeight: 600,
                   marginLeft: 4
-                }}>{personalInfo.ma_bhyt}</span>
+                }}>{personalInfo.ma_BHYT}</span>
               </div>
             </div>
           </div>
@@ -173,7 +173,7 @@ const MedicalRecords = () => {
                   }}
                   onClick={() => setSelectedMedical(record)}
                 >
-                  <td style={{ padding: "10px 8px" }}>{record.thoi_gian_kham}</td>
+                  <td style={{ padding: "10px 8px" }}>{record.thoi_gian_tao}</td>
                   <td style={{ padding: "10px 8px" }}>{record.bac_si}</td>
                   <td style={{ padding: "10px 8px" }}>{record.ly_do_kham}</td>
                   <td style={{ padding: "10px 8px" }}>{record.chuan_doan}</td>
@@ -190,7 +190,7 @@ const MedicalRecords = () => {
           <div className="modal-content" style={{ maxWidth: 540 }}>
             <div className="modal-header">
               <span className="modal-title">
-                Chi tiết khám bệnh - {selectedMedical.thoi_gian_kham}
+                Chi tiết khám bệnh - {selectedMedical.thoi_gian_tao}
               </span>
               <button
                 type="button"
@@ -206,7 +206,7 @@ const MedicalRecords = () => {
               <div className="modal-col">
                 <h6>Thông tin khám</h6>
                 <div className="modal-box">
-                  <b>Ngày khám:</b> {selectedMedical.thoi_gian_kham}
+                  <b>Ngày khám:</b> {selectedMedical.thoi_gian_tao}
                   <br />
                   <b>Bác sĩ:</b> {selectedMedical.bac_si}
                   <br />

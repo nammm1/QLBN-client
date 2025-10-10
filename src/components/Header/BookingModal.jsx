@@ -1,81 +1,167 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./BookingModal.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-const services = ["Khám trong giờ", "Khám ngoài giờ"];
-const specialties = ["Tim mạch", "Thần kinh", "Nhi khoa"];
-const doctorsBySpecialty = {
-  "Tim mạch": ["BS A", "BS B"],
-  "Thần kinh": ["BS C", "BS D"],
-  "Nhi khoa": ["BS E", "BS F"],
-};
+import apiChuyenKhoa from "../../api/ChuyenKhoa";
+import apiBacSi from "../../api/BacSi";
+import apiLichLamViec from "../../api/LichLamViec";
+import apiKhungGioKham from "../../api/KhungGioKham";
+import apiNguoiDung from "../../api/NguoiDung";
+import apiCuocHenKhamBenh from "../../api/CuocHenKhamBenh";
 
-// Giả sử lịch làm việc của bác sĩ
-const doctorSchedule = {
-  "BS A": {
-    "2025-09-25": ["Sáng"],
-    "2025-09-26": ["Chiều"],
-    "2025-09-27": ["Sáng", "Chiều"],
-  },
-  "BS B": {
-    "2025-09-29": ["Chiều"],
-    "2025-09-30": ["Sáng"],
-  },
-};
-
-const timeSlotsBySession = {
-  Sáng: [
-    "7:00-7:30",
-    "7:30-8:00",
-    "8:00-8:30",
-    "8:30-9:00",
-    "9:00-9:30",
-    "9:30-10:00",
-    "10:00-10:30",
-    "10:30-11:00",
-  ],
-  Chiều: [
-    "13:00-13:30",
-    "13:30-14:00",
-    "14:00-14:30",
-    "14:30-15:00",
-    "15:00-15:30",
-    "15:30-16:00",
-    "16:00-16:30",
-    "16:30-17:00",
-  ],
+// format ngày thành YYYY-MM-DD theo local time (không lệch múi giờ)
+const formatDate = (d) => {
+  if (!d) return "";
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 const BookingModal = ({ show, onClose }) => {
-  const [service, setService] = useState("");
+    const [serviceTypeBooking, setServiceTypeBooking] = useState(""); // truc_tiep/online
   const [specialty, setSpecialty] = useState("");
-  const [doctor, setDoctor] = useState("");
+  const [doctor, setDoctor] = useState(null);
   const [date, setDate] = useState(null);
   const [session, setSession] = useState("");
   const [timeSlot, setTimeSlot] = useState("");
   const [desc, setDesc] = useState("");
 
+  const [specialties, setSpecialties] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [doctorSchedule, setDoctorSchedule] = useState({});
+  const [timeSlots, setTimeSlots] = useState([]);
+
+  // load chuyên khoa
+  useEffect(() => {
+    const fetchSpecialties = async () => {
+      try {
+        const data = await apiChuyenKhoa.getAllChuyenKhoa();
+        setSpecialties(data);
+      } catch (err) {
+        console.error("Lỗi khi tải chuyên khoa:", err);
+      }
+    };
+    fetchSpecialties();
+  }, []);
+
+  // load bác sĩ theo chuyên khoa
+  useEffect(() => {
+    if (specialty) {
+      const fetchDoctors = async () => {
+        try {
+          const allDoctors = await apiBacSi.getAll();
+          const filtered = allDoctors.data.filter(
+            (bs) => String(bs.id_chuyen_khoa) === String(specialty)
+          );
+
+          const mergedDoctors = await Promise.all(
+            filtered.map(async (bs) => {
+              try {
+                const user = await apiNguoiDung.getUserById(bs.id_bac_si);
+                return { ...bs, ...user.data };
+              } catch (err) {
+                console.error("Lỗi khi lấy user cho bác sĩ:", err);
+                return bs;
+              }
+            })
+          );
+
+          setDoctors(mergedDoctors);
+        } catch (err) {
+          console.error("Lỗi khi tải bác sĩ:", err);
+        }
+      };
+      fetchDoctors();
+    } else {
+      setDoctors([]);
+    }
+  }, [specialty]);
+
+  // load lịch làm việc theo bác sĩ
+  useEffect(() => {
+    if (doctor) {
+      const fetchSchedule = async () => {
+        try {
+          const data = await apiLichLamViec.getAll();
+          const filtered = data.filter(
+            (item) => item.id_nguoi_dung === doctor.id_nguoi_dung
+          );
+
+          const schedule = {};
+          filtered.forEach((item) => {
+            const ngay = formatDate(new Date(item.ngay_lam_viec));
+            if (!schedule[ngay]) schedule[ngay] = [];
+            schedule[ngay].push(item.ca);
+          });
+
+          setDoctorSchedule(schedule);
+        } catch (err) {
+          console.error("Lỗi khi tải lịch làm việc:", err);
+        }
+      };
+      fetchSchedule();
+    } else {
+      setDoctorSchedule({});
+    }
+  }, [doctor]);
+
+  
+
+  // load khung giờ
+  useEffect(() => {
+    if (session) {
+      const fetchTimeSlots = async () => {
+        try {
+          const data = await apiKhungGioKham.getAll();
+          const filtered = data.filter((kg) => kg.ca === session);
+          setTimeSlots(filtered);
+        } catch (err) {
+          console.error("Lỗi khi tải khung giờ khám:", err);
+        }
+      };
+      fetchTimeSlots();
+    } else {
+      setTimeSlots([]);
+    }
+  }, [session]);
+
   if (!show) return null;
 
-  // danh sách ngày bác sĩ có lịch
-  const allowedDates = doctor ? Object.keys(doctorSchedule[doctor] || {}) : [];
-
+  const allowedDates = doctor ? Object.keys(doctorSchedule) : [];
   const isAllowedDate = (dateObj) => {
-    const d = dateObj.toISOString().split("T")[0];
+    const d = formatDate(dateObj);
     return allowedDates.includes(d);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!service || !specialty || !doctor || !date || !session || !timeSlot) {
-      alert("Vui lòng chọn đầy đủ thông tin!");
+    if (!serviceTypeBooking || !specialty || !doctor || !date || !session || !timeSlot || !desc) {
+      alert("Vui lòng nhập đầy đủ thông tin!");
       return;
     }
-    alert(
-      `Đặt lịch thành công với ${doctor} - ${specialty} vào ${date.toLocaleDateString()} (${session}, ${timeSlot})`
-    );
-    onClose();
+
+    try {
+      const payload = {
+        id_bac_si: doctor.id_bac_si,
+        id_chuyen_khoa: specialty,
+        id_khung_gio: timeSlot,
+        ngay_kham: formatDate(date), // dùng formatDate để không lệch múi giờ
+        loai_hen: serviceTypeBooking, // truc_tiep/online
+        ly_do_kham: desc,
+      };
+
+      console.log("Payload gửi lên:", payload);
+
+      await apiCuocHenKhamBenh.create(payload);
+
+      alert("Đặt lịch thành công!");
+      onClose();
+    } catch (err) {
+      alert("Có lỗi khi đặt lịch!");
+      console.error(err);
+    }
   };
 
   return (
@@ -86,26 +172,28 @@ const BookingModal = ({ show, onClose }) => {
         </h4>
 
         <form onSubmit={handleSubmit}>
-          {/* Dịch vụ */}
+          {/* loại hẹn */}
           <div className="mb-3">
-            <label className="form-label">Chọn loại dịch vụ</label>
-            <div className="service-buttons">
-              {services.map((s) => (
+            <label className="form-label">Chọn loại hẹn</label>
+            <div className="d-flex gap-2">
+              {[
+                { label: "Trực tiếp", value: "truc_tiep" },
+                { label: "Online", value: "online" },
+              ].map((opt) => (
                 <button
-                  key={s}
+                  key={opt.value}
                   type="button"
                   className={`btn ${
-                    service === s ? "btn-primary" : "btn-outline-primary"
+                    serviceTypeBooking === opt.value ? "btn-primary" : "btn-outline-primary"
                   }`}
-                  onClick={() => setService(s)}
+                  onClick={() => setServiceTypeBooking(opt.value)}
                 >
-                  {s}
+                  {opt.label}
                 </button>
               ))}
             </div>
           </div>
-
-          {/* Chuyên khoa */}
+          {/* chuyên khoa */}
           <div className="mb-3">
             <label className="form-label">Chọn chuyên khoa</label>
             <select
@@ -113,27 +201,29 @@ const BookingModal = ({ show, onClose }) => {
               value={specialty}
               onChange={(e) => {
                 setSpecialty(e.target.value);
-                setDoctor("");
+                setDoctor(null);
               }}
-              disabled={!service}
             >
               <option value="">Chọn chuyên khoa</option>
               {specialties.map((sp) => (
-                <option key={sp} value={sp}>
-                  {sp}
+                <option key={sp.id_chuyen_khoa} value={sp.id_chuyen_khoa}>
+                  {sp.ten_chuyen_khoa}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Bác sĩ */}
+          {/* bác sĩ */}
           <div className="mb-3">
             <label className="form-label">Chọn bác sĩ</label>
             <select
               className="form-select"
-              value={doctor}
+              value={doctor ? doctor.id_bac_si : ""}
               onChange={(e) => {
-                setDoctor(e.target.value);
+                const selectedDoctor = doctors.find(
+                  (d) => String(d.id_bac_si) === String(e.target.value)
+                );
+                setDoctor(selectedDoctor || null);
                 setDate(null);
                 setSession("");
                 setTimeSlot("");
@@ -141,19 +231,18 @@ const BookingModal = ({ show, onClose }) => {
               disabled={!specialty}
             >
               <option value="">Chọn bác sĩ</option>
-              {specialty &&
-                doctorsBySpecialty[specialty].map((doc) => (
-                  <option key={doc} value={doc}>
-                    {doc}
-                  </option>
-                ))}
+              {doctors.map((doc) => (
+                <option key={doc.id_bac_si} value={doc.id_bac_si}>
+                  {doc.ho_ten}
+                </option>
+              ))}
             </select>
           </div>
 
-          {/* Ngày & Buổi */}
+          {/* ngày + ca + khung giờ */}
           <div className="mb-3">
             <label className="form-label">Chọn ngày khám</label>
-            <DatePicker 
+            <DatePicker
               selected={date}
               onChange={(d) => {
                 setDate(d);
@@ -164,21 +253,12 @@ const BookingModal = ({ show, onClose }) => {
               placeholderText="Chọn ngày"
               minDate={new Date()}
               filterDate={isAllowedDate}
-              showIcon
-              popperPlacement="bottom"
-              calendarClassName="custom-calendar"
-              dayClassName={(d) => {
-                const dStr = d.toISOString().split("T")[0];
-                return allowedDates.includes(dStr) ? "highlight-day" : undefined;
-              }}
               disabled={!doctor}
             />
 
-            {/* Chọn buổi */}
             {date && (
               <div className="session-buttons mt-2">
-                {(doctorSchedule[doctor][date.toISOString().split("T")[0]] ||
-                  []).map((s) => (
+                {(doctorSchedule[formatDate(date)] || []).map((s) => (
                   <button
                     key={s}
                     type="button"
@@ -196,38 +276,39 @@ const BookingModal = ({ show, onClose }) => {
               </div>
             )}
 
-            {/* Chọn khung giờ */}
             {session && (
               <div className="time-slots mt-2">
-                {timeSlotsBySession[session].map((slot) => (
+                {timeSlots.map((slot) => (
                   <button
-                    key={slot}
+                    key={slot.id_khung_gio}
                     type="button"
                     className={`btn ${
-                      timeSlot === slot ? "btn-info" : "btn-outline-info"
+                      timeSlot === slot.id_khung_gio
+                        ? "btn-info"
+                        : "btn-outline-info"
                     } mx-1 my-1`}
-                    onClick={() => setTimeSlot(slot)}
+                    onClick={() => setTimeSlot(slot.id_khung_gio)}
                   >
-                    {slot}
+                    {slot.gio_bat_dau} - {slot.gio_ket_thuc}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Mô tả */}
+          {/* mô tả */}
           <div className="mb-3">
-            <label className="form-label">Mô tả vấn đề sức khỏe</label>
+            <label className="form-label">Lý do khám</label>
             <textarea
               className="form-control"
               rows="3"
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
-              placeholder="Hãy mô tả vấn đề sức khỏe bạn gặp phải..."
+              placeholder="Hãy mô tả lý do khám..."
             ></textarea>
           </div>
 
-          {/* Buttons */}
+          {/* buttons */}
           <div className="form-actions d-flex justify-content-between">
             <button
               type="button"
