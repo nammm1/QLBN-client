@@ -40,7 +40,17 @@ const apiLichSuKham = {
       throw error;
     }
   },
-
+  getLichSuKhamByCuocHen: async (id_cuoc_hen) => {
+    try {
+      const response = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichSuKham}/cuoc-hen/${id_cuoc_hen}`
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching lịch sử khám by bệnh nhân:", error);
+      throw error;
+    }
+  },
   // Tạo mới lịch sử khám
   createLichSuKham: async (data) => {
     try {

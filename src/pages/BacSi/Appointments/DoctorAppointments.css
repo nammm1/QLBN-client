@@ -1,129 +1,71 @@
 .doctor-appointments-container {
-  max-width: 1500px;
+  max-width: 2000px;
   min-height: 87vh;
   margin: 32px auto;
-  background: #fff;
+  padding: 0 16px;
+}
+
+.shadow-card {
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  padding: 24px;
-}
-
-.filter-bar {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.filter-bar input[type="text"], .filter-bar input[type="date"] {
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 15px;
-}
-
-.table-wrapper {
-  overflow-x: auto;
-}
-
-.appointments-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-}
-
-.appointments-table th, .appointments-table td {
-  padding: 10px 8px;
-  border-bottom: 1px solid #eee;
-  text-align: left;
-}
-
-.appointments-table tr.selected-row {
-  background: #e6f7ff;
-}
-
-.appointment-detail-card {
-  margin-top: 24px;
-  background: #f9f9f9;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-}
-
-.info-columns {
-  display: flex;
-  gap: 32px;
-}
-
-.left-info, .right-info {
-  flex: 1;
-}
-
-.info-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.record-status {
-  margin: 12px 0;
-}
-
-.finish-btn {
-  background: #1890ff;
-  color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   border: none;
-  padding: 8px 18px;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-top: 10px;
 }
 
-.finish-btn:hover {
-  background: #1765ad;
-}
-
-.modal {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.modal-content {
-  background: #fff;
-  padding: 32px 24px;
-  border-radius: 10px;
-  min-width: 320px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+.header-section {
+  margin-bottom: 24px;
   text-align: center;
 }
 
-.pagination {
+.page-title {
+  color: #1890ff;
+  margin-bottom: 8px !important;
+}
+
+.filter-card {
+  margin-bottom: 24px;
+  border-radius: 8px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+}
+
+.table-card {
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+}
+
+.table-card :global(.ant-table-thead > tr > th) {
+  background: #fafafa;
+  font-weight: 600;
+  color: #262626;
+}
+
+.pagination-section {
   display: flex;
-  justify-content: center; /* canh giữa theo chiều ngang */
-  gap: 5px; /* khoảng cách giữa các nút */
-  margin-top: 20px;
-  flex-wrap: wrap; /* nếu nhiều nút thì xuống hàng */
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
 }
 
-.pagination button {
-  padding: 5px 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-  background-color: #f0f0f0;
+.pagination-btn {
+  min-width: 40px;
 }
 
-.pagination button.active {
-  background-color: #007bff;
-  color: #fff;
-}
-
-.pagination button:disabled {
-  cursor: not-allowed;
-  background-color: #eee;
+/* Responsive */
+@media (max-width: 768px) {
+  .doctor-appointments-container {
+    margin: 16px auto;
+    padding: 0 8px;
+  }
+  
+  .pagination-section {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .filter-card :global(.ant-col) {
+    margin-bottom: 8px;
+  }
 }

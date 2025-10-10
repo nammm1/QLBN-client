@@ -1,7 +1,36 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./DoctorAppointments.css";
 import apiCuocHenKham from "../../../api/CuocHenKhamBenh";
+import {
+  Card,
+  Table,
+  Input,
+  DatePicker,
+  Select,
+  Tag,
+  Space,
+  Button,
+  Row,
+  Col,
+  Typography,
+  Avatar,
+  Tooltip
+} from "antd";
+import {
+  SearchOutlined,
+  CalendarOutlined,
+  FilterOutlined,
+  UserOutlined,
+  PhoneOutlined,
+  IdcardOutlined,
+  ClockCircleOutlined
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+import "./DoctorAppointments.css";
+
+const { Title, Text } = Typography;
+const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 const DoctorAppointments = () => {
   const [appointments, setAppointments] = useState([]);
@@ -9,10 +38,8 @@ const DoctorAppointments = () => {
   const [searchName, setSearchName] = useState("");
   const [searchDate, setSearchDate] = useState("");
   const [searchStatus, setSearchStatus] = useState("");
-
-  // Phân trang
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10; // số dòng mỗi trang
+  const pageSize = 10;
 
   const navigate = useNavigate();
   const userInfo = JSON.parse(localStorage.getItem("userInfo"));
@@ -30,7 +57,6 @@ const DoctorAppointments = () => {
     fetchAppointments();
   }, []);
 
-  // 🔹 Filter theo tên, ngày, trạng thái
   useEffect(() => {
     let filtered = appointments;
 
@@ -55,146 +81,267 @@ const DoctorAppointments = () => {
     }
 
     setFilteredAppointments(filtered);
-    setCurrentPage(1); // reset về trang 1 mỗi khi filter
+    setCurrentPage(1);
   }, [searchName, searchDate, searchStatus, appointments]);
 
   const handleSelect = (id_cuoc_hen) => {
     navigate(`/doctor/appointment/${id_cuoc_hen}`);
   };
 
-  // Lấy dữ liệu theo trang
   const startIndex = (currentPage - 1) * pageSize;
   const currentPageData = filteredAppointments.slice(startIndex, startIndex + pageSize);
   const totalPages = Math.ceil(filteredAppointments.length / pageSize);
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "da_dat": return "blue";
+      case "da_huy": return "red";
+      case "da_hoan_thanh": return "green";
+      default: return "default";
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "da_dat": return "Đã đặt";
+      case "da_huy": return "Đã hủy";
+      case "da_hoan_thanh": return "Đã hoàn thành";
+      default: return "N/A";
+    }
+  };
+
+  const getGenderColor = (gender) => {
+    switch (gender?.toLowerCase()) {
+      case "nam": return "blue";
+      case "nữ": return "pink";
+      default: return "default";
+    }
+  };
+
+  const columns = [
+    {
+      title: "MÃ BN",
+      dataIndex: ["benhNhan", "id_benh_nhan"],
+      key: "id_benh_nhan",
+      render: (id) => id || "Không",
+      width: 100,
+    },
+    {
+      title: "BỆNH NHÂN",
+      dataIndex: ["benhNhan", "ho_ten"],
+      key: "ho_ten",
+      render: (name, record) => (
+        <Space>
+          <Avatar size="small" icon={<UserOutlined />} />
+          <Text strong>{name || "Không"}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "GIỚI TÍNH",
+      dataIndex: ["benhNhan", "gioi_tinh"],
+      key: "gioi_tinh",
+      render: (gender) => (
+        <Tag color={getGenderColor(gender)}>
+          {gender || "Không"}
+        </Tag>
+      ),
+      width: 100,
+    },
+    {
+      title: "SỐ ĐIỆN THOẠI",
+      dataIndex: ["benhNhan", "so_dien_thoai"],
+      key: "so_dien_thoai",
+      render: (phone) => (
+        <Space>
+          <PhoneOutlined />
+          {phone || "Không"}
+        </Space>
+      ),
+    },
+    {
+      title: "NGÀY KHÁM",
+      dataIndex: "ngay_kham",
+      key: "ngay_kham",
+      render: (date) => (
+        <Space>
+          <CalendarOutlined />
+          {new Date(date).toLocaleDateString("vi-VN")}
+        </Space>
+      ),
+      width: 120,
+    },
+    {
+      title: "GIỜ KHÁM",
+      dataIndex: "khungGio",
+      key: "gio_kham",
+      render: (khungGio) => (
+        <Space>
+          <ClockCircleOutlined />
+          {khungGio ? `${khungGio.gio_bat_dau} - ${khungGio.gio_ket_thuc}` : "Không"}
+        </Space>
+      ),
+      width: 150,
+    },
+    {
+      title: "LÝ DO KHÁM",
+      dataIndex: "ly_do_kham",
+      key: "ly_do_kham",
+      ellipsis: true,
+      render: (text) => (
+        <Tooltip title={text}>
+          <Text>{text}</Text>
+        </Tooltip>
+      ),
+    },
+    {
+      title: "TRẠNG THÁI",
+      dataIndex: "trang_thai",
+      key: "trang_thai",
+      render: (status) => (
+        <Tag color={getStatusColor(status)} style={{ fontWeight: 600 }}>
+          {getStatusText(status)}
+        </Tag>
+      ),
+      width: 130,
+    },
+    {
+      title: "MÃ BHYT",
+      dataIndex: ["benhNhan", "ma_BHYT"],
+      key: "ma_BHYT",
+      render: (bhyt) => (
+        <Space>
+          <IdcardOutlined />
+          {bhyt || "Không"}
+        </Space>
+      ),
+    },
+  ];
+
   return (
     <div className="doctor-appointments-container">
-      <h2>Lịch hẹn của bác sĩ</h2>
+      <Card className="shadow-card">
+        {/* Header */}
+        <div className="header-section">
+          <Title level={3} className="page-title">
+            📅 Lịch hẹn của bác sĩ
+          </Title>
+          <Text type="secondary">
+            Quản lý và theo dõi các cuộc hẹn khám bệnh
+          </Text>
+        </div>
 
-      <div className="filter-bar">
-        <input
-          type="text"
-          placeholder="Tìm theo tên bệnh nhân..."
-          value={searchName}
-          onChange={e => setSearchName(e.target.value)}
-        />
-        <input
-          type="date"
-          value={searchDate}
-          onChange={e => setSearchDate(e.target.value)}
-        />
-        <select
-          value={searchStatus}
-          onChange={e => setSearchStatus(e.target.value)}
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="da_dat">Đã đặt</option>
-          <option value="da_huy">Đã hủy</option>
-          <option value="da_hoan_thanh">Đã hoàn thành</option>
-        </select>
-      </div>
-
-      <div className="table-wrapper">
-        <table className="appointments-table">
-          <thead>
-            <tr>
-              <th>Mã BN</th>
-              <th>Tên bệnh nhân</th>
-              <th>Giới tính</th>
-              <th>SĐT</th>
-              <th>Ngày khám</th>
-              <th>Giờ khám</th>
-              <th>Lý do khám</th>
-              <th>Trạng thái</th>
-              <th>Mã BHYT</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentPageData.map(item => (
-              <tr
-                key={item.id_cuoc_hen}
-                onClick={() => handleSelect(item.id_cuoc_hen)}
-                style={{ cursor: "pointer" }}
+        {/* Filter Bar */}
+        <Card size="small" className="filter-card">
+          <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} sm={8} md={6}>
+              <Input
+                placeholder="Tìm theo tên bệnh nhân..."
+                prefix={<SearchOutlined />}
+                value={searchName}
+                onChange={e => setSearchName(e.target.value)}
+                size="large"
+              />
+            </Col>
+            <Col xs={24} sm={8} md={6}>
+              <DatePicker
+                placeholder="Chọn ngày khám"
+                value={searchDate ? dayjs(searchDate) : null}
+                onChange={(date) => setSearchDate(date ? date.format('YYYY-MM-DD') : '')}
+                style={{ width: '100%' }}
+                size="large"
+              />
+            </Col>
+            <Col xs={24} sm={8} md={6}>
+              <Select
+                placeholder="Trạng thái"
+                value={searchStatus || null}
+                onChange={setSearchStatus}
+                style={{ width: '100%' }}
+                size="large"
+                allowClear
               >
-                <td>{item.benhNhan?.id_benh_nhan || "Không"}</td>
-                <td>{item.benhNhan?.ho_ten || "Không"}</td>
-                <td>{item.benhNhan?.gioi_tinh || "Không"}</td>
-                <td>{item.benhNhan?.so_dien_thoai || "Không"}</td>
-                <td>{new Date(item.ngay_kham).toLocaleDateString("vi-VN")}</td>
-                <td>
-                  {item.khungGio
-                    ? `${item.khungGio.gio_bat_dau} - ${item.khungGio.gio_ket_thuc}`
-                    : "Không"}
-                </td>
-                <td>{item.ly_do_kham}</td>
-                <td
-                  style={{
-                    color:
-                      item.trang_thai === "da_dat" ? "green" :
-                      item.trang_thai === "da_huy" ? "red" :
-                      item.trang_thai === "da_hoan_thanh" ? "blue" :
-                      "black"
-                  }}
-                >
-                  {{
-                    da_dat: "Đã đặt",
-                    da_huy: "Đã hủy",
-                    da_hoan_thanh: "Đã hoàn thành",
-                  }[item.trang_thai] || "N/A"}
-                </td>
-                <td>{item.benhNhan?.ma_BHYT || "Không"}</td>
-              </tr>
+                <Option value="da_dat">Đã đặt</Option>
+                <Option value="da_huy">Đã hủy</Option>
+                <Option value="da_hoan_thanh">Đã hoàn thành</Option>
+              </Select>
+            </Col>
+            <Col xs={24} sm={24} md={6}>
+              <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                <Text type="secondary">
+                  Tổng: <Text strong>{filteredAppointments.length}</Text> cuộc hẹn
+                </Text>
+              </Space>
+            </Col>
+          </Row>
+        </Card>
+
+        {/* Table */}
+        <Card className="table-card">
+          <Table
+            columns={columns}
+            dataSource={currentPageData.map(item => ({
+              ...item,
+              key: item.id_cuoc_hen
+            }))}
+            pagination={false}
+            size="middle"
+            onRow={(record) => ({
+              onClick: () => handleSelect(record.id_cuoc_hen),
+              style: { 
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              },
+              onMouseEnter: (e) => {
+                e.currentTarget.style.backgroundColor = '#f0f7ff';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              },
+              onMouseLeave: (e) => {
+                e.currentTarget.style.backgroundColor = '';
+                e.currentTarget.style.transform = '';
+              },
+            })}
+            scroll={{ x: 1200 }}
+          />
+        </Card>
+
+        {/* Pagination */}
+        <div className="pagination-section">
+          <Space>
+            <Button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              icon={<span>‹</span>}
+            >
+              Trước
+            </Button>
+            
+            {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(page => (
+              <Button
+                key={page}
+                type={page === currentPage ? "primary" : "default"}
+                onClick={() => setCurrentPage(page)}
+                className="pagination-btn"
+              >
+                {page}
+              </Button>
             ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="pagination" style={{ textAlign: "center", marginTop: "20px" }}>
-  <button
-    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-    disabled={currentPage === 1}
-    style={{
-      marginRight: "5px",
-      padding: "5px 10px",
-      cursor: currentPage === 1 ? "not-allowed" : "pointer",
-      backgroundColor: currentPage === 1 ? "#eee" : "#f0f0f0",
-    }}
-  >
-    Prev
-  </button>
-
-  {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(page => (
-    <button
-      key={page}
-      onClick={() => setCurrentPage(page)}
-      style={{
-        margin: "0 3px",
-        padding: "5px 10px",
-        backgroundColor: page === currentPage ? "#007bff" : "#f0f0f0",
-        color: page === currentPage ? "#fff" : "#000",
-        border: "1px solid #ccc",
-        borderRadius: "4px",
-        cursor: "pointer",
-      }}
-    >
-      {page}
-    </button>
-  ))}
-
-  <button
-    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-    disabled={currentPage === totalPages}
-    style={{
-      marginLeft: "5px",
-      padding: "5px 10px",
-      cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-      backgroundColor: currentPage === totalPages ? "#eee" : "#f0f0f0",
-    }}
-  >
-    Next
-  </button>
-</div>
-
+            
+            <Button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              icon={<span>›</span>}
+            >
+              Sau
+            </Button>
+          </Space>
+          
+          <Text type="secondary">
+            Trang {currentPage} / {totalPages} • 
+            Hiển thị {startIndex + 1}-{Math.min(startIndex + pageSize, filteredAppointments.length)} trên {filteredAppointments.length}
+          </Text>
+        </div>
+      </Card>
     </div>
   );
 };

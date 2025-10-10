@@ -48,7 +48,7 @@ const apiHoaDon = {
       const res = await axiosInstance.get(
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.HoaDon}/kham/${id_cuoc_hen}`
       );
-      return res.data;
+      return res.data.data;
     } catch (err) {
       console.error("Error fetching hóa đơn by cuộc hẹn khám:", err);
       throw err;

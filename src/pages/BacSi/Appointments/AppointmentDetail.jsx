@@ -1,5 +1,53 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import {
+  Card,
+  Row,
+  Col,
+  Typography,
+  Button,
+  Tag,
+  List,
+  Avatar,
+  Descriptions,
+  Space,
+  Divider,
+  Spin,
+  Alert,
+  Timeline,
+  Badge,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Table,
+  Tabs,
+  Collapse,
+  Statistic,
+  Steps,
+  message
+} from "antd";
+import {
+  ArrowLeftOutlined,
+  UserOutlined,
+  CalendarOutlined,
+  PhoneOutlined,
+  EnvironmentOutlined,
+  IdcardOutlined,
+  MedicineBoxOutlined,
+  HeartOutlined,
+  FileTextOutlined,
+  ClockCircleOutlined,
+  TeamOutlined,
+  EditOutlined,
+  PlusOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  CheckCircleOutlined,
+  DollarOutlined,
+  PrinterOutlined,
+  ExperimentOutlined
+} from "@ant-design/icons";
 import apiCuocHenKham from "../../../api/CuocHenKhamBenh";
 import apiBenhNhan from "../../../api/BenhNhan"; 
 import apiHoSoKhamBenh from "../../../api/HoSoKhamBenh";
@@ -8,69 +56,220 @@ import apiDonThuoc from "../../../api/DonThuoc";
 import apiThuoc from "../../../api/Thuoc";
 import apiHoaDon from "../../../api/HoaDon";
 import apiDichVu from "../../../api/DichVu";
+import apiChiTietHoaDon from "../../../api/ChiTietHoaDon";
+import apiChiDinhXetNghiem from "../../../api/ChiDinhXetNghiem";
+import apiKetQuaXetNghiem from "../../../api/KetQuaXetNghiem";
 import { calculateAge } from "../../../utils/calculateAge";
-import { Select, Button } from "antd";
-
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-import "./AppointmentDetail.css";
+const { Title, Text } = Typography;
+const { Option } = Select;
+const { TextArea } = Input;
+const { TabPane } = Tabs;
+const { Panel } = Collapse;
+const { Step } = Steps;
 
 const DoctorAppointmentDetail = () => {
   const { id_cuoc_hen } = useParams();
   const userInfo = JSON.parse(localStorage.getItem("userInfo"));
   const navigate = useNavigate();
-
+  
   const [appointment, setAppointment] = useState(null);
   const [benhNhanFull, setBenhNhanFull] = useState(null);
-  const [hoSo, setHoSo] = useState(null); // Hồ sơ hành chính
-  const [lichSuKhamHienTai, setLichSuKhamHienTai] = useState(null); // Lịch sử khám cho lần này
-  const [lichSuKhamTruoc, setLichSuKhamTruoc] = useState([]); // Các lần khám trước
-  
+  const [hoSo, setHoSo] = useState(null);
+  const [lichSuKhamHienTai, setLichSuKhamHienTai] = useState(null);
+  const [lichSuKhamTruoc, setLichSuKhamTruoc] = useState([]);
   const [dsThuoc, setDsThuoc] = useState([]);
   const [donThuocTamThoi, setDonThuocTamThoi] = useState([]);
   const [ghiChuDonThuoc, setGhiChuDonThuoc] = useState("");
-
   const [dsDichVu, setDsDichVu] = useState([]);
   const [dichVuTamThoi, setDichVuTamThoi] = useState([]);
-
   const [loading, setLoading] = useState(true);
 
+  // Thêm state cho xét nghiệm
+  const [chiDinhXetNghiem, setChiDinhXetNghiem] = useState([]);
+  const [ketQuaXetNghiem, setKetQuaXetNghiem] = useState({});
+  const [modalChiDinhXN, setModalChiDinhXN] = useState(false);
+  const [viewKetQuaXN, setViewKetQuaXN] = useState(false);
+  const [selectedChiDinh, setSelectedChiDinh] = useState(null);
+
   // Modal states
-  const [modalHoSoCreateOpen, setModalHoSoCreateOpen] = useState(false);
-  const [modalHoSoViewOpen, setModalHoSoViewOpen] = useState(false);
-  const [modalLichSuCreateOpen, setModalLichSuCreateOpen] = useState(false);
-  const [modalLichSuViewOpen, setModalLichSuViewOpen] = useState(false);
+  const [modalHoSoOpen, setModalHoSoOpen] = useState(false);
+  const [modalLichSuOpen, setModalLichSuOpen] = useState(false);
   const [modalDonThuoc, setModalDonThuoc] = useState(false);
   const [modalDichVu, setModalDichVu] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [viewDonThuoc, setViewDonThuoc] = useState(false);
+  const [viewDichVu, setViewDichVu] = useState(false);
 
-  const [formDataHoSo, setFormDataHoSo] = useState({});
-  const [formDataLichSu, setFormDataLichSu] = useState({});
+  const [formHoSo] = Form.useForm();
+  const [formLichSu] = Form.useForm();
+  const [formChiDinhXN] = Form.useForm();
 
-  const handleSubmitHoSo = async () => {
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "da_dat": return "blue";
+      case "da_hoan_thanh": return "green";
+      case "da_huy": return "red";
+      default: return "default";
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "da_dat": return "Đã đặt";
+      case "da_hoan_thanh": return "Đã hoàn thành";
+      case "da_huy": return "Đã hủy";
+      default: return status;
+    }
+  };
+
+  const getGenderColor = (gender) => {
+    return gender?.toLowerCase() === 'nam' ? 'blue' : 'pink';
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const appt = await apiCuocHenKham.getById(id_cuoc_hen);
+        setAppointment(appt);
+
+        if (appt?.id_benh_nhan) {
+          const bnFull = await apiBenhNhan.getById(appt.id_benh_nhan);
+          setBenhNhanFull(bnFull);
+
+          const hs = await apiHoSoKhamBenh.getByBenhNhan(appt.id_benh_nhan);
+          setHoSo(hs);
+
+          const lichSuTruoc = await apiLichSuKham.getLichSuKhamByBenhNhan(appt.id_benh_nhan);
+          setLichSuKhamTruoc(lichSuTruoc || []);
+
+          // Lấy chỉ định xét nghiệm (cho cả 2 trạng thái)
+          const chiDinhData = await apiChiDinhXetNghiem.getByCuocHen(id_cuoc_hen);
+          setChiDinhXetNghiem(chiDinhData || []);
+
+          // Lấy kết quả xét nghiệm cho từng chỉ định
+          if (chiDinhData && chiDinhData.length > 0) {
+            const ketQuaMap = {};
+            for (const chiDinh of chiDinhData) {
+              const ketQua = await apiKetQuaXetNghiem.getByChiDinh(chiDinh.id_chi_dinh);
+              if (ketQua) {
+                ketQuaMap[chiDinh.id_chi_dinh] = ketQua;
+              }
+            }
+            setKetQuaXetNghiem(ketQuaMap);
+          }
+
+          if (appt.trang_thai === "da_hoan_thanh") {
+            const lichSuHienTai = await apiLichSuKham.getLichSuKhamByCuocHen(appt.id_cuoc_hen);
+            setLichSuKhamHienTai(lichSuHienTai);
+            
+            // Lấy đơn thuốc đã lưu
+            const donThuocData = await apiDonThuoc.getByLichSu(lichSuHienTai.id_lich_su);
+            if (donThuocData) {
+              setDonThuocTamThoi(donThuocData.chi_tiet || []);
+              setGhiChuDonThuoc(donThuocData.ghi_chu || "");
+            }
+
+            // Lấy dịch vụ đã lưu
+            const HoaDon = await apiHoaDon.getByCuocHenKham(appt.id_cuoc_hen);
+            if (HoaDon) {
+              const ChiTietHoaDonData = await apiChiTietHoaDon.getByHoaDon(HoaDon.id_hoa_don);
+              if (ChiTietHoaDonData) {
+                setDichVuTamThoi(ChiTietHoaDonData.data || []);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error(error);
+        message.error("Có lỗi xảy ra khi tải dữ liệu");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [id_cuoc_hen]);
+
+  // Hàm xử lý chỉ định xét nghiệm
+  const handleChiDinhXetNghiem = async (values) => {
+    try {
+      await apiChiDinhXetNghiem.create({
+        id_cuoc_hen: id_cuoc_hen,
+        ten_dich_vu: values.ten_dich_vu,
+        yeu_cau_ghi_chu: values.yeu_cau_ghi_chu,
+        id_bac_si_chi_dinh: userInfo.user.id_nguoi_dung,
+        trang_thai: "cho_xy_ly"
+      });
+      message.success("Chỉ định xét nghiệm thành công");
+      setModalChiDinhXN(false);
+      formChiDinhXN.resetFields();
+      
+      // Refresh data
+      const chiDinhData = await apiChiDinhXetNghiem.getByCuocHen(id_cuoc_hen);
+      setChiDinhXetNghiem(chiDinhData || []);
+    } catch (error) {
+      console.error("Lỗi khi chỉ định xét nghiệm:", error);
+      message.error("Có lỗi xảy ra khi chỉ định xét nghiệm");
+    }
+  };
+
+  // Hàm xem kết quả xét nghiệm
+  const handleViewKetQua = (chiDinh) => {
+    setSelectedChiDinh(chiDinh);
+    setViewKetQuaXN(true);
+  };
+
+  // Các hàm xử lý cũ giữ nguyên
+  const handleSubmitHoSo = async (values) => {
     try {
       if (!hoSo) {
-        // Tạo mới hồ sơ
         const newHoSo = await apiHoSoKhamBenh.create({
           id_benh_nhan: benhNhanFull.data.id_benh_nhan,
           id_bac_si_tao: userInfo.user.id_nguoi_dung,
-          ...formDataHoSo  // Sửa thành formDataHoSo
+          ...values
         });
         setHoSo(newHoSo);
-        setModalHoSoCreateOpen(false);  // Sửa thành modalHoSoCreateOpen
+        message.success("Tạo hồ sơ thành công");
       } else {
-        // Cập nhật hồ sơ
-        await apiHoSoKhamBenh.update(hoSo.id_ho_so, formDataHoSo);  // Sửa thành formDataHoSo
+        await apiHoSoKhamBenh.update(hoSo.id_ho_so, values);
         const updated = await apiHoSoKhamBenh.getByBenhNhan(benhNhanFull.data.id_benh_nhan);
         setHoSo(updated);
-        setModalHoSoViewOpen(false);  // Sửa thành modalHoSoViewOpen
+        message.success("Cập nhật hồ sơ thành công");
       }
+      setModalHoSoOpen(false);
     } catch (error) {
       console.error("Lỗi khi lưu hồ sơ:", error);
+      message.error("Có lỗi xảy ra khi lưu hồ sơ");
     }
   };
-  // Lấy danh sách dịch vụ
+
+  const handleSubmitLichSuKham = async (values) => {
+    try {
+      if (!lichSuKhamHienTai) {
+        const newLichSu = await apiLichSuKham.createLichSuKham({
+          id_benh_nhan: benhNhanFull.data.id_benh_nhan,
+          id_bac_si: userInfo.user.id_nguoi_dung,
+          id_cuoc_hen: id_cuoc_hen,
+          id_ho_so: hoSo?.id_ho_so,
+          ...values
+        });
+        setLichSuKhamHienTai(newLichSu);
+        message.success("Ghi thông tin khám thành công");
+      } else {
+        await apiLichSuKham.updateLichSuKham(lichSuKhamHienTai.id_lich_su, values);
+        const updated = await apiLichSuKham.getLichSuKhamById(lichSuKhamHienTai.id_lich_su);
+        setLichSuKhamHienTai(updated);
+        message.success("Cập nhật thông tin khám thành công");
+      }
+      setModalLichSuOpen(false);
+    } catch (error) {
+      console.error(error);
+      message.error("Có lỗi xảy ra khi lưu thông tin khám");
+    }
+  };
+
   const handleOpenDichVu = async () => {
     try {
       const res = await apiDichVu.getAll();
@@ -78,10 +277,10 @@ const DoctorAppointmentDetail = () => {
       setModalDichVu(true);
     } catch (err) {
       console.error(err);
+      message.error("Có lỗi khi tải danh sách dịch vụ");
     }
   };
 
-  // Lấy danh sách thuốc
   const handleOpenDonThuoc = async () => {
     try {
       const res = await apiThuoc.getAllThuoc();
@@ -89,6 +288,7 @@ const DoctorAppointmentDetail = () => {
       setModalDonThuoc(true);
     } catch (err) {
       console.error(err);
+      message.error("Có lỗi khi tải danh sách thuốc");
     }
   };
 
@@ -132,9 +332,42 @@ const DoctorAppointmentDetail = () => {
     setDonThuocTamThoi(updated);
   };
 
+  const handleViewDonThuoc = async () => {
+    try {
+      if (appointment.trang_thai === "da_hoan_thanh" && lichSuKhamHienTai) {
+        const donThuocData = await apiDonThuoc.getByLichSu(lichSuKhamHienTai.id_lich_su);
+        if (donThuocData) {
+          setDonThuocTamThoi(donThuocData.chi_tiet || []);
+          setGhiChuDonThuoc(donThuocData.ghi_chu || "");
+        }
+      }
+      setViewDonThuoc(true);
+    } catch (error) {
+      console.error("Lỗi khi tải đơn thuốc:", error);
+      message.error("Không thể tải đơn thuốc");
+    }
+  };
+
+  const handleViewDichVu = async () => {
+    try {
+      if (appointment.trang_thai === "da_hoan_thanh") {
+        const HoaDon = await apiHoaDon.getByCuocHenKham(id_cuoc_hen);
+        if (HoaDon) {
+          const ChiTietHoaDonData = await apiChiTietHoaDon.getByHoaDon(HoaDon.id_hoa_don);
+          if (ChiTietHoaDonData) {
+            setDichVuTamThoi(ChiTietHoaDonData.data || []);
+          }
+        }
+      }
+      setViewDichVu(true);
+    } catch (error) {
+      console.error("Lỗi khi tải dịch vụ:", error);
+      message.error("Không thể tải danh sách dịch vụ");
+    }
+  };
+
   const handleExportPdf = async () => {
     try {
-      // Tạo đơn thuốc nếu có
       if (donThuocTamThoi.length > 0 && donThuocTamThoi[0].id_thuoc) {
         await apiDonThuoc.create({
           id_ho_so: hoSo?.id_ho_so, 
@@ -144,7 +377,6 @@ const DoctorAppointmentDetail = () => {
         });
       }
 
-      // Tạo hóa đơn nếu có dịch vụ
       if (dichVuTamThoi.length > 0 && dichVuTamThoi[0].id_dich_vu) {
         const tong_tien = dichVuTamThoi.reduce(
           (sum, dv) => sum + dv.so_luong * dv.don_gia,
@@ -157,10 +389,8 @@ const DoctorAppointmentDetail = () => {
         });
       }
 
-      // Cập nhật trạng thái cuộc hẹn
       await apiCuocHenKham.updateTrangThai(id_cuoc_hen, { trang_thai: "da_hoan_thanh" });
 
-      // Xuất PDF
       const input = document.getElementById("invoicePreview");
       if (!input) return;
 
@@ -195,10 +425,12 @@ const DoctorAppointmentDetail = () => {
       }
 
       pdf.save(`HoaDon_${id_cuoc_hen}.pdf`);
+      message.success("Xuất hóa đơn thành công");
       navigate(`/doctor/appointments`);
 
     } catch (err) {
       console.error("Lỗi khi xuất PDF:", err);
+      message.error("Có lỗi xảy ra khi xuất hóa đơn");
     }
   };
 
@@ -207,1028 +439,1372 @@ const DoctorAppointmentDetail = () => {
       setShowPreview(true);
     } catch (err) {
       console.error(err);
+      message.error("Có lỗi xảy ra khi xem trước hóa đơn");
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const appt = await apiCuocHenKham.getById(id_cuoc_hen);
-        setAppointment(appt);
+  const totalDichVu = dichVuTamThoi.reduce((sum, dv) => sum + (dv.so_luong * dv.don_gia || 0), 0);
+  const totalThuoc = donThuocTamThoi.reduce((sum, t) => sum + (t.so_luong * t.don_gia || 0), 0);
+  const tongCong = totalDichVu + totalThuoc;
 
-        if (appt?.id_benh_nhan) {
-          const bnFull = await apiBenhNhan.getById(appt.id_benh_nhan);
-          setBenhNhanFull(bnFull);
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
 
-          const hs = await apiHoSoKhamBenh.getByBenhNhan(appt.id_benh_nhan);
-          setHoSo(hs);
+  if (!appointment) {
+    return (
+      <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <Alert
+          message="Không tìm thấy cuộc hẹn"
+          description="Cuộc hẹn bạn đang tìm kiếm không tồn tại hoặc đã bị xóa."
+          type="error"
+          showIcon
+        />
+      </div>
+    );
+  }
 
-          const lichSuTruoc = await apiLichSuKham.getLichSuKhamByBenhNhan(appt.id_benh_nhan);
-          setLichSuKhamTruoc(lichSuTruoc || []);
-
-          if (appt.id_lich_su_kham) {
-            const lichSuHienTai = await apiLichSuKham.getLichSuKhamById(appt.id_lich_su_kham);
-            setLichSuKhamHienTai(lichSuHienTai);
-            
-            // Nếu cuộc hẹn đã hoàn thành, load dữ liệu thuốc và dịch vụ
-            if (appt.trang_thai === "da_hoan_thanh") {
-              // Load đơn thuốc
-              const donThuocData = await apiDonThuoc.getByLichSuKham(appt.id_lich_su_kham);
-              
-              if (donThuocData) {
-                setDonThuocTamThoi(donThuocData.chi_tiet || []);
-                setGhiChuDonThuoc(donThuocData.ghi_chu || "");
-              }
-
-              // Load dịch vụ
-              const hoaDonData = await apiHoaDon.getByLichSuKham(appt.id_lich_su_kham);
-              if (hoaDonData) {
-                setDichVuTamThoi(hoaDonData.chi_tiet || []);
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [id_cuoc_hen]);
-
-  if (loading) return <p>Đang tải thông tin cuộc hẹn...</p>;
-  if (!appointment) return <p>Không tìm thấy cuộc hẹn</p>;
-
-  const { khungGio } = appointment;
-
-  const handleSubmitLichSuKham = async () => {
-    try {
-      if (!lichSuKhamHienTai) {
-        const newLichSu = await apiLichSuKham.createLichSuKham({
-          id_benh_nhan: benhNhanFull.data.id_benh_nhan,
-          id_bac_si: userInfo.user.id_nguoi_dung,
-          id_cuoc_hen: id_cuoc_hen,
-          id_ho_so : hoSo?.id_ho_so,
-          ...formDataLichSu
-        });
-        setLichSuKhamHienTai(newLichSu);
-      } else {
-        await apiLichSuKham.updateLichSuKham(lichSuKhamHienTai.id_lich_su, formDataLichSu);
-        const updated = await apiLichSuKham.getLichSuKhamById(lichSuKhamHienTai.id_lich_su);
-        setLichSuKhamHienTai(updated);
-      }
-      setModalLichSuCreateOpen(false);
-      setModalLichSuViewOpen(false);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
+                      console.log("Chi dinh item:", chiDinhXetNghiem);
+      console.log("Ket qua map:", chiDinhXetNghiem.ten_dich_vu);
+      console.log("Check ket qua:", chiDinhXetNghiem.yeu_cau_ghi_chu);
   return (
-    <div className="container my-4">
-      <div className="d-flex align-items-center mb-4">
-        <button 
-          className="btn btn-outline-secondary me-3 d-flex align-items-center" 
-          onClick={() => navigate(-1)}
-        >
-          <i className="bi bi-arrow-left"> &lt;</i>
-        </button>
-        <h2 className="mb-0 title-align">Chi tiết cuộc hẹn</h2>
-      </div>
-
-      {/* === Thông tin bệnh nhân (Hồ sơ hành chính) - Có thể chỉnh sửa === */}
-      <div className="card shadow-sm mb-3">
-        <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-          <span>Thông tin bệnh nhân</span>
-          {hoSo ? (
-            <button className="btn btn-sm btn-outline-light" onClick={() => setModalHoSoViewOpen(true)}>
-              Chỉnh sửa hồ sơ
-            </button>
-          ) : (
-            <button className="btn btn-sm btn-outline-light" onClick={() => setModalHoSoCreateOpen(true)}>
-              Tạo hồ sơ
-            </button>
-          )}
-        </div>
-        <div className="card-body">
-          {hoSo ? (
-            // Hiển thị thông tin hồ sơ đã có
-            <div className="row">
-              <div className="col-md-6">
-                <h6 className="text-secondary">Thông tin cá nhân</h6>
-                <p><strong>Mã BN:</strong> {benhNhanFull?.data.id_benh_nhan || "Không"}</p>
-                <p><strong>Họ tên:</strong> {hoSo.ho_ten || "Không"}</p>
-                <p><strong>Giới tính:</strong> {hoSo.gioi_tinh || "Không"}</p>
-                <p><strong>Tuổi:</strong> {hoSo.tuoi || "Không"}</p>
-                <p><strong>SĐT:</strong> {hoSo.so_dien_thoai || "Không"}</p>
-              </div>
-              <div className="col-md-6">
-                <h6 className="text-secondary">Thông tin khác</h6>
-                <p><strong>Dân tộc:</strong> {hoSo.dan_toc || "Không"}</p>
-                <p><strong>Mã BHYT:</strong> {hoSo.ma_BHYT || "Không"}</p>
-                <p><strong>Địa chỉ:</strong> {hoSo.dia_chi || "Không"}</p>
-                <p><strong>Ngày tạo:</strong> {hoSo.created_at ? new Date(hoSo.created_at).toLocaleDateString("vi-VN") : "Không"}</p>
-              </div>
-            </div>
-          ) : (
-            // Thông báo chưa có hồ sơ
-            <div className="text-center py-4">
-              <p className="text-muted">Chưa có hồ sơ bệnh nhân</p>
-              <button className="btn btn-primary" onClick={() => setModalHoSoCreateOpen(true)}>
-                Tạo hồ sơ ngay
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-        
-      {/* === Modal tạo hồ sơ === */}
-      {modalHoSoCreateOpen  && (
-        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Tạo hồ sơ bệnh nhân</h5>
-                <button className="btn-close" onClick={() => setModalHoSoCreateOpen(false)}></button>
-              </div>
-              <div className="modal-body text-start">
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label className="form-label">Họ tên *</label>
-                    <input 
-                      className="form-control" 
-                      name="ho_ten" 
-                      value={formDataHoSo.ho_ten || benhNhanFull?.data.ho_ten || ""} 
-                      onChange={(e) => setFormDataHoSo(prev => ({...prev, ho_ten: e.target.value}))}
-                      placeholder="Nhập họ tên"
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Số điện thoại *</label>
-                    <input 
-                      className="form-control" 
-                      name="so_dien_thoai" 
-                      value={formDataHoSo.so_dien_thoai || benhNhanFull?.data.so_dien_thoai || ""} 
-                      onChange={(e) => setFormDataHoSo(prev => ({...prev, so_dien_thoai: e.target.value}))} 
-                      placeholder="Nhập số điện thoại"
-                    />
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Tuổi *</label>
-                    <input 
-                      className="form-control" 
-                      name="tuoi" 
-                      type="number"
-                      value={formDataHoSo.tuoi || calculateAge(benhNhanFull?.data.ngay_sinh) || ""} 
-                      onChange={(e) => setFormDataHoSo(prev => ({...prev, tuoi: e.target.value}))}
-                      placeholder="Nhập tuổi"
-                    />
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Giới tính *</label>
-                    <select 
-                      className="form-control" 
-                      name="gioi_tinh" 
-                      value={formDataHoSo.gioi_tinh || benhNhanFull?.data.gioi_tinh || ""} 
-                     onChange={(e) => setFormDataHoSo(prev => ({...prev, gioi_tinh: e.target.value}))}
-                    >
-                      <option value="">Chọn giới tính</option>
-                      <option value="Nam">Nam</option>
-                      <option value="Nữ">Nữ</option>
-                      <option value="Khác">Khác</option>
-                    </select>
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Dân tộc</label>
-                    <input 
-                      className="form-control" 
-                      name="dan_toc" 
-                      value={formDataHoSo.dan_toc || benhNhanFull?.data.dan_toc || ""} 
-                      onChange={(e) => setFormDataHoSo(prev => ({...prev, dan_toc: e.target.value}))}
-                      placeholder="Nhập dân tộc"
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Mã BHYT</label>
-                    <input 
-                      className="form-control" 
-                      name="ma_BHYT" 
-                      value={formDataHoSo.ma_BHYT || benhNhanFull?.data.ma_BHYT || ""} 
-                      onChange={(e) => setFormDataHoSo(prev => ({...prev, ma_BHYT: e.target.value}))}
-                      placeholder="Nhập mã BHYT"
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Địa chỉ</label>
-                    <input 
-                      className="form-control" 
-                      name="dia_chi" 
-                      value={formDataHoSo.dia_chi || benhNhanFull?.data.dia_chi || ""} 
-                      onChange={(e) => setFormDataHoSo(prev => ({...prev, dia_chi: e.target.value}))}
-                      placeholder="Nhập địa chỉ"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-primary" onClick={handleSubmitHoSo}>
-                  Tạo hồ sơ
-                </button>
-                <button className="btn btn-secondary" onClick={() => setModalHoSoCreateOpen(false)}>
-                  Hủy
-                </button>
-              </div>
+    <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
+      {/* Header */}
+      <Card className="shadow-sm" style={{ marginBottom: 24, borderRadius: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <Button 
+              type="text" 
+              icon={<ArrowLeftOutlined />} 
+              onClick={() => navigate(-1)}
+              style={{ padding: '4px 8px' }}
+            >
+              Quay lại
+            </Button>
+            <Divider type="vertical" style={{ height: 24 }} />
+            <div>
+              <Title level={3} style={{ margin: 0, color: '#1890ff' }}>
+                🏥 Chi tiết cuộc hẹn khám
+              </Title>
+              <Text type="secondary">Quản lý thông tin khám bệnh và điều trị</Text>
             </div>
           </div>
+          <Space>
+            <Badge 
+              status="processing" 
+              text={
+                <Tag color={getStatusColor(appointment.trang_thai)}>
+                  {getStatusText(appointment.trang_thai)}
+                </Tag>
+              } 
+            />
+            <Text type="secondary">Mã: {id_cuoc_hen}</Text>
+          </Space>
         </div>
-      )}
+      </Card>
 
-      {/* === Modal chỉnh sửa hồ sơ === */}
-      {hoSo && modalHoSoViewOpen  && (
-        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Chỉnh sửa hồ sơ bệnh nhân</h5>
-                <button className="btn-close" onClick={() => setModalHoSoViewOpen(false)}></button>
-              </div>
-              <div className="modal-body text-start">
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label className="form-label">Họ tên *</label>
-                    <input 
-                      className="form-control" 
-                      name="ho_ten" 
-                      value={formDataHoSo.ho_ten || ""} 
-                      onChange={(e) => setFormDataHoSo(prev => ({...prev, ho_ten: e.target.value}))} 
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Số điện thoại *</label>
-                    <input 
-                      className="form-control" 
-                      name="so_dien_thoai" 
-                      value={formDataHoSo.so_dien_thoai || ""} 
-                      onChange={(e) => setFormDataHoSo(prev => ({...prev, so_dien_thoai: e.target.value}))} 
-                    />
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Tuổi *</label>
-                    <input 
-                      className="form-control" 
-                      name="tuoi" 
-                      type="number"
-                      value={formDataHoSo.tuoi || ""} 
-                      onChange={(e) => setFormDataHoSo(prev => ({...prev, tuoi: e.target.value}))} 
-                    />
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Giới tính *</label>
-                    <select 
-                      className="form-control" 
-                      name="gioi_tinh" 
-                      value={formDataHoSo.gioi_tinh || ""} 
-                      onChange={(e) => setFormDataHoSo(prev => ({...prev, gioi_tinh: e.target.value}))} 
-                    >
-                      <option value="">Chọn giới tính</option>
-                      <option value="Nam">Nam</option>
-                      <option value="Nữ">Nữ</option>
-                      <option value="Khác">Khác</option>
-                    </select>
-                  </div>
-                  <div className="col-md-4">
-                    <label className="form-label">Dân tộc</label>
-                    <input 
-                      className="form-control" 
-                      name="dan_toc" 
-                      value={formDataHoSo.dan_toc || ""} 
-                      onChange={(e) => setFormDataHoSo(prev => ({...prev, dan_toc: e.target.value}))} 
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Mã BHYT</label>
-                    <input 
-                      className="form-control" 
-                      name="ma_BHYT" 
-                      value={formDataHoSo.ma_BHYT || ""} 
-                      onChange={(e) => setFormDataHoSo(prev => ({...prev, ma_BHYT: e.target.value}))} 
-                    />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Địa chỉ</label>
-                    <input 
-                      className="form-control" 
-                      name="dia_chi" 
-                      value={formDataHoSo.dia_chi || ""} 
-                      onChange={(e) => setFormDataHoSo(prev => ({...prev, dia_chi: e.target.value}))} 
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-primary" onClick={handleSubmitHoSo}>
-                  Cập nhật hồ sơ
-                </button>
-                <button className="btn btn-secondary" onClick={() => setModalHoSoViewOpen(false)}>
-                  Hủy
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* === Thông tin cuộc hẹn === */}
-      <div className="card shadow-sm mt-4">
-        <div className="card-header bg-info text-white">Thông tin cuộc hẹn</div>
-        <div className="card-body">
-          <p><strong>Ngày khám:</strong> {new Date(appointment.ngay_kham).toLocaleDateString("vi-VN")}</p>
-          <p><strong>Giờ khám:</strong> {khungGio ? `${khungGio.gio_bat_dau} - ${khungGio.gio_ket_thuc}` : "Không"}</p>
-          <p><strong>Lý do khám:</strong> {appointment.ly_do_kham || "Không"}</p>
-          <p><strong>Trạng thái:</strong> {appointment.trang_thai || "Không"}</p>
-        </div>
-      </div>
-
-      {appointment.trang_thai === "da_hoan_thanh" && lichSuKhamHienTai && (
-        <div className="card shadow-sm mt-4">
-          <div className="card-header bg-success text-white">
-            Thông tin khám bệnh
-          </div>
-          <div className="card-body">
-            <div className="row">
-              <div className="col-12 mb-3">
-                <label className="fw-bold">Lý do khám:</label>
-                <div className="p-2 border rounded bg-light">
-                  {lichSuKhamHienTai.ly_do_kham || "Không có"}
-                </div>
-              </div>
-              <div className="col-12 mb-3">
-                <label className="fw-bold">Chuẩn đoán:</label>
-                <div className="p-2 border rounded bg-light">
-                  {lichSuKhamHienTai.chuan_doan || "Không có"}
-                </div>
-              </div>
-              <div className="col-12 mb-3">
-                <label className="fw-bold">Kết quả CLS:</label>
-                <div className="p-2 border rounded bg-light">
-                  {lichSuKhamHienTai.ket_qua_cls || "Không có"}
-                </div>
-              </div>
-              <div className="col-12 mb-3">
-                <label className="fw-bold">Điều trị:</label>
-                <div className="p-2 border rounded bg-light">
-                  {lichSuKhamHienTai.dieu_tri || "Không có"}
-                </div>
-              </div>
-              <div className="col-12 mb-3">
-                <label className="fw-bold">Chăm sóc:</label>
-                <div className="p-2 border rounded bg-light">
-                  {lichSuKhamHienTai.cham_soc || "Không có"}
-                </div>
-              </div>
-              <div className="col-12 mb-3">
-                <label className="fw-bold">Ghi chú:</label>
-                <div className="p-2 border rounded bg-light">
-                  {lichSuKhamHienTai.ghi_chu || "Không có"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* === Nút tạo / xem lịch sử khám === */}
-      {appointment.trang_thai !== "da_hoan_thanh" && (
-        <div className="mt-4">
-          {lichSuKhamHienTai ? (
-            <button className="btn btn-outline-primary me-2" onClick={() => setModalLichSuViewOpen(true)}>
-              Xem/Chỉnh sửa thông tin khám
-            </button>
-          ) : (
-            <button className="btn btn-primary me-2" onClick={() => setModalLichSuCreateOpen(true)}>
-              Ghi thông tin khám
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* === Nút hành động === */}
-      {appointment.trang_thai !== "da_hoan_thanh" && (
-        <div className="mt-3 d-flex gap-2 flex-wrap">
-          <button className="btn btn-warning" onClick={handleOpenDonThuoc}>
-            Kê đơn thuốc
-          </button>
-          <button className="btn btn-secondary" onClick={handleOpenDichVu}>
-            Chọn dịch vụ kèm theo
-          </button>
-          <button className="btn btn-success" onClick={handleFinish}>
-            Kết thúc khám / Xuất hóa đơn
-          </button>
-        </div>
-      )}
-      {appointment.trang_thai === "da_hoan_thanh" && (
-        <>
-          {/* Hiển thị dịch vụ đã chọn */}
-          {dichVuTamThoi.length > 0 && (
-            <div className="card shadow-sm mt-4">
-              <div className="card-header bg-secondary text-white">Dịch vụ đã sử dụng</div>
-              <div className="card-body">
-                <table className="table table-bordered">
-                  <thead>
-                    <tr>
-                      <th>Tên DV</th>
-                      <th>SL</th>
-                      <th>Đơn giá</th>
-                      <th>Thành tiền</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dichVuTamThoi.map((d, i) => (
-                      <tr key={i}>
-                        <td>{d.ten_dich_vu}</td>
-                        <td>{d.so_luong}</td>
-                        <td>{d.don_gia?.toLocaleString()}</td>
-                        <td>{(d.so_luong * d.don_gia)?.toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Hiển thị đơn thuốc */}
-          {donThuocTamThoi.length > 0 && (
-            <div className="card shadow-sm mt-4">
-              <div className="card-header bg-warning text-dark">Đơn thuốc</div>
-              <div className="card-body">
-                <table className="table table-bordered">
-                  <thead>
-                    <tr>
-                      <th>Thuốc</th>
-                      <th>SL</th>
-                      <th>Liều dùng</th>
-                      <th>Tần suất</th>
-                      <th>Ghi chú</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {donThuocTamThoi.map((t, i) => (
-                      <tr key={i}>
-                        <td>{t.ten_thuoc} ({t.ham_luong})</td>
-                        <td>{t.so_luong}</td>
-                        <td>{t.lieu_dung}</td>
-                        <td>{t.tan_suat}</td>
-                        <td>{t.ghi_chu}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {ghiChuDonThuoc && (
-                  <div className="mt-3">
-                    <label className="fw-bold">Ghi chú đơn thuốc:</label>
-                    <div className="p-2 border rounded bg-light">{ghiChuDonThuoc}</div>
+      <Row gutter={[24, 24]}>
+        {/* Thông tin chính */}
+        <Col xs={24} lg={16}>
+          <Row gutter={[24, 24]}>
+            {/* Thông tin bệnh nhân */}
+            <Col xs={24}>
+              <Card 
+                title={
+                  <Space>
+                    <TeamOutlined style={{ color: '#1890ff' }} />
+                    <span>Thông tin bệnh nhân</span>
+                  </Space>
+                }
+                extra={
+                  <Button 
+                    type="primary" 
+                    icon={hoSo ? <EditOutlined /> : <PlusOutlined />}
+                    onClick={() => {
+                      if (hoSo) {
+                        formHoSo.setFieldsValue(hoSo);
+                      } else {
+                        formHoSo.setFieldsValue({
+                          ho_ten: benhNhanFull?.data.ho_ten,
+                          so_dien_thoai: benhNhanFull?.data.so_dien_thoai,
+                          gioi_tinh: benhNhanFull?.data.gioi_tinh,
+                          tuoi: calculateAge(benhNhanFull?.data.ngay_sinh),
+                          dan_toc: benhNhanFull?.data.dan_toc,
+                          ma_BHYT: benhNhanFull?.data.ma_BHYT,
+                          dia_chi: benhNhanFull?.data.dia_chi
+                        });
+                      }
+                      setModalHoSoOpen(true);
+                    }}
+                    size="small"
+                  >
+                    {hoSo ? "Chỉnh sửa" : "Tạo hồ sơ"}
+                  </Button>
+                }
+                className="shadow-sm"
+                style={{ borderRadius: 12 }}
+              >
+                {hoSo ? (
+                  <Descriptions column={2} bordered size="small">
+                    <Descriptions.Item label="Mã BN" span={1}>
+                      <Text strong>{benhNhanFull?.data.id_benh_nhan}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Họ tên" span={1}>
+                      <Text strong>{hoSo.ho_ten}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Giới tính">
+                      <Tag color={getGenderColor(hoSo.gioi_tinh)}>
+                        {hoSo.gioi_tinh}
+                      </Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Tuổi">
+                      <Badge count={hoSo.tuoi} style={{ backgroundColor: '#52c41a' }} />
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Số điện thoại">
+                      <Space>
+                        <PhoneOutlined />
+                        {hoSo.so_dien_thoai}
+                      </Space>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Mã BHYT">
+                      {hoSo.ma_BHYT || <Text type="secondary">Không có</Text>}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Địa chỉ" span={2}>
+                      {hoSo.dia_chi || <Text type="secondary">Không có</Text>}
+                    </Descriptions.Item>
+                  </Descriptions>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                    <UserOutlined style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16 }} />
+                    <div>
+                      <Text type="secondary" style={{ fontSize: 16, display: 'block', marginBottom: 8 }}>
+                        Chưa có hồ sơ bệnh nhân
+                      </Text>
+                      <Button 
+                        type="primary" 
+                        onClick={() => {
+                          formHoSo.setFieldsValue({
+                            ho_ten: benhNhanFull?.data.ho_ten,
+                            so_dien_thoai: benhNhanFull?.data.so_dien_thoai,
+                            gioi_tinh: benhNhanFull?.data.gioi_tinh,
+                            tuoi: calculateAge(benhNhanFull?.data.ngay_sinh),
+                            dan_toc: benhNhanFull?.data.dan_toc,
+                            ma_BHYT: benhNhanFull?.data.ma_BHYT,
+                            dia_chi: benhNhanFull?.data.dia_chi
+                          });
+                          setModalHoSoOpen(true);
+                        }}
+                      >
+                        Tạo hồ sơ ngay
+                      </Button>
+                    </div>
                   </div>
                 )}
-              </div>
-            </div>
-          )}
-        </>
-      )}
+              </Card>
+            </Col>
 
-      {/* === Modal tạo lịch sử khám === */}
-      {modalLichSuCreateOpen  && (
-        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Ghi thông tin khám bệnh</h5>
-                <button className="btn-close" onClick={() => setModalLichSuCreateOpen(false)}></button>
-              </div>
-              <div className="modal-body text-start">
-                <div className="row g-3">
-                  <div className="col-12">
-                    <label className="form-label">Lý do khám</label>
-                    <textarea 
-                      className="form-control" 
-                      name="ly_do_kham" 
-                      value={formDataLichSu.ly_do_kham} 
-                      onChange={(e) => setFormDataLichSu(prev => ({...prev, ly_do_kham: e.target.value}))}
-                    ></textarea>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Chuẩn đoán</label>
-                    <textarea 
-                      className="form-control" 
-                      name="chuan_doan" 
-                      value={formDataLichSu.chuan_doan} 
-                      onChange={(e) => setFormDataLichSu(prev => ({...prev, chuan_doan: e.target.value}))}
-                    ></textarea>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Kết quả CLS</label>
-                    <textarea 
-                      className="form-control" 
-                      name="ket_qua_cls" 
-                      value={formDataLichSu.ket_qua_cls} 
-                      onChange={(e) => setFormDataLichSu(prev => ({...prev, ket_qua_cls: e.target.value}))}
-                    ></textarea>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Điều trị</label>
-                    <textarea 
-                      className="form-control" 
-                      name="dieu_tri" 
-                      value={formDataLichSu.dieu_tri} 
-                      onChange={(e) => setFormDataLichSu(prev => ({...prev, dieu_tri: e.target.value}))}
-                    ></textarea>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Chăm sóc</label>
-                    <textarea 
-                      className="form-control" 
-                      name="cham_soc" 
-                      value={formDataLichSu.cham_soc} 
-                      onChange={(e) => setFormDataLichSu(prev => ({...prev, cham_soc: e.target.value}))}
-                    ></textarea>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Ghi chú</label>
-                    <textarea 
-                      className="form-control" 
-                      name="ghi_chu" 
-                      value={formDataLichSu.ghi_chu} 
-                      onChange={(e) => setFormDataLichSu(prev => ({...prev, ghi_chu: e.target.value}))}
-                    ></textarea>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-primary" onClick={handleSubmitLichSuKham}>
-                  Lưu thông tin khám
-                </button>
-                <button className="btn btn-secondary" onClick={() => setModalLichSuCreateOpen(false)}>
-                  Hủy
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {modalDichVu && (
-        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Thêm dịch vụ vào hóa đơn</h5>
-                <button className="btn-close" onClick={() => setModalDichVu(false)}></button>
-              </div>
-              <div className="modal-body">
-                {dichVuTamThoi.map((row, i) => (
-                  <div key={i} className="row g-2 align-items-center mb-2">
-                    {/* Dịch vụ */}
-                    <div className="col-md-5">
-                      <Select
-                        showSearch
-                        style={{ width: "100%" }}  
-                        size="large"
-                        placeholder="Chọn dịch vụ"
-                        value={row.id_dich_vu}
-                        onChange={(value) => handleChangeDichVu(i, "id_dich_vu", value)}
-                        filterOption={(input, option) =>
-                          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            {/* Thông tin khám bệnh */}
+            <Col xs={24}>
+              <Card 
+                title={
+                  <Space>
+                    <FileTextOutlined style={{ color: '#52c41a' }} />
+                    <span>Thông tin khám bệnh</span>
+                  </Space>
+                }
+                extra={
+                  appointment.trang_thai !== "da_hoan_thanh" ? (
+                    <Button 
+                      type={lichSuKhamHienTai ? "default" : "primary"}
+                      icon={lichSuKhamHienTai ? <EditOutlined /> : <PlusOutlined />}
+                      onClick={() => {
+                        if (lichSuKhamHienTai) {
+                          formLichSu.setFieldsValue(lichSuKhamHienTai);
                         }
-                        options={dsDichVu.map(dv => ({
-                          value: dv.id_dich_vu,
-                          label: `${dv.ten_dich_vu} - ${dv.don_gia} VNĐ`
-                        }))}
-                      />
-                    </div>
-                      
-                    {/* Số lượng */}
-                    <div className="col-md-2">
-                      <input
-                        type="number"
-                        className="form-control"
-                        placeholder="SL"
-                        value={row.so_luong}
-                        onChange={(e) => handleChangeDichVu(i, "so_luong", e.target.value)}
-                      />
-                    </div>
-                      
-                    {/* Đơn giá */}
-                    <div className="col-md-2">
-                      <input
-                        type="number"
-                        className="form-control"
-                        placeholder="Đơn giá"
-                        value={row.don_gia}
-                        onChange={(e) => handleChangeDichVu(i, "don_gia", e.target.value)}
-                      />
-                    </div>
-                      
-                    {/* Thành tiền */}
-                    <div className="col-md-2">
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={row.so_luong * row.don_gia}
-                        readOnly
-                      />
-                    </div>
-                    <div className="col-md-1">
-                      <Button 
-                        danger 
-                        onClick={() => handleRemoveDichVu(i)}
-                      >
-                        X
-                      </Button>
-                    </div>
+                        setModalLichSuOpen(true);
+                      }}
+                      size="small"
+                    >
+                      {lichSuKhamHienTai ? "Chỉnh sửa" : "Ghi thông tin"}
+                    </Button>
+                  ) : (
+                    <Button 
+                      type="default"
+                      icon={<EyeOutlined />}
+                      onClick={() => {
+                        formLichSu.setFieldsValue(lichSuKhamHienTai);
+                        setModalLichSuOpen(true);
+                      }}
+                      size="small"
+                    >
+                      Xem chi tiết
+                    </Button>
+                  )
+                }
+                className="shadow-sm"
+                style={{ borderRadius: 12 }}
+              >
+                {lichSuKhamHienTai ? (
+                  <Descriptions column={1} bordered>
+                    <Descriptions.Item label="Lý do khám">
+                      <Text>{lichSuKhamHienTai.ly_do_kham || "Không có"}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Chuẩn đoán">
+                      <Text>{lichSuKhamHienTai.chuan_doan || "Không có"}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Kết quả CLS">
+                      <Text>{lichSuKhamHienTai.ket_qua_cls || "Không có"}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Điều trị">
+                      <Text>{lichSuKhamHienTai.dieu_tri || "Không có"}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Chăm sóc">
+                      <Text>{lichSuKhamHienTai.cham_soc || "Không có"}</Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Ghi chú">
+                      <Text>{lichSuKhamHienTai.ghi_chu || "Không có"}</Text>
+                    </Descriptions.Item>
+                  </Descriptions>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <Text type="secondary">Chưa có thông tin khám bệnh</Text>
                   </div>
-                ))}
+                )}
+              </Card>
+            </Col>
 
-                <button className="btn btn-sm btn-outline-primary mt-2" onClick={handleAddDichVuRow}>
-                  + Thêm dịch vụ
-                </button>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-secondary" onClick={() => setModalDichVu(false)}>
-                  Đóng
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-      {modalDonThuoc && (
-        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-          <div className="modal-dialog modal-xl" >
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Kê đơn thuốc</h5>
-                <button className="btn-close" onClick={() => setModalDonThuoc(false)}></button>
-              </div>
-              <div className="modal-body">
-                {donThuocTamThoi.map((row, i) => (
-                  <div key={i} className="row g-2 align-items-center mb-2">
-                    {/* Thuốc */}
-                    <div className="col-md-4">
-                      <Select
-                        showSearch
-                        style={{ width: "100%" }}  
-                        size="large"
-                        placeholder="Chọn thuốc"
-                        value={row.id_thuoc}
-                        onChange={(value) => handleChangeThuoc(i, "id_thuoc", value)}
-                        filterOption={(input, option) =>
-                          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                        }
-                        options={dsThuoc.map(t => ({
-                          value: t.id_thuoc,
-                          label: `${t.ten_thuoc} (${t.hang_bao_che})`
-                        }))}
-                      />
-                    </div>
-                      
-                    {/* Liều dùng */}
-                    <div className="col-md-2">
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Liều dùng"
-                        value={row.lieu_dung}
-                        onChange={(e) => handleChangeThuoc(i, "lieu_dung", e.target.value)}
-                      />
-                    </div>
-                      
-                    {/* Tần suất */}
-                    <div className="col-md-2">
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Tần suất"
-                        value={row.tan_suat}
-                        onChange={(e) => handleChangeThuoc(i, "tan_suat", e.target.value)}
-                      />
-                    </div>
-                      
-                    {/* Số lượng */}
-                    <div className="col-md-1">
-                      <input
-                        type="number"
-                        className="form-control"
-                        placeholder="SL"
-                        value={row.so_luong}
-                        onChange={(e) => handleChangeThuoc(i, "so_luong", e.target.value)}
-                      />
-                    </div>
-                      
-                    {/* Ghi chú */}
-                    <div className="col-md-2">
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Ghi chú"
-                        value={row.ghi_chu || ""}
-                        onChange={(e) => handleChangeThuoc(i, "ghi_chu", e.target.value)}
-                      />
-                    </div>
-                    <div className="col-md-1">
-                      <Button 
-                        danger 
-                        onClick={() => handleRemoveThuoc(i)}
-                      >
-                        X
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-
-                <button className="btn btn-sm btn-outline-primary mt-2" onClick={handleAddThuocRow}>
-                  + Thêm thuốc
-                </button>
-              
-                {/* Ghi chú cho đơn thuốc */}
-                <div className="mt-3">
-                  <label className="form-label">Ghi chú đơn thuốc</label>
-                  <textarea
-                    className="form-control"
-                    rows="2"
-                    value={ghiChuDonThuoc}
-                    onChange={(e) => setGhiChuDonThuoc(e.target.value)}
-                  ></textarea>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-secondary" onClick={() => setModalDonThuoc(false)}>
-                  Đóng
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-        {showPreview && (
-          <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-            <div className="modal-dialog modal-xl">
-              <div className="modal-content bg-white p-3">
-                <div className="modal-header border-0">
-                  <h5 className="modal-title">Xem trước hóa đơn</h5>
-                  <button className="btn-close" onClick={() => setShowPreview(false)}></button>
-                </div>
-
-                <div className="modal-body">
-                  <div id="invoicePreview">
-
-                    <h3 className="text-center mb-4">PHÒNG KHÁM ABC</h3>
-
-                    {/* Thông tin bệnh nhân */}
-                    <div className="mb-4">
-                      <h5 className="text-center mb-3">Thông tin bệnh nhân</h5>
-                      <div className="row mb-2 text-start">
-                        <div className="col-md-2 fw-bold ">Mã cuộc hẹn:</div>
-                        <div className="col-md-4">{id_cuoc_hen}</div>
-                        <div className="col-md-2 fw-bold">Họ tên:</div>
-                        <div className="col-md-4">{hoSo.ho_ten}</div>
-                      </div>
-                      <div className="row mb-2 text-start">
-                        <div className="col-md-2 fw-bold">Giới tính:</div>
-                        <div className="col-md-4">{hoSo.gioi_tinh}</div>
-                        <div className="col-md-2 fw-bold">Dân tộc:</div>
-                        <div className="col-md-4">{hoSo.dan_toc}</div>
-                      </div>
-                      <div className="row mb-2 text-start">
-                        <div className="col-md-2 fw-bold ">Địa chỉ:</div>
-                        <div className="col-md-4">{hoSo.dia_chi}</div>
-                        <div className="col-md-2 fw-bold">Mã BHYT:</div>
-                        <div className="col-md-4">{hoSo.ma_BHYT}</div>
-                      </div>
-                      <div className="row mb-2 text-start">
-                        <div className="col-md-2 fw-bold">Ngày khám:</div>
-                        <div className="col-md-4">{new Date().toLocaleDateString()}</div>
-                        <div className="col-md-2 fw-bold"></div>
-                        <div className="col-md-4"></div>
-                      </div>
-                    </div>
-
-                    {/* Lý do khám, Chuẩn đoán, Phương án điều trị */}
-                    <div className="mb-3 p-2 border rounded shadow-sm bg-light">
-                      <label className="fw-bold mb-1">Lý do khám bệnh:</label>
-                      <div style={{ whiteSpace: "pre-wrap" }}>{lichSuKhamHienTai?.ly_do_kham}</div>
-                    </div>
-
-                    <div className="mb-3 p-2 border rounded shadow-sm bg-light">
-                      <label className="fw-bold mb-1">Chuẩn đoán bệnh:</label>
-                      <div style={{ whiteSpace: "pre-wrap" }}>{lichSuKhamHienTai?.chuan_doan}</div>
-                    </div>
-
-                    <div className="mb-3 p-2 border rounded shadow-sm bg-light">
-                      <label className="fw-bold mb-1">Phương án điều trị:</label>
-                      <div style={{ whiteSpace: "pre-wrap" }}>{lichSuKhamHienTai?.dieu_tri}</div>
-                    </div>
-
-                    {/* Dịch vụ */}
-                    <h5 className="mt-4">Dịch vụ</h5>
-                    <table className="table table-bordered table-striped">
-                      <thead className="table-dark">
-                        <tr>
-                          <th>STT</th>
-                          <th>Tên DV</th>
-                          <th>SL</th>
-                          <th>Đơn giá</th>
-                          <th>Thành tiền</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {dichVuTamThoi.map((d, i) => (
-                          <tr key={i}>
-                            <td>{i + 1}</td>
-                            <td>{d.ten_dich_vu}</td>
-                            <td>{d.so_luong}</td>
-                            <td>{d.don_gia.toLocaleString()}</td>
-                            <td>{(d.don_gia * d.so_luong).toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                      
-                    {/* Thuốc */}
-                    <h5 className="mt-4">Thuốc</h5>
-                    <table className="table table-bordered table-striped">
-                      <thead className="table-dark">
-                        <tr>
-                          <th>STT</th>
-                          <th>Thuốc</th>
-                          <th>SL</th>
-                          <th>Liều dùng</th>
-                          <th>Tần suất</th>
-                          <th>Ghi chú</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {donThuocTamThoi.map((t, i) => (
-                          <tr key={i}>
-                            <td>{i + 1}</td>
-                            <td>{t.ten_thuoc} ({t.ham_luong})</td>
-                            <td>{t.so_luong}</td>
-                            <td>{t.lieu_dung}</td>
-                            <td>{t.tan_suat}</td>
-                            <td>{t.ghi_chu}</td>
-                          </tr>
-                        ))}
-                        <tr>
-                          <td colSpan={6}>
-                            <div className="p-2 border rounded shadow-sm bg-light" style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                              <label className="fw-bold" style={{ minWidth: "120px", marginTop: "6px" }}>Ghi chú:</label>
-                              <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>{ghiChuDonThuoc}</div>
-                            </div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                      
-                    {/* Tổng cộng */}
-                    <h4 className="text-end mt-3 text-success fw-bold">
-                      Tổng cộng: {(dichVuTamThoi.reduce((sum,d)=>sum+d.so_luong*d.don_gia,0) + donThuocTamThoi.reduce((sum,t)=>sum+t.so_luong*t.don_gia,0)).toLocaleString()} VND
-                    </h4>
-                      
-                  </div>
-                </div>
-                      
-                <div className="modal-footer">
-                  <button className="btn btn-secondary" onClick={() => setShowPreview(false)}>Đóng</button>
-                  <button className="btn btn-success" onClick={handleExportPdf}>
-                    Xuất PDF & Kết thúc khám
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-
-      {/* === Modal xem + cập nhật lịch sử khám === */}
-      {lichSuKhamHienTai && modalLichSuViewOpen  && (
-        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
-          <div className="modal-dialog modal-xl">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Thông tin khám bệnh</h5>
-                <button className="btn-close" onClick={() => setModalLichSuViewOpen(false)}></button>
-              </div>
-              <div className="modal-body text-start">
-                <div className="row g-3">
-                  <div className="col-12">
-                    <label className="form-label">Lý do khám</label>
-                    <textarea 
-                      className="form-control" 
-                      name="ly_do_kham" 
-                      value={formDataLichSu.ly_do_kham} 
-                      onChange={(e) => setFormDataLichSu(prev => ({...prev, ly_do_kham: e.target.value}))}
-                    ></textarea>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Chuẩn đoán</label>
-                    <textarea 
-                      className="form-control" 
-                      name="chuan_doan" 
-                      value={formDataLichSu.chuan_doan} 
-                      onChange={(e) => setFormDataLichSu(prev => ({...prev, chuan_doan: e.target.value}))}
-                    ></textarea>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Kết quả CLS</label>
-                    <textarea 
-                      className="form-control" 
-                      name="ket_qua_cls" 
-                      value={formDataLichSu.ket_qua_cls} 
-                      onChange={(e) => setFormDataLichSu(prev => ({...prev, ket_qua_cls: e.target.value}))}
-                    ></textarea>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Điều trị</label>
-                    <textarea 
-                      className="form-control" 
-                      name="dieu_tri" 
-                      value={formDataLichSu.dieu_tri} 
-                      onChange={(e) => setFormDataLichSu(prev => ({...prev, dieu_tri: e.target.value}))}
-                    ></textarea>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Chăm sóc</label>
-                    <textarea 
-                      className="form-control" 
-                      name="cham_soc" 
-                      value={formDataLichSu.cham_soc} 
-                      onChange={(e) => setFormDataLichSu(prev => ({...prev, cham_soc: e.target.value}))}
-                    ></textarea>
-                  </div>
-                  <div className="col-12">
-                    <label className="form-label">Ghi chú</label>
-                    <textarea 
-                      className="form-control" 
-                      name="ghi_chu" 
-                      value={formDataLichSu.ghi_chu} 
-                      onChange={(e) => setFormDataLichSu(prev => ({...prev, ghi_chu: e.target.value}))}
-                    ></textarea>
-                  </div>
-                </div>
-
-                {/* Lịch sử khám trước đó */}
-                {lichSuKhamTruoc.length > 0 && (
-                  <>
-                    <hr />
-                    <h6>Lịch sử khám bệnh trước đó</h6>
-                    <div className="accordion" id="lichSuAccordion">
-                      {lichSuKhamTruoc.map((ls, i) => (
-                        <div className="accordion-item" key={i}>
-                          <h2 className="accordion-header" id={`heading${i}`}>
-                            <button
-                              className="accordion-button collapsed"
-                              type="button"
-                              data-bs-toggle="collapse"
-                              data-bs-target={`#collapse${i}`}
-                              aria-expanded="false"
-                              aria-controls={`collapse${i}`}
-                            >
-                              {new Date(ls.thoi_gian_kham).toLocaleDateString("vi-VN")} - {ls.ly_do_kham}
-                            </button>
-                          </h2>
-                          <div
-                            id={`collapse${i}`}
-                            className="accordion-collapse collapse"
-                            aria-labelledby={`heading${i}`}
-                            data-bs-parent="#lichSuAccordion"
-                          >
-                            <div className="accordion-body">
-                              <p><strong>Chuẩn đoán:</strong> {ls.chuan_doan}</p>
-                              <p><strong>Điều trị:</strong> {ls.dieu_tri}</p>
-                              <p><strong>Ghi chú:</strong> {ls.ghi_chu}</p>
-                            </div>
-                          </div>
+            {/* Card chỉ định xét nghiệm (HIỆN CHO CẢ 2 TRẠNG THÁI) */}
+            <Col xs={24}>
+              <Card 
+                title={
+                  <Space>
+                    <ExperimentOutlined style={{ color: '#722ed1' }} />
+                    <span>Chỉ định xét nghiệm</span>
+                  </Space>
+                }
+                extra={
+                  appointment.trang_thai !== "da_hoan_thanh" && (
+                    <Button 
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => setModalChiDinhXN(true)}
+                      size="small"
+                    >
+                      Thêm chỉ định
+                    </Button>
+                  )
+                }
+                className="shadow-sm"
+                style={{ borderRadius: 12 }}
+              >
+                {chiDinhXetNghiem.length > 0 ? (
+                  <List
+                    dataSource={chiDinhXetNghiem}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <List.Item.Meta
+                          avatar={<Avatar icon={<ExperimentOutlined />} />}
+                          title={item.ten_dich_vu}
+                          description={item.yeu_cau_ghi_chu || "Không có ghi chú"}
+                        />
+                        <div>
+                          {ketQuaXetNghiem[item.id_chi_dinh] ? (
+                            <Space>
+                              <Tag color="green">Đã có kết quả</Tag>
+                              <Button 
+                                size="small" 
+                                icon={<EyeOutlined />}
+                                onClick={() => handleViewKetQua(item)}
+                              >
+                                Xem kết quả
+                              </Button>
+                            </Space>
+                          ) : (
+                            <Tag color="orange">Đang chờ kết quả</Tag>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  </>
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <Text type="secondary">Chưa có chỉ định xét nghiệm nào</Text>
+                  </div>
                 )}
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-primary" onClick={handleSubmitLichSuKham}>
-                  Cập nhật
-                </button>
-                <button className="btn btn-secondary" onClick={() => setModalLichSuViewOpen(false)}>
-                  Đóng
-                </button>
-              </div>
+              </Card>
+            </Col>
+
+            {/* Hiển thị đơn thuốc và dịch vụ khi đã hoàn thành */}
+            {appointment.trang_thai === "da_hoan_thanh" && (
+              <>
+                {/* Đơn thuốc đã kê */}
+                <Col xs={24}>
+                  <Card 
+                    title={
+                      <Space>
+                        <MedicineBoxOutlined style={{ color: '#52c41a' }} />
+                        <span>Đơn thuốc đã kê</span>
+                      </Space>
+                    }
+                    extra={
+                      <Button 
+                        type="primary" 
+                        icon={<EyeOutlined />}
+                        onClick={handleViewDonThuoc}
+                        size="small"
+                      >
+                        Xem đơn thuốc
+                      </Button>
+                    }
+                    className="shadow-sm"
+                    style={{ borderRadius: 12 }}
+                  >
+                    {donThuocTamThoi.length > 0 ? (
+                      <List
+                        size="small"
+                        dataSource={donThuocTamThoi.slice(0, 3)}
+                        renderItem={(thuoc, index) => (
+                          <List.Item>
+                            <List.Item.Meta
+                              avatar={<Avatar size="small" icon={<MedicineBoxOutlined />} />}
+                              title={`${thuoc.thuoc.ten_thuoc}`}
+                              description={`Số lượng: ${thuoc.so_luong} - Liều dùng: ${thuoc.lieu_dung}`}
+                            />
+                          </List.Item>
+                        )}
+                        footer={
+                          donThuocTamThoi.length > 3 && (
+                            <Text type="secondary">
+                              Và {donThuocTamThoi.length - 3} thuốc khác...
+                            </Text>
+                          )
+                        }
+                      />
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                        <Text type="secondary">Chưa có đơn thuốc</Text>
+                      </div>
+                    )}
+                  </Card>
+                </Col>
+
+                {/* Dịch vụ đã sử dụng */}
+                <Col xs={24}>
+                  <Card 
+                    title={
+                      <Space>
+                        <HeartOutlined style={{ color: '#eb2f96' }} />
+                        <span>Dịch vụ đã sử dụng</span>
+                      </Space>
+                    }
+                    extra={
+                      <Button 
+                        type="primary" 
+                        icon={<EyeOutlined />}
+                        onClick={handleViewDichVu}
+                        size="small"
+                      >
+                        Xem dịch vụ
+                      </Button>
+                    }
+                    className="shadow-sm"
+                    style={{ borderRadius: 12 }}
+                  >
+                    {dichVuTamThoi.length > 0 ? (
+                      <List
+                        size="small"
+                        dataSource={dichVuTamThoi.slice(0, 3)}
+                        renderItem={(dv, index) => (
+                          <List.Item>
+                            <List.Item.Meta
+                              avatar={<Avatar size="small" icon={<HeartOutlined />} />}
+                              title={dv.dich_vu?.ten_dich_vu}
+                              description={`Số lượng: ${dv.so_luong} - Đơn giá: ${dv.don_gia?.toLocaleString()} VND`}
+                            />
+                            <div>
+                              <Text strong>{dv.thanh_tien?.toLocaleString()} VND</Text>
+                            </div>
+                          </List.Item>
+                        )}
+                        footer={
+                          dichVuTamThoi.length > 3 && (
+                            <Text type="secondary">
+                              Và {dichVuTamThoi.length - 3} dịch vụ khác...
+                            </Text>
+                          )
+                        }
+                      />
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                        <Text type="secondary">Không có dịch vụ nào</Text>
+                      </div>
+                    )}
+                  </Card>
+                </Col>
+              </>
+            )}
+
+            {/* Lịch sử khám trước */}
+            {lichSuKhamTruoc.length > 0 && (
+              <Col xs={24}>
+                <Card 
+                  title={
+                    <Space>
+                      <ClockCircleOutlined style={{ color: '#faad14' }} />
+                      <span>Lịch sử khám trước</span>
+                    </Space>
+                  }
+                  className="shadow-sm"
+                  style={{ borderRadius: 12 }}
+                >
+                  <Timeline>
+                    {lichSuKhamTruoc.map((ls, index) => (
+                      <Timeline.Item
+                        key={index}
+                        dot={<CalendarOutlined style={{ fontSize: '12px' }} />}
+                      >
+                        <Space direction="vertical" size={0}>
+                          <Text strong>
+                            {new Date(ls.thoi_gian_kham).toLocaleDateString("vi-VN")} - {ls.ly_do_kham}
+                          </Text>
+                          <Text type="secondary" style={{ fontSize: '12px' }}>
+                            Chuẩn đoán: {ls.chuan_doan}
+                          </Text>
+                        </Space>
+                      </Timeline.Item>
+                    ))}
+                  </Timeline>
+                </Card>
+              </Col>
+            )}
+          </Row>
+        </Col>
+
+        {/* Sidebar */}
+        <Col xs={24} lg={8}>
+          <Row gutter={[24, 24]}>
+            {/* Thông tin cuộc hẹn */}
+            <Col xs={24}>
+              <Card 
+                title={
+                  <Space>
+                    <CalendarOutlined style={{ color: '#1890ff' }} />
+                    <span>Thông tin cuộc hẹn</span>
+                  </Space>
+                }
+                className="shadow-sm"
+                style={{ borderRadius: 12 }}
+              >
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div>
+                    <Text strong>Ngày khám:</Text>
+                    <div>
+                      <CalendarOutlined style={{ marginRight: 8, color: '#52c41a' }} />
+                      {new Date(appointment.ngay_kham).toLocaleDateString("vi-VN")}
+                    </div>
+                  </div>
+                  <div>
+                    <Text strong>Giờ khám:</Text>
+                    <div>
+                      <ClockCircleOutlined style={{ marginRight: 8, color: '#faad14' }} />
+                      {appointment.khungGio ? 
+                        `${appointment.khungGio.gio_bat_dau} - ${appointment.khungGio.gio_ket_thuc}` : 
+                        "Không có"}
+                    </div>
+                  </div>
+                  <div>
+                    <Text strong>Lý do khám:</Text>
+                    <div style={{ padding: '8px', background: '#f5f5f5', borderRadius: 6 }}>
+                      {appointment.ly_do_kham || "Không có"}
+                    </div>
+                  </div>
+                </Space>
+              </Card>
+            </Col>
+
+            {/* Thống kê nhanh */}
+            <Col xs={24}>
+              <Card 
+                title="Thống kê nhanh"
+                className="shadow-sm"
+                style={{ borderRadius: 12 }}
+              >
+                <Row gutter={[16, 16]}>
+                  <Col span={8}>
+                    <Statistic
+                      title="Dịch vụ"
+                      value={dichVuTamThoi.length}
+                      prefix={<MedicineBoxOutlined />}
+                    />
+                  </Col>
+                  <Col span={8}>
+                    <Statistic
+                      title="Thuốc"
+                      value={donThuocTamThoi.length}
+                      prefix={<HeartOutlined />}
+                    />
+                  </Col>
+                  <Col span={8}>
+                    <Statistic
+                      title="Xét nghiệm"
+                      value={chiDinhXetNghiem.length}
+                      prefix={<ExperimentOutlined />}
+                    />
+                  </Col>
+                  <Col span={24}>
+                    <Statistic
+                      title="Tổng tiền"
+                      value={tongCong}
+                      prefix={<DollarOutlined />}
+                      suffix="VND"
+                      valueStyle={{ color: '#cf1322' }}
+                    />
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+
+            {/* Hành động */}
+            <Col xs={24}>
+              <Card 
+                title="Thao tác"
+                className="shadow-sm"
+                style={{ borderRadius: 12 }}
+              >
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  {appointment.trang_thai !== "da_hoan_thanh" ? (
+                    <>
+                      <Button 
+                        type="primary" 
+                        icon={<MedicineBoxOutlined />}
+                        onClick={handleOpenDonThuoc}
+                        block
+                        size="large"
+                      >
+                        Kê đơn thuốc
+                      </Button>
+                      <Button 
+                        icon={<PlusOutlined />}
+                        onClick={handleOpenDichVu}
+                        block
+                        size="large"
+                      >
+                        Chọn dịch vụ
+                      </Button>
+                      <Button 
+                        icon={<ExperimentOutlined />}
+                        onClick={() => setModalChiDinhXN(true)}
+                        block
+                        size="large"
+                      >
+                        Chỉ định XN
+                      </Button>
+                      <Button 
+                        type="primary" 
+                        icon={<CheckCircleOutlined />}
+                        onClick={handleFinish}
+                        block
+                        size="large"
+                        disabled={!lichSuKhamHienTai}
+                      >
+                        Kết thúc khám
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button 
+                        type="primary" 
+                        icon={<EyeOutlined />}
+                        onClick={handleViewDonThuoc}
+                        block
+                        size="large"
+                      >
+                        Xem đơn thuốc
+                      </Button>
+                      <Button 
+                        icon={<EyeOutlined />}
+                        onClick={handleViewDichVu}
+                        block
+                        size="large"
+                      >
+                        Xem dịch vụ
+                      </Button>
+                      <Button 
+                        type="primary" 
+                        icon={<PrinterOutlined />}
+                        onClick={() => setShowPreview(true)}
+                        block
+                        size="large"
+                      >
+                        In hóa đơn
+                      </Button>
+                    </>
+                  )}
+                </Space>
+              </Card>
+            </Col>
+          </Row>
+        </Col>
+      </Row>
+
+      {/* Modal Hồ sơ - GIỮ NGUYÊN */}
+      <Modal
+        title={hoSo ? "Chỉnh sửa hồ sơ" : "Tạo hồ sơ bệnh nhân"}
+        open={modalHoSoOpen}
+        onCancel={() => setModalHoSoOpen(false)}
+        footer={null}
+        width={700}
+      >
+        <Form
+          form={formHoSo}
+          layout="vertical"
+          onFinish={handleSubmitHoSo}
+        >
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="ho_ten"
+                label="Họ tên"
+                rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}
+              >
+                <Input prefix={<UserOutlined />} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="so_dien_thoai"
+                label="Số điện thoại"
+                rules={[{ required: true, message: 'Vui lòng nhập số điện thoại' }]}
+              >
+                <Input prefix={<PhoneOutlined />} />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="tuoi"
+                label="Tuổi"
+                rules={[{ required: true, message: 'Vui lòng nhập tuổi' }]}
+              >
+                <Input type="number" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="gioi_tinh"
+                label="Giới tính"
+                rules={[{ required: true, message: 'Vui lòng chọn giới tính' }]}
+              >
+                <Select>
+                  <Option value="Nam">Nam</Option>
+                  <Option value="Nữ">Nữ</Option>
+                  <Option value="Khác">Khác</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item
+                name="dan_toc"
+                label="Dân tộc"
+              >
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="ma_BHYT"
+                label="Mã BHYT"
+              >
+                <Input prefix={<IdcardOutlined />} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="dia_chi"
+                label="Địa chỉ"
+              >
+                <Input prefix={<EnvironmentOutlined />} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <div style={{ textAlign: 'right' }}>
+            <Button onClick={() => setModalHoSoOpen(false)} style={{ marginRight: 8 }}>
+              Hủy
+            </Button>
+            <Button type="primary" htmlType="submit">
+              {hoSo ? "Cập nhật" : "Tạo hồ sơ"}
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Modal Lịch sử khám - GIỮ NGUYÊN */}
+      <Modal
+        title={lichSuKhamHienTai ? "Chỉnh sửa thông tin khám" : "Ghi thông tin khám bệnh"}
+        open={modalLichSuOpen}
+        onCancel={() => setModalLichSuOpen(false)}
+        footer={null}
+        width={800}
+        style={{ top: 20 }}
+      >
+        <Form
+          form={formLichSu}
+          layout="vertical"
+          onFinish={handleSubmitLichSuKham}
+        >
+          <Tabs defaultActiveKey="1">
+            <TabPane tab="Thông tin khám hiện tại" key="1">
+              <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item name="ly_do_kham" label="Lý do khám">
+                    <TextArea rows={3} placeholder="Nhập lý do khám..." />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item name="chuan_doan" label="Chuẩn đoán">
+                    <TextArea rows={3} placeholder="Nhập chuẩn đoán..." />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item name="ket_qua_cls" label="Kết quả CLS">
+                    <TextArea rows={3} placeholder="Nhập kết quả cận lâm sàng..." />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item name="dieu_tri" label="Điều trị">
+                    <TextArea rows={3} placeholder="Nhập phương án điều trị..." />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item name="cham_soc" label="Chăm sóc">
+                    <TextArea rows={3} placeholder="Nhập hướng dẫn chăm sóc..." />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item name="ghi_chu" label="Ghi chú">
+                    <TextArea rows={2} placeholder="Nhập ghi chú..." />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </TabPane>
+            
+            {lichSuKhamTruoc.length > 0 && (
+              <TabPane tab={`Lịch sử khám (${lichSuKhamTruoc.length})`} key="2">
+                <List
+                  dataSource={lichSuKhamTruoc}
+                  renderItem={(ls, index) => (
+                    <List.Item>
+                      <List.Item.Meta
+                        avatar={<Avatar icon={<CalendarOutlined />} />}
+                        title={
+                          <Space>
+                            <Text strong>
+                              {new Date(ls.thoi_gian_kham).toLocaleDateString("vi-VN")}
+                            </Text>
+                            <Tag color="blue">{ls.ly_do_kham}</Tag>
+                          </Space>
+                        }
+                        description={
+                          <Space direction="vertical" size={0}>
+                            <Text><strong>Chuẩn đoán:</strong> {ls.chuan_doan}</Text>
+                            <Text><strong>Điều trị:</strong> {ls.dieu_tri}</Text>
+                            {ls.ghi_chu && <Text><strong>Ghi chú:</strong> {ls.ghi_chu}</Text>}
+                          </Space>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              </TabPane>
+            )}
+          </Tabs>
+          
+          <div style={{ textAlign: 'right', marginTop: 16 }}>
+            <Button onClick={() => setModalLichSuOpen(false)} style={{ marginRight: 8 }}>
+              Hủy
+            </Button>
+            <Button type="primary" htmlType="submit">
+              {lichSuKhamHienTai ? "Cập nhật" : "Lưu thông tin"}
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Modal Đơn thuốc - GIỮ NGUYÊN */}
+      <Modal
+        title="Kê đơn thuốc"
+        open={modalDonThuoc}
+        onCancel={() => setModalDonThuoc(false)}
+        width={1200}
+        footer={[
+          <Button key="cancel" onClick={() => setModalDonThuoc(false)}>
+            Đóng
+          </Button>,
+          <Button key="add" type="dashed" icon={<PlusOutlined />} onClick={handleAddThuocRow}>
+            Thêm thuốc
+          </Button>,
+        ]}
+      >
+        <Space direction="vertical" style={{ width: '100%' }} size="large">
+          {donThuocTamThoi.map((row, i) => (
+            <Card 
+              key={i} 
+              size="small" 
+              title={`Thuốc ${i + 1}`}
+              extra={
+                <Button 
+                  danger 
+                  icon={<DeleteOutlined />} 
+                  onClick={() => handleRemoveThuoc(i)}
+                  size="small"
+                />
+              }
+            >
+              <Row gutter={16} align="middle">
+                <Col span={8}>
+                  <Select
+                    showSearch
+                    placeholder="Chọn thuốc"
+                    value={row.id_thuoc}
+                    onChange={(value) => handleChangeThuoc(i, "id_thuoc", value)}
+                    filterOption={(input, option) =>
+                      (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                    }
+                    options={dsThuoc.map(t => ({
+                      value: t.thuoc?.id_thuoc,
+                      label: `${t.thuoc?.ten_thuoc}`
+                    }))}
+                    style={{ width: '100%' }}
+                  />
+                </Col>
+                <Col span={3}>
+                  <Input
+                    type="number"
+                    placeholder="Số lượng"
+                    value={row.so_luong}
+                    onChange={(e) => handleChangeThuoc(i, "so_luong", parseInt(e.target.value) || 1)}
+                    min={1}
+                  />
+                </Col>
+                <Col span={4}>
+                  <Input
+                    placeholder="Liều dùng"
+                    value={row.lieu_dung}
+                    onChange={(e) => handleChangeThuoc(i, "lieu_dung", e.target.value)}
+                  />
+                </Col>
+                <Col span={4}>
+                  <Input
+                    placeholder="Tần suất"
+                    value={row.tan_suat}
+                    onChange={(e) => handleChangeThuoc(i, "tan_suat", e.target.value)}
+                  />
+                </Col>
+                <Col span={4}>
+                  <Input
+                    placeholder="Ghi chú"
+                    value={row.ghi_chu}
+                    onChange={(e) => handleChangeThuoc(i, "ghi_chu", e.target.value)}
+                  />
+                </Col>
+              </Row>
+            </Card>
+          ))}
+          
+          {donThuocTamThoi.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <MedicineBoxOutlined style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16 }} />
+              <Text type="secondary" style={{ display: 'block' }}>
+                Chưa có thuốc nào được thêm vào đơn
+              </Text>
             </div>
+          )}
+
+          <Card title="Ghi chú đơn thuốc" size="small">
+            <TextArea
+              rows={3}
+              value={ghiChuDonThuoc}
+              onChange={(e) => setGhiChuDonThuoc(e.target.value)}
+              placeholder="Nhập ghi chú cho toàn bộ đơn thuốc..."
+            />
+          </Card>
+        </Space>
+      </Modal>
+
+      {/* Modal Dịch vụ - GIỮ NGUYÊN */}
+      <Modal
+        title="Chọn dịch vụ"
+        open={modalDichVu}
+        onCancel={() => setModalDichVu(false)}
+        width={1000}
+        footer={[
+          <Button key="cancel" onClick={() => setModalDichVu(false)}>
+            Đóng
+          </Button>,
+          <Button key="add" type="dashed" icon={<PlusOutlined />} onClick={handleAddDichVuRow}>
+            Thêm dịch vụ
+          </Button>,
+        ]}
+      >
+        <Space direction="vertical" style={{ width: '100%' }} size="large">
+          {dichVuTamThoi.map((row, i) => (
+            <Card 
+              key={i} 
+              size="small" 
+              title={`Dịch vụ ${i + 1}`}
+              extra={
+                <Button 
+                  danger 
+                  icon={<DeleteOutlined />} 
+                  onClick={() => handleRemoveDichVu(i)}
+                  size="small"
+                />
+              }
+            >
+              <Row gutter={16} align="middle">
+                <Col span={10}>
+                  <Select
+                    showSearch
+                    placeholder="Chọn dịch vụ"
+                    value={row.id_dich_vu}
+                    onChange={(value) => handleChangeDichVu(i, "id_dich_vu", value)}
+                    filterOption={(input, option) =>
+                      (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                    }
+                    options={dsDichVu.map(dv => ({
+                      value: dv.dich_vu?.id_dich_vu,
+                      label: `${dv.dich_vu?.ten_dich_vu} - ${dv.don_gia?.toLocaleString()} VND`
+                    }))}
+                    style={{ width: '100%' }}
+                  />
+                </Col>
+                <Col span={4}>
+                  <Input
+                    type="number"
+                    placeholder="Số lượng"
+                    value={row.so_luong}
+                    onChange={(e) => handleChangeDichVu(i, "so_luong", parseInt(e.target.value) || 1)}
+                    min={1}
+                  />
+                </Col>
+                <Col span={4}>
+                  <Input
+                    type="number"
+                    placeholder="Đơn giá"
+                    value={row.don_gia}
+                    onChange={(e) => handleChangeDichVu(i, "don_gia", parseInt(e.target.value) || 0)}
+                    min={0}
+                  />
+                </Col>
+                <Col span={4}>
+                  <Input
+                    placeholder="Thành tiền"
+                    value={(row.so_luong * row.don_gia).toLocaleString() + ' VND'}
+                    readOnly
+                    style={{ fontWeight: 'bold', color: '#1890ff' }}
+                  />
+                </Col>
+              </Row>
+            </Card>
+          ))}
+          
+          {dichVuTamThoi.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <PlusOutlined style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16 }} />
+              <Text type="secondary" style={{ display: 'block' }}>
+                Chưa có dịch vụ nào được chọn
+              </Text>
+            </div>
+          )}
+
+          {dichVuTamThoi.length > 0 && (
+            <Card size="small">
+              <Statistic
+                title="Tổng tiền dịch vụ"
+                value={totalDichVu}
+                suffix="VND"
+                valueStyle={{ color: '#cf1322', fontSize: '20px' }}
+              />
+            </Card>
+          )}
+        </Space>
+      </Modal>
+
+      {/* Modal xem đơn thuốc (chỉ xem) - GIỮ NGUYÊN */}
+      <Modal
+        title="Đơn thuốc đã kê"
+        open={viewDonThuoc}
+        onCancel={() => setViewDonThuoc(false)}
+        width={1000}
+        footer={[
+          <Button key="close" onClick={() => setViewDonThuoc(false)}>
+            Đóng
+          </Button>,
+        ]}
+      >
+        <Space direction="vertical" style={{ width: '100%' }} size="large">
+          {donThuocTamThoi.length > 0 ? (
+            donThuocTamThoi.map((row, i) => (
+              <Card 
+                key={i} 
+                size="small" 
+                title={`Thuốc ${i + 1}`}
+              >
+                <Descriptions column={2} size="small">
+                  <Descriptions.Item label="Tên thuốc" span={2}>
+                    <Text strong>{row.thuoc?.ten_thuoc} ({row.ham_luong})</Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Số lượng">
+                    <Tag color="blue">{row.so_luong}</Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Liều dùng">
+                    <Text>{row.lieu_dung || 'Không có'}</Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Tần suất">
+                    <Text>{row.tan_suat || 'Không có'}</Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Ghi chú" span={2}>
+                    <Text>{row.ghi_chu || 'Không có'}</Text>
+                  </Descriptions.Item>
+                </Descriptions>
+              </Card>
+            ))
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <MedicineBoxOutlined style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16 }} />
+              <Text type="secondary" style={{ display: 'block' }}>
+                Chưa có thuốc nào trong đơn
+              </Text>
+            </div>
+          )}
+
+          {ghiChuDonThuoc && (
+            <Card title="Ghi chú đơn thuốc" size="small">
+              <Text>{ghiChuDonThuoc}</Text>
+            </Card>
+          )}
+        </Space>
+      </Modal>
+
+      {/* Modal xem dịch vụ (chỉ xem) - GIỮ NGUYÊN */}
+      <Modal
+        title="Dịch vụ đã sử dụng"
+        open={viewDichVu}
+        onCancel={() => setViewDichVu(false)}
+        width={800}
+        footer={[
+          <Button key="close" onClick={() => setViewDichVu(false)}>
+            Đóng
+          </Button>,
+        ]}
+      >
+        <Space direction="vertical" style={{ width: '100%' }} size="large">
+          {dichVuTamThoi.length > 0 ? (
+            <>
+              <Table
+                size="small"
+                pagination={false}
+                dataSource={dichVuTamThoi.map((d, i) => ({
+                  key: i,
+                  stt: i + 1,
+                  ten_dich_vu: d.dich_vu.ten_dich_vu,
+                  so_luong: d.so_luong,
+                  don_gia: d.don_gia?.toLocaleString(),
+                  thanh_tien: (d.so_luong * d.don_gia)?.toLocaleString()
+                }))}
+                columns={[
+                  { title: 'STT', dataIndex: 'stt', width: 60 },
+                  { title: 'Tên dịch vụ', dataIndex: 'ten_dich_vu' },
+                  { title: 'SL', dataIndex: 'so_luong', width: 80, align: 'center' },
+                  { title: 'Đơn giá', dataIndex: 'don_gia', width: 120, align: 'right' },
+                  { title: 'Thành tiền', dataIndex: 'thanh_tien', width: 120, align: 'right' },
+                ]}
+                summary={() => (
+                  <Table.Summary>
+                    <Table.Summary.Row style={{ background: '#f0f8ff' }}>
+                      <Table.Summary.Cell index={0} colSpan={4} align="right">
+                        <Text strong>Tổng tiền dịch vụ:</Text>
+                      </Table.Summary.Cell>
+                      <Table.Summary.Cell index={1} align="right">
+                        <Text strong type="danger">{totalDichVu.toLocaleString()} VND</Text>
+                      </Table.Summary.Cell>
+                    </Table.Summary.Row>
+                  </Table.Summary>
+                )}
+              />
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <HeartOutlined style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16 }} />
+              <Text type="secondary" style={{ display: 'block' }}>
+                Không có dịch vụ nào được sử dụng
+              </Text>
+            </div>
+          )}
+        </Space>
+      </Modal>
+
+      {/* THÊM MODAL CHỈ ĐỊNH XÉT NGHIỆM */}
+      <Modal
+        title="Chỉ định xét nghiệm"
+        open={modalChiDinhXN}
+        onCancel={() => setModalChiDinhXN(false)}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={formChiDinhXN}
+          layout="vertical"
+          onFinish={handleChiDinhXetNghiem}
+        >
+          <Form.Item
+            name="ten_dich_vu"
+            label="Tên xét nghiệm"
+            rules={[{ required: true, message: 'Vui lòng nhập tên xét nghiệm' }]}
+          >
+            <Input placeholder="Ví dụ: Xét nghiệm máu, X-quang ngực, Siêu âm..." />
+          </Form.Item>
+          <Form.Item
+            name="yeu_cau_ghi_chu"
+            label="Yêu cầu/Ghi chú"
+          >
+            <TextArea 
+              rows={3} 
+              placeholder="Nhập yêu cầu cụ thể hoặc ghi chú cho xét nghiệm..." 
+            />
+          </Form.Item>
+          <div style={{ textAlign: 'right' }}>
+            <Button onClick={() => setModalChiDinhXN(false)} style={{ marginRight: 8 }}>
+              Hủy
+            </Button>
+            <Button type="primary" htmlType="submit">
+              Chỉ định
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* THÊM MODAL XEM KẾT QUẢ XÉT NGHIỆM */}
+      <Modal
+        title="Kết quả xét nghiệm"
+        open={viewKetQuaXN}
+        onCancel={() => setViewKetQuaXN(false)}
+        footer={[
+          <Button key="close" onClick={() => setViewKetQuaXN(false)}>
+            Đóng
+          </Button>,
+        ]}
+        width={700}
+      >
+        {selectedChiDinh && (
+          <Space direction="vertical" style={{ width: '100%' }} size="large">
+            <Card title={selectedChiDinh.ten_dich_vu} size="small">
+              <Descriptions column={1} size="small">
+                <Descriptions.Item label="Yêu cầu">
+                  {selectedChiDinh.yeu_cau_ghi_chu || 'Không có'}
+                </Descriptions.Item>
+                <Descriptions.Item label="Thời gian chỉ định">
+                  {new Date(selectedChiDinh.thoi_gian_chi_dinh).toLocaleString('vi-VN')}
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+
+            {ketQuaXetNghiem[selectedChiDinh.id_chi_dinh] ? (
+              <Card title="Kết quả" size="small">
+                <Descriptions column={1} size="small">
+                  <Descriptions.Item label="Kết quả văn bản">
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#f5f5f5', 
+                      borderRadius: '6px',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].ket_qua_van_ban}
+                    </div>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Thời gian kết luận">
+                    {new Date(ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].thoi_gian_ket_luan).toLocaleString('vi-VN')}
+                  </Descriptions.Item>
+                  {ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].duong_dan_file_ket_qua && (
+                    <Descriptions.Item label="File đính kèm">
+                      <Button type="link" onClick={() => window.open(ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].duong_dan_file_ket_qua, '_blank')}>
+                        Xem file kết quả
+                      </Button>
+                    </Descriptions.Item>
+                  )}
+                </Descriptions>
+              </Card>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <Text type="secondary">Chưa có kết quả xét nghiệm</Text>
+              </div>
+            )}
+          </Space>
+        )}
+      </Modal>
+
+      {/* Modal Preview Hóa đơn - GIỮ NGUYÊN */}
+      <Modal
+        title="Xem trước hóa đơn"
+        open={showPreview}
+        onCancel={() => setShowPreview(false)}
+        width={1000}
+        footer={[
+          <Button key="cancel" onClick={() => setShowPreview(false)}>
+            Đóng
+          </Button>,
+          <Button key="export" type="primary" icon={<PrinterOutlined />} onClick={handleExportPdf}>
+            Xuất PDF & Kết thúc khám
+          </Button>,
+        ]}
+      >
+        <div id="invoicePreview" style={{ padding: 20, background: 'white', border: '1px solid #f0f0f0' }}>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: 30, borderBottom: '2px solid #1890ff', paddingBottom: 20 }}>
+            <Title level={2} style={{ color: '#1890ff', margin: 0 }}>PHÒNG KHÁM MEDPRO</Title>
+            <Text style={{ fontSize: 16, color: '#666' }}>Địa chỉ: 123 Đường ABC, Quận XYZ, TP.HCM</Text>
+            <br />
+            <Text style={{ fontSize: 16, color: '#666' }}>Điện thoại: 028 1234 5678</Text>
+          </div>
+
+          {/* Thông tin bệnh nhân */}
+          <Card title="THÔNG TIN BỆNH NHÂN" size="small" style={{ marginBottom: 20 }}>
+            <Row gutter={[16, 8]}>
+              <Col span={8}><Text strong>Mã cuộc hẹn:</Text> {id_cuoc_hen}</Col>
+              <Col span={8}><Text strong>Họ tên:</Text> {hoSo?.ho_ten}</Col>
+              <Col span={8}><Text strong>Giới tính:</Text> {hoSo?.gioi_tinh}</Col>
+              <Col span={8}><Text strong>Tuổi:</Text> {hoSo?.tuoi}</Col>
+              <Col span={8}><Text strong>Mã BHYT:</Text> {hoSo?.ma_BHYT || 'Không có'}</Col>
+              <Col span={8}><Text strong>Ngày khám:</Text> {new Date().toLocaleDateString('vi-VN')}</Col>
+              <Col span={24}><Text strong>Địa chỉ:</Text> {hoSo?.dia_chi || 'Không có'}</Col>
+            </Row>
+          </Card>
+
+          {/* Thông tin khám bệnh */}
+          <Card title="THÔNG TIN KHÁM BỆNH" size="small" style={{ marginBottom: 20 }}>
+            <Row gutter={[16, 16]}>
+              <Col span={24}>
+                <Text strong>Lý do khám:</Text>
+                <div style={{ padding: 8, background: '#f5f5f5', borderRadius: 4, marginTop: 4 }}>
+                  {lichSuKhamHienTai?.ly_do_kham || 'Không có'}
+                </div>
+              </Col>
+              <Col span={24}>
+                <Text strong>Chuẩn đoán:</Text>
+                <div style={{ padding: 8, background: '#f5f5f5', borderRadius: 4, marginTop: 4 }}>
+                  {lichSuKhamHienTai?.chuan_doan || 'Không có'}
+                </div>
+              </Col>
+              <Col span={24}>
+                <Text strong>Phương án điều trị:</Text>
+                <div style={{ padding: 8, background: '#f5f5f5', borderRadius: 4, marginTop: 4 }}>
+                  {lichSuKhamHienTai?.dieu_tri || 'Không có'}
+                </div>
+              </Col>
+            </Row>
+          </Card>
+
+          {/* Dịch vụ */}
+          {dichVuTamThoi.length > 0 && (
+            <Card title="DỊCH VỤ SỬ DỤNG" size="small" style={{ marginBottom: 20 }}>
+              <Table
+                size="small"
+                pagination={false}
+                dataSource={dichVuTamThoi.map((d, i) => ({
+                  key: i,
+                  stt: i + 1,
+                  ten: d.dich_vu?.ten_dich_vu,
+                  sl: d.so_luong,
+                  dongia: d.don_gia?.toLocaleString(),
+                  thanhtien: (d.so_luong * d.don_gia)?.toLocaleString()
+                }))}
+                columns={[
+                  { title: 'STT', dataIndex: 'stt', width: 60 },
+                  { title: 'Tên dịch vụ', dataIndex: 'ten' },
+                  { title: 'SL', dataIndex: 'sl', width: 80, align: 'center' },
+                  { title: 'Đơn giá', dataIndex: 'dongia', width: 120, align: 'right' },
+                  { title: 'Thành tiền', dataIndex: 'thanhtien', width: 120, align: 'right' },
+                ]}
+                summary={() => (
+                  <Table.Summary>
+                    <Table.Summary.Row style={{ background: '#f0f8ff' }}>
+                      <Table.Summary.Cell index={0} colSpan={4} align="right">
+                        <Text strong>Tổng tiền dịch vụ:</Text>
+                      </Table.Summary.Cell>
+                      <Table.Summary.Cell index={1} align="right">
+                        <Text strong type="danger">{totalDichVu.toLocaleString()} VND</Text>
+                      </Table.Summary.Cell>
+                    </Table.Summary.Row>
+                  </Table.Summary>
+                )}
+              />
+            </Card>
+          )}
+
+          {/* Đơn thuốc */}
+          {donThuocTamThoi.length > 0 && (
+            <Card title="ĐƠN THUỐC" size="small" style={{ marginBottom: 20 }}>
+              <Table
+                size="small"
+                pagination={false}
+                dataSource={donThuocTamThoi.map((t, i) => ({
+                  key: i,
+                  stt: i + 1,
+                  tenthuoc: `${t.thuoc?.ten_thuoc}`,
+                  sl: t.so_luong,
+                  lieudung: t.lieu_dung,
+                  tansuat: t.tan_suat,
+                  ghichu: t.ghi_chu
+                }))}
+                columns={[
+                  { title: 'STT', dataIndex: 'stt', width: 60 },
+                  { title: 'Tên thuốc', dataIndex: 'tenthuoc' },
+                  { title: 'SL', dataIndex: 'sl', width: 80, align: 'center' },
+                  { title: 'Liều dùng', dataIndex: 'lieudung', width: 120 },
+                  { title: 'Tần suất', dataIndex: 'tansuat', width: 120 },
+                  { title: 'Ghi chú', dataIndex: 'ghichu' },
+                ]}
+              />
+              {ghiChuDonThuoc && (
+                <div style={{ marginTop: 16, padding: 12, background: '#fff2e8', borderRadius: 4 }}>
+                  <Text strong>Ghi chú đơn thuốc: </Text>
+                  <Text>{ghiChuDonThuoc}</Text>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* Tổng kết */}
+          <Card size="small" style={{ background: '#f6ffed' }}>
+            <Row justify="end">
+              <Col>
+                <Space direction="vertical" size="small" align="end">
+                  {dichVuTamThoi.length > 0 && (
+                    <Text>Tổng tiền dịch vụ: <Text strong>{totalDichVu.toLocaleString()} VND</Text></Text>
+                  )}
+                  <Divider style={{ margin: '8px 0' }} />
+                  <Title level={4} style={{ margin: 0, color: '#cf1322' }}>
+                    TỔNG CỘNG: {tongCong.toLocaleString()} VND
+                  </Title>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+
+          {/* Footer */}
+          <div style={{ textAlign: 'center', marginTop: 40, color: '#666' }}>
+            <Text style={{ display: 'block', marginBottom: 8 }}>
+              Cảm ơn quý khách đã sử dụng dịch vụ của chúng tôi!
+            </Text>
+            <Text style={{ fontSize: 12 }}>
+              Hóa đơn được tạo tự động vào lúc {new Date().toLocaleString('vi-VN')}
+            </Text>
           </div>
         </div>
-      )}
-
+      </Modal>
     </div>
   );
 };

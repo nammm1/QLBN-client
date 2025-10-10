@@ -7,11 +7,14 @@ import About from "./pages/About/About";
 import Layout from "./layouts";
 import DoctorLayout from "./layouts/DoctorLayout";
 import DoctorDashboard from "./pages/Doctors/DoctorDashboard";
+import DoctorProfile from "./pages/BacSi/Profile/DoctorProfile";
 import DoctorAppointments from "./pages/BacSi/Appointments/DoctorAppointments";
 import DoctorAppointmentDetail from "./pages/BacSi/Appointments/AppointmentDetail";
 import WorkSchedule from "./pages/BacSi/WorkSchedule/WorkSchedule";
 import DoctorRecords from "./pages/BacSi/DoctorRecords/DoctorRecords";
 import DoctorRecordDetail from "./pages/BacSi/DoctorRecords/DoctorRecordDetail";
+import DoctorConsultations from "./pages/BacSi/Consultations/DoctorConsultations";
+import Report from "./pages/BacSi/Report/DoctorReports";
 import Login from "./pages/Login/LoginRegister";
 import Specialties from "./pages/Specialties/Specialties";
 import Doctors from "./pages/Doctors/Doctors";
@@ -54,6 +57,9 @@ function App() {
           <Route path="work-schedule" element={<WorkSchedule />} />
           <Route path="records" element={<DoctorRecords />} />
           <Route path="record/:id_ho_so" element={<DoctorRecordDetail />} />
+          <Route path="profile" element={<DoctorProfile />} />
+          <Route path="consultations" element={<DoctorConsultations />} />
+          <Route path="reports" element={<Report />} />
         </Route>
 
         <Route>

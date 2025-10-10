@@ -1,7 +1,37 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import apiHoSoKhamBenh from "../../../api/HoSoKhamBenh";
-import "../Appointments/DoctorAppointments.css"; 
+import {
+  Card,
+  Table,
+  Input,
+  DatePicker,
+  Select,
+  Tag,
+  Space,
+  Button,
+  Row,
+  Col,
+  Typography,
+  Avatar,
+  Tooltip,
+  Badge
+} from "antd";
+import {
+  SearchOutlined,
+  CalendarOutlined,
+  UserOutlined,
+  PhoneOutlined,
+  FileTextOutlined,
+  IdcardOutlined,
+  MedicineBoxOutlined
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+import "../Appointments/DoctorAppointments.css";
+
+const { Title, Text } = Typography;
+const { Option } = Select;
+const { TextArea } = Input;
 
 const DoctorRecords = () => {
   const [records, setRecords] = useState([]);
@@ -9,8 +39,6 @@ const DoctorRecords = () => {
   const [searchName, setSearchName] = useState("");
   const [searchDate, setSearchDate] = useState("");
   const [searchStatus, setSearchStatus] = useState("");
-
-  // phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
@@ -29,7 +57,6 @@ const DoctorRecords = () => {
     fetchRecords();
   }, []);
 
-  // 🔹 Filter
   useEffect(() => {
     let filtered = records;
 
@@ -66,7 +93,6 @@ const DoctorRecords = () => {
     navigate(`/doctor/record/${id_ho_so}`);
   };
 
-  // phân trang
   const startIndex = (currentPage - 1) * pageSize;
   const currentPageData = filteredRecords.slice(
     startIndex,
@@ -74,100 +100,258 @@ const DoctorRecords = () => {
   );
   const totalPages = Math.ceil(filteredRecords.length / pageSize);
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "dang_dieu_tri": return "orange";
+      case "da_ket_thuc": return "green";
+      default: return "default";
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "dang_dieu_tri": return "Đang điều trị";
+      case "da_ket_thuc": return "Đã kết thúc";
+      default: return "N/A";
+    }
+  };
+
+  const getGenderColor = (gender) => {
+    switch (gender?.toLowerCase()) {
+      case "nam": return "blue";
+      case "nữ": return "pink";
+      default: return "default";
+    }
+  };
+
+  const getAgeColor = (age) => {
+    if (age < 18) return "green";
+    if (age < 60) return "blue";
+    return "red";
+  };
+
+  const columns = [
+    {
+      title: "MÃ HỒ SƠ",
+      dataIndex: "id_ho_so",
+      key: "id_ho_so",
+      width: 100,
+      render: (id) => (
+        <Badge count={id} showZero={false} style={{ backgroundColor: '#1890ff' }} />
+      ),
+    },
+    {
+      title: "BỆNH NHÂN",
+      dataIndex: "ho_ten",
+      key: "ho_ten",
+      render: (name, record) => (
+        <Space>
+          <Avatar size="small" icon={<UserOutlined />} style={{ backgroundColor: '#87d068' }} />
+          <Text strong>{name}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "SỐ ĐIỆN THOẠI",
+      dataIndex: "so_dien_thoai",
+      key: "so_dien_thoai",
+      render: (phone) => (
+        <Space>
+          <PhoneOutlined style={{ color: '#52c41a' }} />
+          <Text>{phone}</Text>
+        </Space>
+      ),
+      width: 140,
+    },
+    {
+      title: "TUỔI",
+      dataIndex: "tuoi",
+      key: "tuoi",
+      render: (age) => (
+        <Tag color={getAgeColor(age)} style={{ fontWeight: 600 }}>
+          {age}
+        </Tag>
+      ),
+      width: 80,
+    },
+    {
+      title: "GIỚI TÍNH",
+      dataIndex: "gioi_tinh",
+      key: "gioi_tinh",
+      render: (gender) => (
+        <Tag color={getGenderColor(gender)}>
+          {gender}
+        </Tag>
+      ),
+      width: 100,
+    },
+    {
+      title: "NGÀY TẠO",
+      dataIndex: "thoi_gian_tao",
+      key: "thoi_gian_tao",
+      render: (date) => (
+        <Space>
+          <CalendarOutlined style={{ color: '#faad14' }} />
+          <Text>
+            {date ? new Date(date).toLocaleDateString("vi-VN") : "N/A"}
+          </Text>
+        </Space>
+      ),
+      width: 120,
+    },
+    {
+      title: "TRẠNG THÁI",
+      dataIndex: "trang_thai",
+      key: "trang_thai",
+      render: (status) => (
+        <Tag color={getStatusColor(status)} style={{ fontWeight: 600, minWidth: 100 }}>
+          {getStatusText(status)}
+        </Tag>
+      ),
+      width: 120,
+    },
+    {
+      title: "CHẨN ĐOÁN",
+      dataIndex: "chuan_doan",
+      key: "chuan_doan",
+      render: (diagnosis) => (
+        <Tooltip title={diagnosis || "Chưa có chẩn đoán"}>
+          <Space>
+            <MedicineBoxOutlined style={{ color: '#ff4d4f' }} />
+            <Text style={{ maxWidth: 200 }} ellipsis={{ tooltip: diagnosis }}>
+              {diagnosis ? diagnosis.slice(0, 50) + "..." : "..."}
+            </Text>
+          </Space>
+        </Tooltip>
+      ),
+    },
+  ];
+
   return (
     <div className="doctor-appointments-container">
-      <h2>Hồ sơ bệnh án</h2>
+      <Card className="shadow-card">
+        {/* Header */}
+        <div className="header-section">
+          <Title level={3} className="page-title">
+            📋 Hồ sơ bệnh án
+          </Title>
+          <Text type="secondary">
+            Quản lý và theo dõi hồ sơ bệnh án của bệnh nhân
+          </Text>
+        </div>
 
-      {/* Filter */}
-      <div className="filter-bar">
-        <input
-          type="text"
-          placeholder="Tìm theo tên bệnh nhân..."
-          value={searchName}
-          onChange={(e) => setSearchName(e.target.value)}
-        />
-        <input
-          type="date"
-          value={searchDate}
-          onChange={(e) => setSearchDate(e.target.value)}
-        />
-        <select
-          value={searchStatus}
-          onChange={(e) => setSearchStatus(e.target.value)}
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="dang_dieu_tri">Đang điều trị</option>
-          <option value="da_ket_thuc">Đã kết thúc</option>
-        </select>
-      </div>
-
-      {/* Table */}
-      <div className="table-wrapper">
-        <table className="appointments-table">
-          <thead>
-            <tr>
-              <th>Mã hồ sơ</th>
-              <th>Tên bệnh nhân</th>
-              <th>Số điện thoại</th>
-              <th>Tuổi</th>
-              <th>Giới tính</th>
-              <th>Ngày tạo</th>
-              <th>Chẩn đoán</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentPageData.map((item) => (
-              <tr
-                key={item.id_ho_so}
-                onClick={() => handleSelect(item.id_ho_so)}
-                style={{ cursor: "pointer" }}
+        {/* Filter Bar */}
+        <Card size="small" className="filter-card">
+          <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} sm={8} md={6}>
+              <Input
+                placeholder="Tìm theo tên bệnh nhân..."
+                prefix={<SearchOutlined />}
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                size="large"
+              />
+            </Col>
+            <Col xs={24} sm={8} md={6}>
+              <DatePicker
+                placeholder="Chọn ngày tạo"
+                value={searchDate ? dayjs(searchDate) : null}
+                onChange={(date) => setSearchDate(date ? date.format('YYYY-MM-DD') : '')}
+                style={{ width: '100%' }}
+                size="large"
+              />
+            </Col>
+            <Col xs={24} sm={8} md={6}>
+              <Select
+                placeholder="Trạng thái"
+                value={searchStatus || null}
+                onChange={setSearchStatus}
+                style={{ width: '100%' }}
+                size="large"
+                allowClear
               >
-                <td>{item.id_ho_so}</td>
-                <td>{item.ho_ten}</td>
-                <td>{item.so_dien_thoai}</td>
-                <td>{item.tuoi}</td>
-                <td>{item.gioi_tinh}</td>
-                <td>
-                  {item.thoi_gian_tao
-                    ? new Date(item.thoi_gian_tao).toLocaleDateString("vi-VN")
-                    : "N/A"}
-                </td>
-                <td>{item.chuan_doan ? item.chuan_doan.slice(0, 50) + "..." : "..."}</td>
-              </tr>
+                <Option value="dang_dieu_tri">Đang điều trị</Option>
+                <Option value="da_ket_thuc">Đã kết thúc</Option>
+              </Select>
+            </Col>
+            <Col xs={24} sm={24} md={6}>
+              <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                <Text type="secondary">
+                  Tổng: <Text strong>{filteredRecords.length}</Text> hồ sơ
+                </Text>
+              </Space>
+            </Col>
+          </Row>
+        </Card>
+
+        {/* Table */}
+        <Card className="table-card">
+          <Table
+            columns={columns}
+            dataSource={currentPageData.map(item => ({
+              ...item,
+              key: item.id_ho_so
+            }))}
+            pagination={false}
+            size="middle"
+            onRow={(record) => ({
+              onClick: () => handleSelect(record.id_ho_so),
+              style: { 
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              },
+              onMouseEnter: (e) => {
+                e.currentTarget.style.backgroundColor = '#f0f7ff';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+              },
+              onMouseLeave: (e) => {
+                e.currentTarget.style.backgroundColor = '';
+                e.currentTarget.style.transform = '';
+                e.currentTarget.style.boxShadow = '';
+              },
+            })}
+            scroll={{ x: 1200 }}
+          />
+        </Card>
+
+        {/* Pagination */}
+        <div className="pagination-section">
+          <Space>
+            <Button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              icon={<span>‹</span>}
+            >
+              Trước
+            </Button>
+            
+            {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((page) => (
+              <Button
+                key={page}
+                type={page === currentPage ? "primary" : "default"}
+                onClick={() => setCurrentPage(page)}
+                className="pagination-btn"
+              >
+                {page}
+              </Button>
             ))}
-          </tbody>
-
-        </table>
-      </div>
-
-      {/* Pagination */}
-      <div className="pagination" style={{ marginTop: "20px" }}>
-        <button
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          disabled={currentPage === 1}
-        >
-          Prev
-        </button>
-
-        {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((page) => (
-          <button
-            key={page}
-            onClick={() => setCurrentPage(page)}
-            className={page === currentPage ? "active" : ""}
-          >
-            {page}
-          </button>
-        ))}
-
-        <button
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-          }
-          disabled={currentPage === totalPages}
-        >
-          Next
-        </button>
-      </div>
+            
+            <Button
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              icon={<span>›</span>}
+            >
+              Sau
+            </Button>
+          </Space>
+          
+          <Text type="secondary">
+            Trang {currentPage} / {totalPages} • 
+            Hiển thị {startIndex + 1}-{Math.min(startIndex + pageSize, filteredRecords.length)} trên {filteredRecords.length}
+          </Text>
+        </div>
+      </Card>
     </div>
   );
 };

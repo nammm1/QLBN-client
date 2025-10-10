@@ -28,6 +28,17 @@ const apiDonThuoc = {
       throw err;
     }
   },
+  getByLichSu: async (id_lich_su) => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.DonThuoc}/lich-su/${id_lich_su}`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error fetching don thuoc by ho so:", err);
+      throw err;
+    }
+  },
 
   // Xóa đơn thuốc
   delete: async (id_don_thuoc) => {

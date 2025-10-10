@@ -1,70 +1,335 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  Card,
+  Row,
+  Col,
+  Typography,
+  Button,
+  Tag,
+  List,
+  Avatar,
+  Descriptions,
+  Space,
+  Divider,
+  Spin,
+  Alert,
+  Timeline,
+  Badge
+} from "antd";
+import {
+  ArrowLeftOutlined,
+  UserOutlined,
+  CalendarOutlined,
+  PhoneOutlined,
+  EnvironmentOutlined,
+  IdcardOutlined,
+  MedicineBoxOutlined,
+  HeartOutlined,
+  FileTextOutlined,
+  ClockCircleOutlined,
+  TeamOutlined
+} from "@ant-design/icons";
 import apiHoSoKhamBenh from "../../../api/HoSoKhamBenh";
 import apiBenhNhan from "../../../api/BenhNhan";
 import apiCuocHenKham from "../../../api/CuocHenKhamBenh";
 
+const { Title, Text } = Typography;
+
 const DoctorRecordDetail = () => {
-  const { id_ho_so } = useParams(); // id hồ sơ / cuộc hẹn
-  const [record, setRecord] = useState(null);
-  const [benhNhanFull, setBenhNhanFull] = useState(null);
+  const { id_ho_so } = useParams();
+  const navigate = useNavigate();
+
+  const [hoSo, setHoSo] = useState(null);
+  const [benhNhan, setBenhNhan] = useState(null);
+  const [cuocHenList, setCuocHenList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [lichSu, setLichSu] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // gọi API lấy hồ sơ bệnh án
-        const data = await apiHoSoKhamBenh.getById(id_ho_so);
-        console.log(data);
-        setRecord(data);
-        const bnFull = await apiBenhNhan.getById(data.id_benh_nhan);
-        console.log(bnFull);
-        setBenhNhanFull(bnFull);
-        const ls = await apiCuocHenKham.getLichSuByBenhNhan(data.id_benh_nhan);
-        console.log(ls);
-        setLichSu(ls);
-      } catch (err) {
-        console.error("Lỗi khi lấy dữ liệu:", err);
+        const hs = await apiHoSoKhamBenh.getById(id_ho_so);
+        setHoSo(hs);
+
+        if (hs?.id_benh_nhan) {
+          const bn = await apiBenhNhan.getById(hs.id_benh_nhan);
+          setBenhNhan(bn);
+
+          const cuocHen = await apiCuocHenKham.getByBenhNhan(hs.id_benh_nhan);
+          setCuocHenList(cuocHen || []);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải dữ liệu:", error);
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [id_ho_so]);
 
-  if (loading) return <p>Đang tải...</p>;
-  if (!record) return <p>Không tìm thấy hồ sơ.</p>;
+  const handleViewAppointment = (id_cuoc_hen) => {
+    navigate(`/doctor/appointment/${id_cuoc_hen}`);
+  };
+
+  const getStatusColor = (status) => {
+    return status === 'da_hoan_thanh' ? 'green' : 'orange';
+  };
+
+  const getStatusText = (status) => {
+    return status === 'da_hoan_thanh' ? 'Đã hoàn thành' : 'Chưa hoàn thành';
+  };
+
+  const getGenderColor = (gender) => {
+    return gender?.toLowerCase() === 'nam' ? 'blue' : 'pink';
+  };
+
+  if (loading) {
+    return (
+      <div className="container" style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16 }}>
+          <Text type="secondary">Đang tải thông tin hồ sơ...</Text>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hoSo) {
+    return (
+      <div className="container" style={{ padding: '40px 20px' }}>
+        <Alert
+          message="Không tìm thấy hồ sơ"
+          description="Hồ sơ bạn đang tìm kiếm không tồn tại hoặc đã bị xóa."
+          type="error"
+          showIcon
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="doctor-appointment-detail-container">
-      <h2>Chi tiết hồ sơ khám bệnh</h2>
+    <div className="container" style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
+      {/* Header */}
+      <Card className="shadow-sm" style={{ marginBottom: 24, borderRadius: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <Button 
+              type="text" 
+              icon={<ArrowLeftOutlined />} 
+              onClick={() => navigate(-1)}
+              style={{ padding: '4px 8px' }}
+            >
+              Quay lại
+            </Button>
+            <Divider type="vertical" style={{ height: 24 }} />
+            <div>
+              <Title level={3} style={{ margin: 0, color: '#1890ff' }}>
+                📋 Hồ sơ bệnh nhân
+              </Title>
+              <Text type="secondary">Chi tiết thông tin hồ sơ và lịch sử khám bệnh</Text>
+            </div>
+          </div>
+          <Badge count={`Mã HS: ${hoSo.id_ho_so}`} style={{ backgroundColor: '#52c41a' }} />
+        </div>
+      </Card>
 
-      {/* Thông tin bệnh nhân */}
-      <div className="section-card">
-        <h3>Thông tin bệnh nhân</h3>
-        <p><strong>Họ tên:</strong> {record.ho_ten}</p>
-        <p><strong>Giới tính:</strong> {record.gioi_tinh}</p>
-        <p><strong>Tuổi:</strong> {record.tuoi}</p>
-        <p><strong>Số điện thoại:</strong> {record.so_dien_thoai}</p>
-        <p><strong>Địa chỉ:</strong> {record.dia_chi}</p>
-        <p><strong>Mã BHYT:</strong> {record.ma_BHYT}</p>
-      </div>
+      <Row gutter={[24, 24]}>
+        {/* Thông tin hồ sơ */}
+        <Col xs={24} lg={12}>
+          <Card 
+            title={
+              <Space>
+                <FileTextOutlined style={{ color: '#1890ff' }} />
+                <span>Thông tin hồ sơ</span>
+              </Space>
+            }
+            className="shadow-sm"
+            style={{ borderRadius: 12, height: '100%' }}
+          >
+            <Descriptions column={1} bordered size="small">
+              <Descriptions.Item label={
+                <Space>
+                  <UserOutlined />
+                  <span>Họ tên</span>
+                </Space>
+              }>
+                <Text strong>{hoSo.ho_ten}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Giới tính">
+                <Tag color={getGenderColor(hoSo.gioi_tinh)}>
+                  {hoSo.gioi_tinh}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Tuổi">
+                <Badge count={hoSo.tuoi} style={{ backgroundColor: '#faad14' }} />
+              </Descriptions.Item>
+              <Descriptions.Item label={
+                <Space>
+                  <PhoneOutlined />
+                  <span>Số điện thoại</span>
+                </Space>
+              }>
+                {hoSo.so_dien_thoai}
+              </Descriptions.Item>
+              <Descriptions.Item label="Dân tộc">
+                {hoSo.dan_toc || <Text type="secondary">Không có</Text>}
+              </Descriptions.Item>
+              <Descriptions.Item label={
+                <Space>
+                  <IdcardOutlined />
+                  <span>Mã BHYT</span>
+                </Space>
+              }>
+                {hoSo.ma_BHYT || <Text type="secondary">Không có</Text>}
+              </Descriptions.Item>
+              <Descriptions.Item label={
+                <Space>
+                  <EnvironmentOutlined />
+                  <span>Địa chỉ</span>
+                </Space>
+              }>
+                {hoSo.dia_chi || <Text type="secondary">Không có</Text>}
+              </Descriptions.Item>
+              <Descriptions.Item label={
+                <Space>
+                  <CalendarOutlined />
+                  <span>Ngày tạo</span>
+                </Space>
+              }>
+                {hoSo.created_at ? new Date(hoSo.created_at).toLocaleDateString("vi-VN") : "Không có"}
+              </Descriptions.Item>
+            </Descriptions>
+          </Card>
+        </Col>
 
-      {/* Hồ sơ bệnh án */}
-      <div className="section-card">
-        <h3>Hồ sơ bệnh án</h3>
-        <p><strong>Ngày tạo:</strong> {new Date(record.thoi_gian_tao).toLocaleDateString("vi-VN")}</p>
-        <p><strong>Lý do khám:</strong> {record.ly_do_kham}</p>
-        <p><strong>Chẩn đoán:</strong> {record.chuan_doan}</p>
-        <p><strong>Kết quả CLS:</strong> {record.ket_qua_cls || "Không có"}</p>
-        <p><strong>Điều trị:</strong> {record.dieu_tri}</p>
-        <p><strong>Chăm sóc:</strong> {record.cham_soc}</p>
-        <p><strong>Ghi chú:</strong> {record.ghi_chu}</p>
-      </div>
+        {/* Thông tin bệnh nhân */}
+        <Col xs={24} lg={12}>
+          <Card 
+            title={
+              <Space>
+                <TeamOutlined style={{ color: '#52c41a' }} />
+                <span>Thông tin bệnh nhân</span>
+              </Space>
+            }
+            className="shadow-sm"
+            style={{ borderRadius: 12, height: '100%' }}
+          >
+            {benhNhan ? (
+              <Descriptions column={1} bordered size="small">
+                <Descriptions.Item label="Mã bệnh nhân">
+                  <Text strong>{benhNhan.data.id_benh_nhan}</Text>
+                </Descriptions.Item>
+                <Descriptions.Item label={
+                  <Space>
+                    <CalendarOutlined />
+                    <span>Ngày sinh</span>
+                  </Space>
+                }>
+                  {benhNhan.data.ngay_sinh ? new Date(benhNhan.data.ngay_sinh).toLocaleDateString("vi-VN") : "Không có"}
+                </Descriptions.Item>
+                <Descriptions.Item label={
+                  <Space>
+                    <MedicineBoxOutlined />
+                    <span>Tiền sử bệnh lý</span>
+                  </Space>
+                }>
+                  {benhNhan.data.tien_su_benh_ly || <Text type="secondary">Không có</Text>}
+                </Descriptions.Item>
+                <Descriptions.Item label={
+                  <Space>
+                    <HeartOutlined />
+                    <span>Tình trạng sức khỏe</span>
+                  </Space>
+                }>
+                  {benhNhan.data.tinh_trang_suc_khoe_hien_tai || <Text type="secondary">Không có</Text>}
+                </Descriptions.Item>
+              </Descriptions>
+            ) : (
+              <Alert
+                message="Không có thông tin bệnh nhân"
+                description="Không thể tải thông tin chi tiết của bệnh nhân"
+                type="warning"
+                showIcon
+              />
+            )}
+          </Card>
+        </Col>
 
-      {/* Lịch sử hóa đơn */}
-
+        {/* Danh sách cuộc hẹn khám */}
+        <Col xs={24}>
+          <Card 
+            title={
+              <Space>
+                <ClockCircleOutlined style={{ color: '#faad14' }} />
+                <span>Lịch sử cuộc hẹn khám</span>
+                <Badge count={cuocHenList.length} showZero style={{ backgroundColor: '#1890ff' }} />
+              </Space>
+            }
+            className="shadow-sm"
+            style={{ borderRadius: 12 }}
+          >
+            {cuocHenList.length > 0 ? (
+              <List
+                dataSource={cuocHenList}
+                renderItem={(cuocHen) => (
+                  <List.Item
+                    actions={[
+                      <Button 
+                        type="primary" 
+                        size="small"
+                        onClick={() => handleViewAppointment(cuocHen.id_cuoc_hen)}
+                      >
+                        Xem chi tiết
+                      </Button>
+                    ]}
+                  >
+                    <List.Item.Meta
+                      avatar={
+                        <Avatar 
+                          icon={<CalendarOutlined />} 
+                          style={{ backgroundColor: getStatusColor(cuocHen.trang_thai) }}
+                        />
+                      }
+                      title={
+                        <Space>
+                          <Text strong>
+                            Ngày khám: {cuocHen.ngay_kham ? new Date(cuocHen.ngay_kham).toLocaleDateString("vi-VN") : "Chưa có"}
+                          </Text>
+                          <Tag color={getStatusColor(cuocHen.trang_thai)}>
+                            {getStatusText(cuocHen.trang_thai)}
+                          </Tag>
+                        </Space>
+                      }
+                      description={
+                        <Space direction="vertical" size={0}>
+                          <Text>
+                            <strong>Lý do khám:</strong> {cuocHen.ly_do_kham || "Không có"}
+                          </Text>
+                          {cuocHen.khung_gio && (
+                            <Text type="secondary">
+                              <ClockCircleOutlined /> {cuocHen.khung_gio.gio_bat_dau} - {cuocHen.khung_gio.gio_ket_thuc}
+                            </Text>
+                          )}
+                        </Space>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <FileTextOutlined style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16 }} />
+                <div>
+                  <Text type="secondary" style={{ fontSize: 16 }}>
+                    Chưa có cuộc hẹn khám nào
+                  </Text>
+                </div>
+              </div>
+            )}
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 };

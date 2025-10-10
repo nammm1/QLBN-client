@@ -66,16 +66,33 @@ const LoginRegister = () => {
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("isLogin", "true");
       localStorage.setItem("userInfo", JSON.stringify({ user }));
-
+      console.log(user);
       dispatch(login({
         userInfo: user,
         accessToken,
         vai_tro: user.vai_tro
       }));
-      
-      alert("Đăng nhập thành công!");
-      navigate("/");
+      switch (user.vai_tro) {
+        case "bac_si":
+          alert("Chào mừng bác sĩ, đăng nhập thành công!");
+          navigate("/doctor");
+          break;
 
+        case "benh_nhan":
+          alert("Chào mừng bệnh nhân, đăng nhập thành công!");
+          navigate("/");
+          break;
+
+        case "quan_tri":
+          alert("Chào mừng quản trị viên, đăng nhập thành công!");
+          navigate("/admin");
+          break;
+
+        default:
+          alert("Đăng nhập thành công!");
+          navigate("/");
+          break;
+      }
     } else {
       alert("Tên đăng nhập hoặc mật khẩu không đúng!");
     }

@@ -1,7 +1,43 @@
 import React, { useState, useEffect } from "react";
+import { 
+  Card, 
+  Table, 
+  Tag, 
+  DatePicker, 
+  Typography, 
+  Space,
+  Badge,
+  Row,
+  Col,
+  Alert
+} from "antd";
+import { 
+  CalendarOutlined, 
+  ClockCircleOutlined, 
+  UserOutlined 
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+import "dayjs/locale/vi";
+import updateLocale from "dayjs/plugin/updateLocale";
 import apiLichLamViec from "../../../api/LichLamViec";
 
-const caList = ["Sáng", "Chiều", "Tối"];
+dayjs.locale("vi");
+dayjs.extend(updateLocale);
+
+// Cập nhật locale để hiển thị thứ tiếng Việt
+dayjs.updateLocale("vi", {
+  weekdays: ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"]
+});
+
+const { Title, Text } = Typography;
+const { RangePicker } = DatePicker;
+
+const caList = [
+  { key: "Sang", label: "Sáng", color: "gold" },
+  { key: "Chieu", label: "Chiều", color: "orange" },
+  { key: "Toi", label: "Tối", color: "blue" }
+];
+
 const dayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
 
 const mapCa = (ca) => {
@@ -15,23 +51,21 @@ const mapCa = (ca) => {
 
 const formatDate = (date) => {
   if (!date) return "";
-  return new Date(date).toLocaleDateString("sv-SE"); // yyyy-mm-dd
+  return dayjs(date).format("YYYY-MM-DD");
 };
 
 const getMonday = (date) => {
-  const d = new Date(date);
-  const day = d.getDay();
+  const d = dayjs(date);
+  const day = d.day();
   const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(d);
-  monday.setDate(d.getDate() + diff);
-  monday.setHours(0,0,0,0);
-  return monday;
+  return d.add(diff, "day").startOf("day");
 };
 
 const WorkSchedule = () => {
-  const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
+  const [selectedDate, setSelectedDate] = useState(dayjs());
+  const [weekStart, setWeekStart] = useState(getMonday(dayjs()));
   const [schedule, setSchedule] = useState([]);
+  const [loading, setLoading] = useState(false);
   const userInfo = JSON.parse(localStorage.getItem("userInfo"));
 
   useEffect(() => {
@@ -40,28 +74,37 @@ const WorkSchedule = () => {
 
   useEffect(() => {
     const fetchSchedule = async () => {
+      setLoading(true);
       try {
-        const res = await apiLichLamViec.getByWeek(weekStart, userInfo.user.id_nguoi_dung);
+        const weekStartStr = formatDate(weekStart);
+        const res = await apiLichLamViec.getByWeek(weekStartStr, userInfo.user.id_nguoi_dung);
         const data = res?.data?.data || res?.data || res;
         setSchedule(Array.isArray(data) ? data : []);
       } catch (error) {
         console.log("Lỗi khi lấy lịch làm việc:", error);
         setSchedule([]);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchSchedule();
+    if (weekStart) fetchSchedule();
   }, [weekStart, userInfo?.user?.id_nguoi_dung]);
 
-  const handleDateChange = (e) => {
-    const picked = new Date(e.target.value);
-    setSelectedDate(picked);
+  const handleDateChange = (date) => {
+    if (date) {
+      setSelectedDate(date);
+    }
   };
 
-  const weekDays = [...Array(7)].map((_, i) => {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + i);
-    return d;
-  });
+  const handleWeekChange = (dates) => {
+    if (dates && dates[0]) {
+      setSelectedDate(dates[0]);
+    }
+  };
+
+  const weekDays = Array.from({ length: 7 }, (_, i) => 
+    weekStart.add(i, "day")
+  );
 
   const hasSchedulesFor = (d, displayCa) => {
     const dStr = formatDate(d);
@@ -70,82 +113,212 @@ const WorkSchedule = () => {
     );
   };
 
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
+  const weekEnd = weekStart.add(6, "day");
+
+  const columns = [
+    {
+      title: (
+        <div style={{ textAlign: 'center' }}>
+          <ClockCircleOutlined style={{ marginRight: '8px' }} />
+          Ca / Ngày
+        </div>
+      ),
+      dataIndex: "ca",
+      key: "ca",
+      width: 120,
+      render: (ca) => (
+        <div style={{ textAlign: 'center' }}>
+          <Tag 
+            color={caList.find(c => c.label === ca)?.color} 
+            style={{ padding: "4px 12px", fontSize: "14px", fontWeight: 600 }}
+          >
+            {ca}
+          </Tag>
+        </div>
+      ),
+    },
+    ...weekDays.map((d, idx) => ({
+      title: (
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontWeight: 600, fontSize: "14px" }}>
+            {dayNames[idx]}
+          </div>
+          <div style={{ fontSize: "12px", color: "#666" }}>
+            {d.format("DD/MM/YYYY")}
+          </div>
+        </div>
+      ),
+      dataIndex: `day_${idx}`,
+      key: `day_${idx}`,
+      width: 140,
+      render: (_, record) => {
+        const matched = hasSchedulesFor(d, record.ca);
+        return (
+          <div 
+            className={`p-2 rounded ${matched.length ? "bg-success" : "bg-light"}`}
+            style={{ 
+              minHeight: "80px", 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              border: `2px solid ${matched.length ? "#52c41a" : "#f0f0f0"}`,
+              borderRadius: "8px"
+            }}
+          >
+            {matched.length ? (
+              <div style={{ textAlign: 'center' }}>
+                {matched.map((m, k) => (
+                  <Badge 
+                    key={k}
+                    status="processing"
+                    text={
+                      <Text strong style={{ color: "white", fontSize: "12px" }}>
+                        {m.gio_bat_dau && m.gio_ket_thuc
+                          ? `${m.gio_bat_dau} - ${m.gio_ket_thuc}`
+                          : "Có lịch"}
+                      </Text>
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              <Text type="secondary" style={{ fontSize: "12px" }}>
+                Trống
+              </Text>
+            )}
+          </div>
+        );
+      },
+    })),
+  ];
+
+  const dataSource = caList.map(ca => ({
+    key: ca.key,
+    ca: ca.label,
+  }));
+
+  const weekRange = [weekStart, weekEnd];
 
   return (
-    <div className="container mt-5">
-      <h3 className="mb-5 text-primary">
-        Lịch làm việc bác sĩ {userInfo?.user?.ho_ten || ""}
-      </h3>
+    <div className="container mt-4">
+      <Card 
+        variant="borderless"
+        className="shadow-sm"
+        style={{ borderRadius: "12px" }}
+      >
+        {/* Header */}
+        <div style={{ marginBottom: '24px' }}>
+          <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+            <div>
+              <Title level={3} style={{ marginBottom: '4px' }}>
+                <CalendarOutlined className="text-primary" style={{ marginRight: '8px' }} />
+                Lịch Làm Việc
+              </Title>
+              <Text type="secondary">
+                <UserOutlined style={{ marginRight: '4px' }} />
+                Bác sĩ: <Text strong>{userInfo?.user?.ho_ten || ""}</Text>
+              </Text>
+            </div>
 
-      <div className="d-flex align-items-center gap-3 mb-5">
-        <div className="d-flex align-items-center gap-2 ">
-          <label className="fw-bold">Chọn ngày trong tuần:</label>
-          <input
-            type="date"
-            className="form-control"
-            value={formatDate(selectedDate)}
-            onChange={handleDateChange}
-            style={{ maxWidth: 220 }}
-          />
+            {/* Controls */}
+            <Row gutter={[16, 16]} align="middle">
+              <Col xs={24} sm={12} md={8}>
+                <Space direction="vertical" style={{ width: "100%" }}>
+                  <Text strong>Chọn ngày trong tuần:</Text>
+                  <DatePicker
+                    value={selectedDate}
+                    onChange={handleDateChange}
+                    format="DD/MM/YYYY"
+                    style={{ width: "100%" }}
+                    size="large"
+                  />
+                </Space>
+              </Col>
+              <Col xs={24} sm={12} md={8}>
+                <Space direction="vertical" style={{ width: "100%" }}>
+                  <Text strong>Chọn tuần:</Text>
+                  <RangePicker
+                    value={weekRange}
+                    onChange={handleWeekChange}
+                    picker="week"
+                    format="DD/MM/YYYY"
+                    style={{ width: "100%" }}
+                    size="large"
+                  />
+                </Space>
+              </Col>
+              <Col xs={24} md={8}>
+                <Alert
+                  message={
+                    <Space >
+                      <CalendarOutlined />
+                      <span>
+                        Tuần: {weekStart.format("DD/MM/YYYY")} → {weekEnd.format("DD/MM/YYYY")}
+                      </span>
+                    </Space>
+                  }
+                  type="info"
+                  showIcon
+                  style={{ borderRadius: "8px",marginTop: "25px" }}
+                />
+              </Col>
+            </Row>
+          </Space>
         </div>
-        <div>
-          <span className="badge bg-info text-dark fs-6 p-2">
-            Tuần: {new Date(weekStart).toLocaleDateString("vi-VN")} → {weekEnd.toLocaleDateString("vi-VN")}
-          </span>
+
+        {/* Schedule Table */}
+        <Table
+          columns={columns}
+          dataSource={dataSource}
+          pagination={false}
+          loading={loading}
+          bordered
+          size="middle"
+          className="custom-schedule-table"
+          style={{ borderRadius: "8px", overflow: "hidden" }}
+        />
+
+        {/* Legend */}
+        <div style={{ marginTop: '16px', textAlign: 'center' }}>
+          <Space size="large">
+            <Space>
+              <div style={{ 
+                width: "16px", 
+                height: "16px", 
+                backgroundColor: "#52c41a", 
+                borderRadius: "4px" 
+              }} />
+              <Text type="secondary">Có lịch làm việc</Text>
+            </Space>
+            <Space>
+              <div style={{ 
+                width: "16px", 
+                height: "16px", 
+                backgroundColor: "#f0f0f0", 
+                borderRadius: "4px",
+                border: "1px solid #d9d9d9"
+              }} />
+              <Text type="secondary">Trống</Text>
+            </Space>
+          </Space>
         </div>
-      </div>
+      </Card>
 
-      <div className="table-responsive">
-        <table className="table table-bordered text-center align-middle shadow-sm mt-3">
-          <thead className="table-primary">
-            <tr>
-              <th style={{ width: "120px" }}>Ca / Ngày</th>
-              {weekDays.map((d, idx) => (
-                <th key={idx} style={{ minWidth: "140px" }}>
-                  <div className="fw-bold">{dayNames[idx]}</div>
-                  <small>{d.toLocaleDateString("vi-VN")}</small>
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            {caList.map((displayCa) => (
-              <tr key={displayCa}>
-                <td className="fw-bold bg-light">{displayCa}</td>
-                {weekDays.map((d, idx) => {
-                  const matched = hasSchedulesFor(d, displayCa);
-                  return (
-                    <td
-                      key={idx}
-                      className={`p-2 ${matched.length ? "bg-success text-white" : "bg-light text-muted"}`}
-                      style={{ height: "80px", verticalAlign: "middle" }}
-                    >
-                      {matched.length ? (
-                        matched.map((m, k) => (
-                          <div
-                            key={k}
-                            className="rounded p-1 mb-1"
-                            style={{ fontSize: "14px" }}
-                          >
-                            {m.gio_bat_dau && m.gio_ket_thuc
-                              ? `${m.gio_bat_dau} - ${m.gio_ket_thuc}`
-                              : "Có lịch"}
-                          </div>
-                        ))
-                      ) : (
-                        <span>Trống</span>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <style>{`
+        .custom-schedule-table .ant-table-thead > tr > th {
+          background: #fafafa;
+          font-weight: 600;
+          border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .custom-schedule-table .ant-table-tbody > tr > td {
+          transition: all 0.3s ease;
+        }
+        
+        .custom-schedule-table .ant-table-tbody > tr:hover > td {
+          background: #f5f5f5 !important;
+        }
+      `}</style>
     </div>
   );
 };
