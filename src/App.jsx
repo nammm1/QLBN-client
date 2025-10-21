@@ -26,6 +26,18 @@ import Appointments from "./pages/Appointments/Appointments";
 import DoctorFunction from "./pages/DoctorFunction/DoctorFunction";
 import DoctorMedicalRecords from "./pages/DoctorMedicalRecords/DoctorMedicalRecords";
 import NutritionRecords from "./pages/NutritionRecords/NutritionRecords";
+import AdminLayout from "./layouts/AdminLayout";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import Accounts from "./pages/Admin/Accounts/AdminAccounts";
+import Medicines from "./pages/Admin/Medicines/AdminMedicines";
+import Services from "./pages/Admin/Services/AdminServices";
+import AdminSpecialties from "./pages/Admin/Specialties/AdminSpecialties";
+import Reports from "./pages/Admin/Reports/AdminReports";
+import AdminAccounts from "./pages/Admin/Accounts/AdminAccounts";
+import AdminAccountDetail from "./pages/Admin/Accounts/AdminAccountDetail";
+import AdminMedicines from "./pages/Admin/Medicines/AdminMedicines";
+import AdminServices from "./pages/Admin/Services/AdminServices";
+import AdminReports from "./pages/Admin/Reports/AdminReports";
 // import Register from "./Pages/Register/Register";
 
 function App() {
@@ -60,6 +72,17 @@ function App() {
           <Route path="profile" element={<DoctorProfile />} />
           <Route path="consultations" element={<DoctorConsultations />} />
           <Route path="reports" element={<Report />} />
+        </Route>
+
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="accounts" element={<AdminAccounts />} />
+          <Route path="accounts/:id_nguoi_dung" element={<AdminAccountDetail />} />
+          <Route path="medicines" element={<AdminMedicines />} />
+          <Route path="services" element={<AdminServices />} />
+          <Route path="specialties" element={<AdminSpecialties />} />
+          <Route path="reports" element={<AdminReports />} />
+          
         </Route>
 
         <Route>

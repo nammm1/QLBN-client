@@ -42,19 +42,24 @@ const Specialties = () => {
           <span className="underline"></span>
         </h2>
 
-        {/* Grid chuyên khoa */}
-        {currentSpecialties.map((s) => (
-  <div key={s.id_chuyen_khoa} className="col-6 col-md-3">
-    <div
-      className="specialty-card text-center p-4 shadow-sm"
-      style={{ cursor: "pointer" }}
-      onClick={() => setSelectedSpecialty(s)}
-    >
-      <img src={s.hinh_anh} alt={s.ten_chuyen_khoa} className="specialty-icon mb-3" />
-      <h6 className="fw-bold">{s.ten_chuyen_khoa}</h6>
+<div className="row justify-content-left">
+  {currentSpecialties.map((s) => (
+    <div key={s.id_chuyen_khoa} className="col-6 col-md-3 mb-4">
+      <div
+        className="specialty-card text-center p-4 shadow-sm"
+        style={{ cursor: "pointer" }}
+        onClick={() => setSelectedSpecialty(s)}
+      >
+        <img
+          src={s.hinh_anh}
+          alt={s.ten_chuyen_khoa}
+          className="specialty-icon mb-3"
+        />
+        <h6 className="fw-bold">{s.ten_chuyen_khoa}</h6>
+      </div>
     </div>
-  </div>
-))}
+  ))}
+</div>
 
 
         {/* Pagination */}
