@@ -75,3 +75,28 @@
   padding-left: 10px;
 }
 
+/* Kích hoạt dropdown khi hover */
+.nav-item.dropdown:hover > .dropdown-menu {
+  display: block !important;
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Style cho dropdown */
+.dropdown-menu {
+  display: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.2s ease-in-out;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Màu khi hover item */
+.dropdown-item:hover {
+  background-color: #00b5f1 !important;
+  color: #fff !important;
+}

@@ -142,24 +142,35 @@ const Header = () => {
                   Chuyên gia dinh dưỡng
                 </Link>
               </li>
-              <li className="nav-item">
-                <span
-                  className="nav-link text-white fw-bold"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => setShowNutritionModal(true)}
-                >
-                  Đặt lịch tư vấn dinh dưỡng
-                </span>
-              </li>
-              <li className="nav-item">
-                <span
-                  className="nav-link text-white fw-bold"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => setShowModal(true)}
-                >
-                  Đặt lịch khám
-                </span>
-              </li>
+            <li className="nav-item dropdown">
+              <span
+                className="nav-link dropdown-toggle text-white fw-bold"
+                id="bookingDropdown"
+                role="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                style={{ cursor: "pointer" }}
+              >
+                Đặt lịch
+              </span>
+              <ul className="dropdown-menu" aria-labelledby="bookingDropdown">
+                <li>
+                  <button className="dropdown-item" onClick={() => setShowModal(true)}>
+                    Đặt lịch khám
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => setShowNutritionModal(true)}
+                  >
+                    Đặt lịch tư vấn dinh dưỡng
+                  </button>
+                </li>
+              </ul>
+            </li>
+
+
               <li className="nav-item">
                 <Link
                   className="nav-link text-white fw-bold"
