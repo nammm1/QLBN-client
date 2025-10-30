@@ -126,6 +126,12 @@ const apiNguoiDung = {
       throw err;
     }
   },
+  // Lấy tất cả người dùng
+  getAllUsers: async () => {
+  const res = await axiosInstance.get(`${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.NguoiDung}/all`);
+  return res.data.data;
+},
+
 };
 
 export default apiNguoiDung;

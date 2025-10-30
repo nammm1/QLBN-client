@@ -13,17 +13,21 @@ import {
   Col,
   Tag,
   Avatar,
-  Tooltip,
+  Modal,
+  Form,
+  DatePicker,
+  message,
 } from "antd";
 import {
   SearchOutlined,
   UserOutlined,
   MailOutlined,
   PhoneOutlined,
-  IdcardOutlined,
   ManOutlined,
   WomanOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
+import dayjs from "dayjs";
 import "./AdminAccounts.css";
 
 const { Title, Text } = Typography;
@@ -36,41 +40,47 @@ const AdminAccounts = () => {
   const [searchRole, setSearchRole] = useState("");
   const [searchGender, setSearchGender] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [form] = Form.useForm();
   const pageSize = 10;
 
   const navigate = useNavigate();
 
-  // Gọi API lấy danh sách người dùng
+  // 🔹 Lấy danh sách tài khoản
+  const fetchUsers = async () => {
+    try {
+      const res = await apiNguoiDung.getAllUsers();
+      setUsers(res);
+      setFilteredUsers(res);
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách người dùng:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await apiNguoiDung.getUsersByRole(""); // lấy tất cả
-        setUsers(res);
-        setFilteredUsers(res);
-      } catch (error) {
-        console.error("Lỗi khi lấy danh sách người dùng:", error);
-      }
-    };
     fetchUsers();
   }, []);
 
-  // Bộ lọc người dùng
+  // 🔹 Lọc người dùng
   useEffect(() => {
-    let filtered = users;
+    let filtered = [...users];
 
-    if (searchName.trim()) {
-      filtered = filtered.filter((user) =>
-        user.ho_ten?.toLowerCase().includes(searchName.toLowerCase())
+    const name = (searchName || "").trim().toLowerCase();
+    const role = (searchRole || "").trim();
+    const gender = (searchGender || "").trim().toLowerCase();
+
+    if (name) {
+      filtered = filtered.filter((u) =>
+        u.ho_ten?.toLowerCase().includes(name)
       );
     }
-
-    if (searchRole.trim()) {
-      filtered = filtered.filter((user) => user.vai_tro === searchRole);
+    if (role) {
+      filtered = filtered.filter((u) => u.vai_tro === role);
     }
-
-    if (searchGender.trim()) {
+    if (gender) {
       filtered = filtered.filter(
-        (user) => user.gioi_tinh?.toLowerCase() === searchGender.toLowerCase()
+        (u) => u.gioi_tinh?.toLowerCase() === gender
       );
     }
 
@@ -95,17 +105,36 @@ const AdminAccounts = () => {
     );
   };
 
+  // 🔹 Thêm tài khoản
+  const handleAddAccount = async (values) => {
+    try {
+      setLoading(true);
+      const formattedValues = {
+        ...values,
+        ngay_sinh: values.ngay_sinh
+          ? dayjs(values.ngay_sinh).format("YYYY-MM-DD")
+          : null,
+      };
+      await apiNguoiDung.createUser(formattedValues);
+      message.success("Thêm tài khoản thành công!");
+      setIsAddModalOpen(false);
+      form.resetFields();
+      fetchUsers();
+    } catch (error) {
+      console.error("Lỗi khi thêm tài khoản:", error);
+      message.error("Không thể thêm tài khoản!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const columns = [
     {
       title: "ID NGƯỜI DÙNG",
       dataIndex: "id_nguoi_dung",
       key: "id_nguoi_dung",
-      render: (id) => (
-        <Text copyable style={{ color: "#555" }}>
-          {id}
-        </Text>
-      ),
-      width: 250,
+      render: (id) => <Text copyable>{id}</Text>,
+      width: 200,
     },
     {
       title: "HỌ TÊN",
@@ -144,14 +173,6 @@ const AdminAccounts = () => {
       width: 150,
     },
     {
-      title: "NGÀY SINH",
-      dataIndex: "ngay_sinh",
-      key: "ngay_sinh",
-      render: (date) =>
-        date ? new Date(date).toLocaleDateString("vi-VN") : "Không",
-      width: 120,
-    },
-    {
       title: "GIỚI TÍNH",
       dataIndex: "gioi_tinh",
       key: "gioi_tinh",
@@ -159,27 +180,18 @@ const AdminAccounts = () => {
       width: 100,
     },
     {
-      title: "SỐ CCCD",
-      dataIndex: "so_cccd",
-      key: "so_cccd",
-      render: (cccd) => (
-        <Space>
-          <IdcardOutlined />
-          {cccd || "Không"}
-        </Space>
-      ),
-      width: 150,
-    },
-    {
       title: "VAI TRÒ",
       dataIndex: "vai_tro",
       key: "vai_tro",
-      render: (role) => (
-        <Tag color={role === "admin" ? "red" : role === "bac_si" ? "green" : "blue"}>
-          {role?.toUpperCase() || "Không"}
-        </Tag>
-      ),
-      width: 120,
+      render: (role) => {
+        let color = "blue";
+        if (role === "quan_tri_vien") color = "red";
+        else if (role === "bac_si") color = "green";
+        else if (role === "benh_nhan") color = "purple";
+        else if (role === "chuyen_gia_dinh_duong") color = "orange";
+        return <Tag color={color}>{role?.replaceAll("_", " ").toUpperCase()}</Tag>;
+      },
+      width: 150,
     },
   ];
 
@@ -191,7 +203,9 @@ const AdminAccounts = () => {
           <Title level={3} className="page-title">
             👥 Quản lý tài khoản
           </Title>
-          <Text type="secondary">Xem, lọc và quản lý người dùng trong hệ thống</Text>
+          <Text type="secondary">
+            Xem, thêm và quản lý người dùng trong hệ thống
+          </Text>
         </div>
 
         {/* Bộ lọc */}
@@ -210,23 +224,26 @@ const AdminAccounts = () => {
             <Col xs={24} sm={8} md={6}>
               <Select
                 placeholder="Chọn vai trò"
-                value={searchRole || null}
-                onChange={setSearchRole}
+                value={searchRole || undefined}
+                onChange={(value) => setSearchRole(value || "")}
                 style={{ width: "100%" }}
                 size="large"
                 allowClear
               >
                 <Option value="benh_nhan">Bệnh nhân</Option>
                 <Option value="bac_si">Bác sĩ</Option>
-                <Option value="admin">Quản trị viên</Option>
+                <Option value="chuyen_gia_dinh_duong">Chuyên gia dinh dưỡng</Option>
+                <Option value="nhan_vien_quay">Nhân viên quầy</Option>
+                <Option value="nhan_vien_phan_cong">Nhân viên phân công</Option>
+                <Option value="quan_tri_vien">Quản trị viên</Option>
               </Select>
             </Col>
 
             <Col xs={24} sm={8} md={6}>
               <Select
                 placeholder="Giới tính"
-                value={searchGender || null}
-                onChange={setSearchGender}
+                value={searchGender || undefined}
+                onChange={(value) => setSearchGender(value || "")}
                 style={{ width: "100%" }}
                 size="large"
                 allowClear
@@ -237,16 +254,21 @@ const AdminAccounts = () => {
             </Col>
 
             <Col xs={24} sm={24} md={6}>
-              <Space style={{ width: "100%", justifyContent: "flex-end" }}>
-                <Text type="secondary">
-                  Tổng: <Text strong>{filteredUsers.length}</Text> người dùng
-                </Text>
-              </Space>
+              <Row justify="end">
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  size="large"
+                  onClick={() => setIsAddModalOpen(true)}
+                >
+                  Thêm tài khoản
+                </Button>
+              </Row>
             </Col>
           </Row>
         </Card>
 
-        {/* Bảng danh sách người dùng */}
+        {/* Bảng */}
         <Card className="table-card">
           <Table
             columns={columns}
@@ -258,32 +280,88 @@ const AdminAccounts = () => {
             size="middle"
             onRow={(record) => ({
               onClick: () => handleSelect(record.id_nguoi_dung),
-              style: {
-                cursor: "pointer",
-                transition: "all 0.2s",
-              },
-              onMouseEnter: (e) => {
-                e.currentTarget.style.backgroundColor = "#f0f7ff";
-              },
-              onMouseLeave: (e) => {
-                e.currentTarget.style.backgroundColor = "";
-              },
+              style: { cursor: "pointer" },
             })}
-            scroll={{ x: 1200 }}
           />
         </Card>
+
+        {/* Modal thêm tài khoản */}
+        <Modal
+          title="➕ Thêm tài khoản mới"
+          open={isAddModalOpen}
+          onCancel={() => setIsAddModalOpen(false)}
+          onOk={() => form.submit()}
+          okText="Lưu"
+          cancelText="Hủy"
+          confirmLoading={loading}
+          width={600}
+        >
+          <Form layout="vertical" form={form} onFinish={handleAddAccount}>
+            <Form.Item
+              label="Tên đăng nhập"
+              name="ten_dang_nhap"
+              rules={[{ required: true, message: "Vui lòng nhập tên đăng nhập!" }]}
+            >
+              <Input placeholder="Nhập tên đăng nhập..." />
+            </Form.Item>
+            <Form.Item
+              label="Mật khẩu"
+              name="mat_khau"
+              rules={[{ required: true, message: "Vui lòng nhập mật khẩu!" }]}
+            >
+              <Input.Password placeholder="Nhập mật khẩu..." />
+            </Form.Item>
+            <Form.Item label="Email" name="email">
+              <Input placeholder="Nhập email..." />
+            </Form.Item>
+            <Form.Item label="Số điện thoại" name="so_dien_thoai">
+              <Input placeholder="Nhập số điện thoại..." />
+            </Form.Item>
+            <Form.Item label="Họ tên" name="ho_ten">
+              <Input placeholder="Nhập họ tên..." />
+            </Form.Item>
+            <Form.Item label="Ngày sinh" name="ngay_sinh">
+              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+            </Form.Item>
+            <Form.Item label="Giới tính" name="gioi_tinh">
+              <Select placeholder="Chọn giới tính">
+                <Option value="Nam">Nam</Option>
+                <Option value="Nữ">Nữ</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item label="Số CCCD" name="so_cccd">
+              <Input placeholder="Nhập số CCCD..." />
+            </Form.Item>
+            <Form.Item label="Địa chỉ" name="dia_chi">
+              <Input placeholder="Nhập địa chỉ..." />
+            </Form.Item>
+            <Form.Item
+              label="Vai trò"
+              name="vai_tro"
+              rules={[{ required: true, message: "Vui lòng chọn vai trò!" }]}
+            >
+              <Select placeholder="Chọn vai trò">
+                <Option value="benh_nhan">Bệnh nhân</Option>
+                <Option value="bac_si">Bác sĩ</Option>
+                <Option value="chuyen_gia_dinh_duong">Chuyên gia dinh dưỡng</Option>
+                <Option value="nhan_vien_quay">Nhân viên quầy</Option>
+                <Option value="nhan_vien_phan_cong">Nhân viên phân công</Option>
+                <Option value="quan_tri_vien">Quản trị viên</Option>
+              </Select>
+            </Form.Item>
+          </Form>
+        </Modal>
 
         {/* Phân trang */}
         <div className="pagination-section">
           <Space>
             <Button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
             >
               ‹ Trước
             </Button>
-
-            {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((page) => (
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <Button
                 key={page}
                 type={page === currentPage ? "primary" : "default"}
@@ -292,18 +370,15 @@ const AdminAccounts = () => {
                 {page}
               </Button>
             ))}
-
             <Button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
               disabled={currentPage === totalPages}
             >
               Sau ›
             </Button>
           </Space>
-
           <Text type="secondary">
-            Trang {currentPage}/{totalPages} • Hiển thị {startIndex + 1}-
-            {Math.min(startIndex + pageSize, filteredUsers.length)} trên {filteredUsers.length}
+            Trang {currentPage}/{totalPages}
           </Text>
         </div>
       </Card>
