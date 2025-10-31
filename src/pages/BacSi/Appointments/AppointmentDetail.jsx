@@ -155,18 +155,29 @@ const DoctorAppointmentDetail = () => {
           const ketQuaPromises = chiDinhData.map(async (chiDinh) => {
               try {
                 const ketQua = await apiKetQuaXetNghiem.getByChiDinh(chiDinh.id_chi_dinh);
-                console.log("Kết quả API cho", chiDinh.id_chi_dinh, ":", ketQua);
-
+                
                 // Kiểm tra cấu trúc response thực tế
-                if (ketQua && ketQua.data) {
+                // API có thể trả về trực tiếp data hoặc wrap trong object
+                if (ketQua) {
+                  // Nếu có thuộc tính data, lấy data
+                  if (ketQua.data) {
+                    return { 
+                      chiDinhId: chiDinh.id_chi_dinh, 
+                      data: ketQua.data 
+                    };
+                  }
+                  // Nếu không có, có thể response là data trực tiếp
                   return { 
                     chiDinhId: chiDinh.id_chi_dinh, 
-                    data: ketQua.data 
+                    data: ketQua 
                   };
                 }
                 return null;
               } catch (error) {
-                console.error(`Lỗi khi lấy kết quả cho ${chiDinh.id_chi_dinh}:`, error);
+                // 404 hoặc lỗi khác - không có kết quả là bình thường
+                if (error.response?.status !== 404) {
+                  console.error(`Lỗi khi lấy kết quả cho ${chiDinh.id_chi_dinh}:`, error);
+                }
                 return null;
               }
             });
@@ -180,7 +191,6 @@ const DoctorAppointmentDetail = () => {
               }
             });
 
-            console.log("Kết quả cuối cùng:", ketQuaMap);
             setKetQuaXetNghiem(ketQuaMap);
           }
 
@@ -256,10 +266,9 @@ const DoctorAppointmentDetail = () => {
           dia_chi: benhNhanFull.data.dia_chi || ''
         });
       }
-    } else {
-      // Reset form khi đóng modal
-      formHoSo.resetFields();
     }
+    // Không reset form khi đóng modal để tránh warning
+    // Form sẽ được reset khi mở lại modal
   }, [modalHoSoOpen, hoSo, benhNhanFull, formHoSo]);
 
   // Hàm xử lý chỉ định xét nghiệm
@@ -287,8 +296,6 @@ const DoctorAppointmentDetail = () => {
 
   // Hàm xem kết quả xét nghiệm
   const handleViewKetQua = (chiDinh) => {
-    console.log("Chi định được chọn:", chiDinh);
-    console.log("Kết quả tương ứng:", ketQuaXetNghiem[chiDinh.id_chi_dinh]);
     setSelectedChiDinh(chiDinh);
     setViewKetQuaXN(true);
   };
@@ -296,6 +303,11 @@ const DoctorAppointmentDetail = () => {
   // Các hàm xử lý cũ giữ nguyên
   const handleSubmitHoSo = async (values) => {
     try {
+      if (!benhNhanFull?.data?.id_benh_nhan) {
+        message.error("Không tìm thấy thông tin bệnh nhân");
+        return;
+      }
+
       if (!hoSo) {
         const newHoSo = await apiHoSoKhamBenh.create({
           id_benh_nhan: benhNhanFull.data.id_benh_nhan,
@@ -319,6 +331,11 @@ const DoctorAppointmentDetail = () => {
 
   const handleSubmitLichSuKham = async (values) => {
     try {
+      if (!benhNhanFull?.data?.id_benh_nhan) {
+        message.error("Không tìm thấy thông tin bệnh nhân");
+        return;
+      }
+
       if (!lichSuKhamHienTai) {
         const newLichSu = await apiLichSuKham.createLichSuKham({
           id_benh_nhan: benhNhanFull.data.id_benh_nhan,
@@ -557,9 +574,6 @@ const DoctorAppointmentDetail = () => {
     );
   }
 
-                      console.log("Chi dinh item:", chiDinhXetNghiem);
-      console.log("Ket qua map:", chiDinhXetNghiem.ten_dich_vu);
-      console.log("Check ket qua:", chiDinhXetNghiem.yeu_cau_ghi_chu);
   return (
     <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
       {/* Header */}
@@ -627,7 +641,7 @@ const DoctorAppointmentDetail = () => {
                 {hoSo ? (
                   <Descriptions column={2} bordered size="small">
                     <Descriptions.Item label="Mã BN" span={1}>
-                      <Text strong>{benhNhanFull?.data.id_benh_nhan}</Text>
+                      <Text strong>{benhNhanFull?.data?.id_benh_nhan || 'N/A'}</Text>
                     </Descriptions.Item>
                     <Descriptions.Item label="Họ tên" span={1}>
                       <Text strong>{hoSo.ho_ten}</Text>

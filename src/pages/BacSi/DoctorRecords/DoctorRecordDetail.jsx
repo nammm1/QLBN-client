@@ -239,7 +239,7 @@ const DoctorRecordDetail = () => {
             {benhNhan ? (
               <Descriptions column={1} bordered size="small">
                 <Descriptions.Item label="Mã bệnh nhân">
-                  <Text strong>{benhNhan.data.id_benh_nhan}</Text>
+                  <Text strong>{benhNhan?.id_benh_nhan || 'N/A'}</Text>
                 </Descriptions.Item>
                 <Descriptions.Item label={
                   <Space>
@@ -247,7 +247,7 @@ const DoctorRecordDetail = () => {
                     <span>Ngày sinh</span>
                   </Space>
                 }>
-                  {benhNhan.data.ngay_sinh ? new Date(benhNhan.data.ngay_sinh).toLocaleDateString("vi-VN") : "Không có"}
+                  {benhNhan?.ngay_sinh ? new Date(benhNhan.ngay_sinh).toLocaleDateString("vi-VN") : "Không có"}
                 </Descriptions.Item>
                 <Descriptions.Item label={
                   <Space>
@@ -255,7 +255,7 @@ const DoctorRecordDetail = () => {
                     <span>Tiền sử bệnh lý</span>
                   </Space>
                 }>
-                  {benhNhan.data.tien_su_benh_ly || <Text type="secondary">Không có</Text>}
+                  {benhNhan?.tien_su_benh_ly || <Text type="secondary">Không có</Text>}
                 </Descriptions.Item>
                 <Descriptions.Item label={
                   <Space>
@@ -263,7 +263,7 @@ const DoctorRecordDetail = () => {
                     <span>Tình trạng sức khỏe</span>
                   </Space>
                 }>
-                  {benhNhan.data.tinh_trang_suc_khoe_hien_tai || <Text type="secondary">Không có</Text>}
+                  {benhNhan?.tinh_trang_suc_khoe_hien_tai || <Text type="secondary">Không có</Text>}
                 </Descriptions.Item>
               </Descriptions>
             ) : (

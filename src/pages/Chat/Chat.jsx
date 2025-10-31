@@ -469,7 +469,7 @@ const Chat = () => {
   };
 
   const getOtherUserInfo = (conversation) => {
-    const currentUserId = userInfo.id_nguoi_dung;
+    const currentUserId = userInfo?.id_nguoi_dung;
     
     // Kiểm tra người dùng có phải là bệnh nhân trong cuộc trò chuyện không
     if (conversation.benh_nhan_id === currentUserId || conversation.id_benh_nhan === currentUserId) {
@@ -592,7 +592,7 @@ const Chat = () => {
       
       // Sử dụng API tìm kiếm nâng cao
       const searchParams = {
-        exclude_id: userInfo.id_nguoi_dung, // Loại trừ chính mình
+        exclude_id: userInfo?.id_nguoi_dung, // Loại trừ chính mình
       };
       
       // Thêm filter theo vai trò nếu có
@@ -1066,7 +1066,7 @@ const Chat = () => {
                       </div>
                       {isMyMessage && (
                         <Avatar
-                          src={userInfo.anh_dai_dien}
+                          src={userInfo?.anh_dai_dien}
                           icon={<UserOutlined />}
                           size={32}
                           style={{ marginLeft: "8px" }}
