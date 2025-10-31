@@ -204,7 +204,7 @@ const DoctorDashboard = () => {
           <Col xs={24} sm={12} lg={6} key={index}>
             <Card 
               className="shadow-sm border-0 h-100"
-              bodyStyle={{ padding: '20px' }}
+              styles={{ body: { padding: '20px' } }}
             >
               <div className="d-flex justify-content-between align-items-start mb-3">
                 <div>
@@ -312,21 +312,20 @@ const DoctorDashboard = () => {
                 }
                 className="shadow-sm h-100"
               >
-                <Timeline>
-                  {recentActivities.map((activity, index) => (
-                    <Timeline.Item 
-                      key={index}
-                      dot={<ClockCircleOutlined style={{ fontSize: '12px' }} />}
-                    >
+                <Timeline
+                  items={recentActivities.map((activity, index) => ({
+                    key: index,
+                    dot: <ClockCircleOutlined style={{ fontSize: '12px' }} />,
+                    children: (
                       <Space direction="vertical" size={0}>
                         <Text strong>{activity.action}</Text>
                         <Text type="secondary" style={{ fontSize: '12px' }}>
                           {activity.time}
                         </Text>
                       </Space>
-                    </Timeline.Item>
-                  ))}
-                </Timeline>
+                    )
+                  }))}
+                />
               </Card>
             </Col>
           </Row>

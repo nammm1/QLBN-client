@@ -3,6 +3,7 @@ import "./BookingModal.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import toast from "../../utils/toast";
+import { X, Calendar, Clock, User, Stethoscope, MessageSquare, Building2, Video, MapPin } from "lucide-react";
 
 import apiChuyenKhoa from "../../api/ChuyenKhoa";
 import apiBacSi from "../../api/BacSi";
@@ -166,106 +167,137 @@ const BookingModal = ({ show, onClose }) => {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
-        <h4 className="modal-header-title fw-bold text-center mb-3">
-          Đăng ký khám bệnh
-        </h4>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header-wrapper">
+          <div className="modal-header-content">
+            <Stethoscope className="modal-header-icon" size={28} />
+            <h4 className="modal-header-title">Đăng ký khám bệnh</h4>
+          </div>
+          <button type="button" className="modal-close-btn" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="booking-form">
           {/* loại hẹn */}
-          <div className="mb-3">
-            <label className="form-label">Chọn loại hẹn</label>
-            <div className="d-flex gap-2">
+          <div className="form-group">
+            <label className="form-label">
+              <Clock size={16} className="label-icon" />
+              Chọn loại hẹn
+            </label>
+            <div className="service-type-buttons">
               {[
-                { label: "Trực tiếp", value: "truc_tiep" },
-                { label: "Online", value: "online" },
-              ].map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className={`btn ${
-                    serviceTypeBooking === opt.value ? "btn-primary" : "btn-outline-primary"
-                  }`}
-                  onClick={() => setServiceTypeBooking(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
+                { label: "Trực tiếp", value: "truc_tiep", icon: MapPin },
+                { label: "Online", value: "online", icon: Video },
+              ].map((opt) => {
+                const IconComponent = opt.icon;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`service-type-btn ${
+                      serviceTypeBooking === opt.value ? "active" : ""
+                    }`}
+                    onClick={() => setServiceTypeBooking(opt.value)}
+                  >
+                    <IconComponent size={18} />
+                    <span>{opt.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
+
           {/* chuyên khoa */}
-          <div className="mb-3">
-            <label className="form-label">Chọn chuyên khoa</label>
-            <select
-              className="form-select"
-              value={specialty}
-              onChange={(e) => {
-                setSpecialty(e.target.value);
-                setDoctor(null);
-              }}
-            >
-              <option value="">Chọn chuyên khoa</option>
-              {specialties.map((sp) => (
-                <option key={sp.id_chuyen_khoa} value={sp.id_chuyen_khoa}>
-                  {sp.ten_chuyen_khoa}
-                </option>
-              ))}
-            </select>
+          <div className="form-group">
+            <label className="form-label">
+              <Building2 size={16} className="label-icon" />
+              Chọn chuyên khoa
+            </label>
+            <div className="input-wrapper">
+              <select
+                className="form-select modern-select"
+                value={specialty}
+                onChange={(e) => {
+                  setSpecialty(e.target.value);
+                  setDoctor(null);
+                }}
+              >
+                <option value="">-- Chọn chuyên khoa --</option>
+                {specialties.map((sp) => (
+                  <option key={sp.id_chuyen_khoa} value={sp.id_chuyen_khoa}>
+                    {sp.ten_chuyen_khoa}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* bác sĩ */}
-          <div className="mb-3">
-            <label className="form-label">Chọn bác sĩ</label>
-            <select
-              className="form-select"
-              value={doctor ? doctor.id_bac_si : ""}
-              onChange={(e) => {
-                const selectedDoctor = doctors.find(
-                  (d) => String(d.id_bac_si) === String(e.target.value)
-                );
-                setDoctor(selectedDoctor || null);
-                setDate(null);
-                setSession("");
-                setTimeSlot("");
-              }}
-              disabled={!specialty}
-            >
-              <option value="">Chọn bác sĩ</option>
-              {doctors.map((doc) => (
-                <option key={doc.id_bac_si} value={doc.id_bac_si}>
-                  {doc.ho_ten}
-                </option>
-              ))}
-            </select>
+          <div className="form-group">
+            <label className="form-label">
+              <User size={16} className="label-icon" />
+              Chọn bác sĩ
+            </label>
+            <div className="input-wrapper">
+              <select
+                className="form-select modern-select"
+                value={doctor ? doctor.id_bac_si : ""}
+                onChange={(e) => {
+                  const selectedDoctor = doctors.find(
+                    (d) => String(d.id_bac_si) === String(e.target.value)
+                  );
+                  setDoctor(selectedDoctor || null);
+                  setDate(null);
+                  setSession("");
+                  setTimeSlot("");
+                }}
+                disabled={!specialty}
+              >
+                <option value="">-- Chọn bác sĩ --</option>
+                {doctors.map((doc) => (
+                  <option key={doc.id_bac_si} value={doc.id_bac_si}>
+                    BS. {doc.ho_ten}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* ngày + ca + khung giờ */}
-          <div className="mb-3">
-            <label className="form-label">Chọn ngày khám</label>
-            <DatePicker
-              selected={date}
-              onChange={(d) => {
-                setDate(d);
-                setSession("");
-                setTimeSlot("");
-              }}
-              dateFormat="dd/MM/yyyy"
-              placeholderText="Chọn ngày"
-              minDate={new Date()}
-              filterDate={isAllowedDate}
-              disabled={!doctor}
-            />
+          <div className="form-group">
+            <label className="form-label">
+              <Calendar size={16} className="label-icon" />
+              Chọn ngày khám
+            </label>
+            <div className="input-wrapper">
+              <DatePicker
+                selected={date}
+                onChange={(d) => {
+                  setDate(d);
+                  setSession("");
+                  setTimeSlot("");
+                }}
+                dateFormat="dd/MM/yyyy"
+                placeholderText="Chọn ngày khám"
+                minDate={new Date()}
+                filterDate={isAllowedDate}
+                disabled={!doctor}
+                className="modern-datepicker"
+                calendarClassName="modern-calendar"
+              />
+            </div>
 
             {date && (
-              <div className="session-buttons mt-2">
+              <div className="session-buttons">
                 {(doctorSchedule[formatDate(date)] || []).map((s) => (
                   <button
                     key={s}
                     type="button"
-                    className={`btn ${
-                      session === s ? "btn-success" : "btn-outline-success"
-                    } mx-1`}
+                    className={`session-btn ${
+                      session === s ? "active" : ""
+                    }`}
                     onClick={() => {
                       setSession(s);
                       setTimeSlot("");
@@ -278,19 +310,18 @@ const BookingModal = ({ show, onClose }) => {
             )}
 
             {session && (
-              <div className="time-slots mt-2">
+              <div className="time-slots">
                 {timeSlots.map((slot) => (
                   <button
                     key={slot.id_khung_gio}
                     type="button"
-                    className={`btn ${
-                      timeSlot === slot.id_khung_gio
-                        ? "btn-info"
-                        : "btn-outline-info"
-                    } mx-1 my-1`}
+                    className={`time-slot-btn ${
+                      timeSlot === slot.id_khung_gio ? "active" : ""
+                    }`}
                     onClick={() => setTimeSlot(slot.id_khung_gio)}
                   >
-                    {slot.gio_bat_dau} - {slot.gio_ket_thuc}
+                    <Clock size={14} />
+                    <span>{slot.gio_bat_dau} - {slot.gio_ket_thuc}</span>
                   </button>
                 ))}
               </div>
@@ -298,28 +329,34 @@ const BookingModal = ({ show, onClose }) => {
           </div>
 
           {/* mô tả */}
-          <div className="mb-3">
-            <label className="form-label">Lý do khám</label>
-            <textarea
-              className="form-control"
-              rows="3"
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-              placeholder="Hãy mô tả lý do khám..."
-            ></textarea>
+          <div className="form-group">
+            <label className="form-label">
+              <MessageSquare size={16} className="label-icon" />
+              Lý do khám
+            </label>
+            <div className="input-wrapper">
+              <textarea
+                className="form-control modern-textarea"
+                rows="4"
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                placeholder="Vui lòng mô tả chi tiết lý do khám và các triệu chứng (nếu có)..."
+              ></textarea>
+            </div>
           </div>
 
           {/* buttons */}
-          <div className="form-actions d-flex justify-content-between">
+          <div className="form-actions">
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn-cancel"
               onClick={onClose}
             >
               Hủy
             </button>
-            <button type="submit" className="btn btn-success btn-sm">
-              Đặt lịch
+            <button type="submit" className="btn-submit">
+              <Calendar size={18} />
+              <span>Đặt lịch ngay</span>
             </button>
           </div>
         </form>

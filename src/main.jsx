@@ -4,13 +4,28 @@ import App from "./App.jsx";
 import "./index.css";
 import { store } from './store/config.js';
 import { Provider } from 'react-redux';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App as AntdApp } from 'antd';
+import MessageProvider from './components/MessageProvider';
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Provider store={store}>
-      <ConfigProvider>
-        <App />
+      <ConfigProvider
+        theme={{
+          token: {
+            colorPrimary: '#096dd9',
+            colorSuccess: '#52c41a',
+            colorWarning: '#faad14',
+            colorError: '#ff4d4f',
+            borderRadius: 8,
+          },
+        }}
+      >
+        <AntdApp>
+          <MessageProvider>
+            <App />
+          </MessageProvider>
+        </AntdApp>
       </ConfigProvider>
     </Provider>
   </React.StrictMode>

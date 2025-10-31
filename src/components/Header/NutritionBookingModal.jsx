@@ -3,6 +3,7 @@ import "./BookingModal.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import toast from "../../utils/toast";
+import { X, Calendar, Clock, User, UtensilsCrossed, MessageSquare, Video, MapPin, Heart } from "lucide-react";
 
 import apiChuyenGiaDinhDuong from "../../api/ChuyenGiaDinhDuong";
 import apiLichLamViec from "../../api/LichLamViec";
@@ -139,102 +140,132 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
-        <h4 className="modal-header-title fw-bold text-center mb-3">
-          Đăng ký tư vấn dinh dưỡng
-        </h4>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header-wrapper">
+          <div className="modal-header-content">
+            <UtensilsCrossed className="modal-header-icon" size={28} />
+            <h4 className="modal-header-title">Đăng ký tư vấn dinh dưỡng</h4>
+          </div>
+          <button type="button" className="modal-close-btn" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="booking-form">
           {/* loại hẹn */}
-          <div className="mb-3">
-            <label className="form-label">Chọn loại hẹn</label>
-            <div className="d-flex gap-2">
+          <div className="form-group">
+            <label className="form-label">
+              <Clock size={16} className="label-icon" />
+              Chọn loại hẹn
+            </label>
+            <div className="service-type-buttons">
               {[
-                { label: "Trực tiếp", value: "truc_tiep" },
-                { label: "Online", value: "online" },
-              ].map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className={`btn ${
-                    serviceType === opt.value ? "btn-primary" : "btn-outline-primary"
-                  }`}
-                  onClick={() => setServiceType(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
+                { label: "Trực tiếp", value: "truc_tiep", icon: MapPin },
+                { label: "Online", value: "online", icon: Video },
+              ].map((opt) => {
+                const IconComponent = opt.icon;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`service-type-btn ${
+                      serviceType === opt.value ? "active" : ""
+                    }`}
+                    onClick={() => setServiceType(opt.value)}
+                  >
+                    <IconComponent size={18} />
+                    <span>{opt.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* loại dinh dưỡng */}
-          <div className="mb-3">
-            <label className="form-label">Loại dinh dưỡng</label>
-            <select
-              className="form-select"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-            >
-              <option value="">Chọn loại dinh dưỡng</option>
-              <option value="Giảm cân">Giảm cân</option>
-              <option value="Tăng cân">Tăng cân</option>
-              <option value="Dinh dưỡng thể thao">Dinh dưỡng thể thao</option>
-              <option value="Tiểu đường">Tiểu đường</option>
-            </select>
+          <div className="form-group">
+            <label className="form-label">
+              <Heart size={16} className="label-icon" />
+              Loại dinh dưỡng
+            </label>
+            <div className="input-wrapper">
+              <select
+                className="form-select modern-select"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+              >
+                <option value="">-- Chọn loại dinh dưỡng --</option>
+                <option value="Giảm cân">Giảm cân</option>
+                <option value="Tăng cân">Tăng cân</option>
+                <option value="Dinh dưỡng thể thao">Dinh dưỡng thể thao</option>
+                <option value="Tiểu đường">Tiểu đường</option>
+              </select>
+            </div>
           </div>
 
           {/* chuyên gia */}
-          <div className="mb-3">
-            <label className="form-label">Chọn chuyên gia</label>
-            <select
-              className="form-select"
-              value={expert ? expert.id_chuyen_gia : ""}
-              onChange={(e) => {
-                const selectedExpert = experts.find(
-                  (d) => String(d.id_chuyen_gia) === String(e.target.value)
-                );
-                setExpert(selectedExpert || null);
-                setDate(null);
-                setSession("");
-                setTimeSlot("");
-              }}
-            >
-              <option value="">Chọn chuyên gia</option>
-              {experts.map((cg) => (
-                <option key={cg.id_chuyen_gia} value={cg.id_chuyen_gia}>
-                  {cg.ho_ten}
-                </option>
-              ))}
-            </select>
+          <div className="form-group">
+            <label className="form-label">
+              <User size={16} className="label-icon" />
+              Chọn chuyên gia
+            </label>
+            <div className="input-wrapper">
+              <select
+                className="form-select modern-select"
+                value={expert ? expert.id_chuyen_gia : ""}
+                onChange={(e) => {
+                  const selectedExpert = experts.find(
+                    (d) => String(d.id_chuyen_gia) === String(e.target.value)
+                  );
+                  setExpert(selectedExpert || null);
+                  setDate(null);
+                  setSession("");
+                  setTimeSlot("");
+                }}
+              >
+                <option value="">-- Chọn chuyên gia --</option>
+                {experts.map((cg) => (
+                  <option key={cg.id_chuyen_gia} value={cg.id_chuyen_gia}>
+                    {cg.ho_ten}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* ngày + ca + khung giờ */}
-          <div className="mb-3">
-            <label className="form-label">Chọn ngày tư vấn</label>
-            <DatePicker
-              selected={date}
-              onChange={(d) => {
-                setDate(d);
-                setSession("");
-                setTimeSlot("");
-              }}
-              dateFormat="dd/MM/yyyy"
-              placeholderText="Chọn ngày"
-              minDate={new Date()}
-              filterDate={isAllowedDate}
-              disabled={!expert}
-            />
+          <div className="form-group">
+            <label className="form-label">
+              <Calendar size={16} className="label-icon" />
+              Chọn ngày tư vấn
+            </label>
+            <div className="input-wrapper">
+              <DatePicker
+                selected={date}
+                onChange={(d) => {
+                  setDate(d);
+                  setSession("");
+                  setTimeSlot("");
+                }}
+                dateFormat="dd/MM/yyyy"
+                placeholderText="Chọn ngày tư vấn"
+                minDate={new Date()}
+                filterDate={isAllowedDate}
+                disabled={!expert}
+                className="modern-datepicker"
+                calendarClassName="modern-calendar"
+              />
+            </div>
 
             {date && (
-              <div className="session-buttons mt-2">
+              <div className="session-buttons">
                 {(expertSchedule[formatDateLocal(date)] || []).map((s) => (
                   <button
                     key={s}
                     type="button"
-                    className={`btn ${
-                      session === s ? "btn-success" : "btn-outline-success"
-                    } mx-1`}
+                    className={`session-btn ${
+                      session === s ? "active" : ""
+                    }`}
                     onClick={() => {
                       setSession(s);
                       setTimeSlot("");
@@ -247,17 +278,18 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
             )}
 
             {session && (
-              <div className="time-slots mt-2">
+              <div className="time-slots">
                 {timeSlots.map((slot) => (
                   <button
                     key={slot.id_khung_gio}
                     type="button"
-                    className={`btn ${
-                      timeSlot === slot.id_khung_gio ? "btn-info" : "btn-outline-info"
-                    } mx-1 my-1`}
+                    className={`time-slot-btn ${
+                      timeSlot === slot.id_khung_gio ? "active" : ""
+                    }`}
                     onClick={() => setTimeSlot(slot.id_khung_gio)}
                   >
-                    {slot.gio_bat_dau} - {slot.gio_ket_thuc}
+                    <Clock size={14} />
+                    <span>{slot.gio_bat_dau} - {slot.gio_ket_thuc}</span>
                   </button>
                 ))}
               </div>
@@ -265,28 +297,34 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
           </div>
 
           {/* lý do tư vấn */}
-          <div className="mb-3">
-            <label className="form-label">Lý do tư vấn</label>
-            <textarea
-              className="form-control"
-              rows="3"
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-              placeholder="Hãy mô tả chi tiết mong muốn tư vấn..."
-            ></textarea>
+          <div className="form-group">
+            <label className="form-label">
+              <MessageSquare size={16} className="label-icon" />
+              Lý do tư vấn
+            </label>
+            <div className="input-wrapper">
+              <textarea
+                className="form-control modern-textarea"
+                rows="4"
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                placeholder="Vui lòng mô tả chi tiết mong muốn tư vấn và mục tiêu của bạn..."
+              ></textarea>
+            </div>
           </div>
 
           {/* buttons */}
-          <div className="form-actions d-flex justify-content-between">
+          <div className="form-actions">
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
+              className="btn-cancel"
               onClick={onClose}
             >
               Hủy
             </button>
-            <button type="submit" className="btn btn-success btn-sm">
-              Đặt lịch
+            <button type="submit" className="btn-submit">
+              <Calendar size={18} />
+              <span>Đặt lịch ngay</span>
             </button>
           </div>
         </form>

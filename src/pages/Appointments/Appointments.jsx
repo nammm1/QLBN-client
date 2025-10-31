@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { Tabs, Table, Typography, Button, Tag, Space, Card, Spin, Empty, Popconfirm, message } from "antd";
+import { CalendarOutlined, AppleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import "./appointments.css";
 import apiCuocHenKhamBenh from "../../api/CuocHenKhamBenh";
 import apiCuocHenTuVan from "../../api/CuocHenTuVan";
@@ -6,6 +8,8 @@ import apiNguoiDung from "../../api/NguoiDung";
 import apiChuyenKhoa from "../../api/ChuyenKhoa";
 import apiKhungGioKham from "../../api/KhungGioKham";
 import toast from "../../utils/toast";
+
+const { Title, Text } = Typography;
 
 const statusLabel = (s) => {
   switch (s) {
@@ -17,6 +21,19 @@ const statusLabel = (s) => {
       return "Đã hoàn thành";
     default:
       return s || "—";
+  }
+};
+
+const getStatusTag = (s) => {
+  switch (s) {
+    case "da_dat":
+      return <Tag color="blue">Đã đặt</Tag>;
+    case "da_huy":
+      return <Tag color="red">Đã hủy</Tag>;
+    case "da_hoan_thanh":
+      return <Tag color="green">Đã hoàn thành</Tag>;
+    default:
+      return <Tag>{s || "—"}</Tag>;
   }
 };
 
@@ -85,7 +102,6 @@ const Appointments = () => {
             it._id ||
             it.id_cuoc_hen_kham_benh;
 
-          // lấy khung giờ
           let gio_bat_dau = "—",
             gio_ket_thuc = "—";
           if (it.id_khung_gio && apiKhungGioKham.getById) {
@@ -99,7 +115,6 @@ const Appointments = () => {
             } catch {}
           }
 
-          // lấy tên bác sĩ
           let ten_bac_si = "—";
           const bsId =
             it.id_bac_si ||
@@ -113,7 +128,6 @@ const Appointments = () => {
             } catch {}
           }
 
-          // lấy tên chuyên khoa
           let ten_chuyen_khoa = "—";
           const ckId =
             it.id_chuyen_khoa ||
@@ -167,7 +181,6 @@ const Appointments = () => {
             it._id ||
             it.id_cuoc_hen_tu_van;
 
-          // khung giờ
           let gio_bat_dau = "—",
             gio_ket_thuc = "—";
           if (it.id_khung_gio && apiKhungGioKham.getById) {
@@ -181,7 +194,6 @@ const Appointments = () => {
             } catch {}
           }
 
-          // chuyên gia
           let ten_chuyen_gia = "—";
           const cgId = it.id_chuyen_gia || it.id_nguoi_dung;
           if (cgId && apiNguoiDung.getUserById) {
@@ -192,7 +204,6 @@ const Appointments = () => {
             } catch {}
           }
 
-          // loại dinh dưỡng
           const loai_dinh_duong = it.loai_dinh_duong || it.loai_tu_van || "—";
 
           return {
@@ -270,121 +281,193 @@ const Appointments = () => {
     })();
   }, [patientId]);
 
-  // ======================= RENDER ==========================
-  return (
-    <div className="appointments-container">
-      <div className="appointments-buttons">
-        <button
-          className={selectedTab === "kham" ? "active" : ""}
-          onClick={() => setSelectedTab("kham")}
-        >
-          📅 Lịch Hẹn Khám Bệnh
-        </button>
-        <button
-          className={selectedTab === "dinhduong" ? "active" : ""}
-          onClick={() => setSelectedTab("dinhduong")}
-        >
-          🥗 Lịch Hẹn Tư Vấn Dinh Dưỡng
-        </button>
-      </div>
+  const khamColumns = [
+    {
+      title: "Ngày khám",
+      dataIndex: "ngay_kham",
+      key: "ngay_kham",
+      render: (text) => formatDate(text),
+    },
+    {
+      title: "Thời gian",
+      key: "thoi_gian",
+      render: (_, record) => `${record.gio_bat_dau} - ${record.gio_ket_thuc}`,
+    },
+    {
+      title: "Bác sĩ",
+      dataIndex: "ten_bac_si",
+      key: "ten_bac_si",
+    },
+    {
+      title: "Chuyên khoa",
+      dataIndex: "ten_chuyen_khoa",
+      key: "ten_chuyen_khoa",
+    },
+    {
+      title: "Loại hẹn",
+      dataIndex: "loai_hen",
+      key: "loai_hen",
+      render: (text) => <Tag color="cyan">{text}</Tag>,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "_raw_trang_thai",
+      key: "trang_thai",
+      render: (status) => getStatusTag(status),
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      render: (_, record) =>
+        record._raw_trang_thai !== "da_huy" &&
+        record._raw_trang_thai !== "da_hoan_thanh" ? (
+          <Popconfirm
+            title="Bạn có chắc muốn hủy lịch khám này?"
+            onConfirm={() => handleCancelKham(record.id)}
+            okText="Có"
+            cancelText="Không"
+          >
+            <Button
+              danger
+              icon={<CloseCircleOutlined />}
+              size="small"
+            >
+              Hủy
+            </Button>
+          </Popconfirm>
+        ) : null,
+    },
+  ];
 
-      {selectedTab === "kham" && (
-        <div>
-          <h2>📅 Lịch Hẹn Khám Bệnh</h2>
+  const tuVanColumns = [
+    {
+      title: "Ngày tư vấn",
+      dataIndex: "ngay_kham",
+      key: "ngay_kham",
+      render: (text) => formatDate(text),
+    },
+    {
+      title: "Thời gian",
+      key: "thoi_gian",
+      render: (_, record) => `${record.gio_bat_dau} - ${record.gio_ket_thuc}`,
+    },
+    {
+      title: "Chuyên gia",
+      dataIndex: "ten_chuyen_gia",
+      key: "ten_chuyen_gia",
+    },
+    {
+      title: "Loại tư vấn",
+      dataIndex: "loai_dinh_duong",
+      key: "loai_dinh_duong",
+      render: (text) => <Tag color="green">{text}</Tag>,
+    },
+    {
+      title: "Loại hẹn",
+      dataIndex: "loai_hen",
+      key: "loai_hen",
+      render: (text) => <Tag color="cyan">{text}</Tag>,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "_raw_trang_thai",
+      key: "trang_thai",
+      render: (status) => getStatusTag(status),
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      render: (_, record) =>
+        record._raw_trang_thai !== "da_huy" &&
+        record._raw_trang_thai !== "da_hoan_thanh" ? (
+          <Popconfirm
+            title="Bạn có chắc muốn hủy lịch tư vấn này?"
+            onConfirm={() => handleCancelTuVan(record.id)}
+            okText="Có"
+            cancelText="Không"
+          >
+            <Button
+              danger
+              icon={<CloseCircleOutlined />}
+              size="small"
+            >
+              Hủy
+            </Button>
+          </Popconfirm>
+        ) : null,
+    },
+  ];
+
+  const tabItems = [
+    {
+      key: "kham",
+      label: (
+        <Space>
+          <CalendarOutlined />
+          <span>Lịch Hẹn Khám Bệnh</span>
+        </Space>
+      ),
+      children: (
+        <Card>
           {loadingKham ? (
-            <p>Đang tải lịch khám...</p>
+            <div style={{ textAlign: "center", padding: "40px 0" }}>
+              <Spin size="large" />
+            </div>
+          ) : lichKham.length === 0 ? (
+            <Empty description="Không có lịch hẹn khám bệnh" />
           ) : (
-            <table className="appointments-table">
-              <thead>
-                <tr>
-                  <th>Ngày khám</th>
-                  <th>Thời gian</th>
-                  <th>Bác sĩ</th>
-                  <th>Chuyên khoa</th>
-                  <th>Loại hẹn</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lichKham.length === 0 ? (
-                  <tr>
-                    <td colSpan="7">Không có lịch hẹn khám</td>
-                  </tr>
-                ) : (
-                  lichKham.map((it) => (
-                    <tr key={it.id}>
-                      <td>{formatDate(it.ngay_kham)}</td>
-                      <td>{it.gio_bat_dau} - {it.gio_ket_thuc}</td>
-                      <td>{it.ten_bac_si}</td>
-                      <td>{it.ten_chuyen_khoa}</td>
-                      <td>{it.loai_hen}</td>
-                      <td>{it.trang_thai}</td>
-                      <td>
-                        {it._raw_trang_thai !== "da_huy" &&
-                          it._raw_trang_thai !== "da_hoan_thanh" && (
-                            <button className="cancel-btn" onClick={() => handleCancelKham(it.id)}>
-                              Hủy
-                            </button>
-                          )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <Table
+              columns={khamColumns}
+              dataSource={lichKham}
+              rowKey="id"
+              pagination={{ pageSize: 10 }}
+            />
           )}
-        </div>
-      )}
-
-      {selectedTab === "dinhduong" && (
-        <div>
-          <h2>🥗 Lịch Hẹn Tư Vấn Dinh Dưỡng</h2>
+        </Card>
+      ),
+    },
+    {
+      key: "dinhduong",
+      label: (
+        <Space>
+          <AppleOutlined />
+          <span>Lịch Hẹn Tư Vấn Dinh Dưỡng</span>
+        </Space>
+      ),
+      children: (
+        <Card>
           {loadingTuVan ? (
-            <p>Đang tải lịch tư vấn...</p>
+            <div style={{ textAlign: "center", padding: "40px 0" }}>
+              <Spin size="large" />
+            </div>
+          ) : lichTuVan.length === 0 ? (
+            <Empty description="Không có lịch tư vấn dinh dưỡng" />
           ) : (
-            <table className="appointments-table">
-              <thead>
-                <tr>
-                  <th>Ngày tư vấn</th>
-                  <th>Thời gian</th>
-                  <th>Chuyên gia</th>
-                  <th>Loại tư vấn</th>
-                  <th>Loại hẹn</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lichTuVan.length === 0 ? (
-                  <tr>
-                    <td colSpan="7">Không có lịch tư vấn</td>
-                  </tr>
-                ) : (
-                  lichTuVan.map((it) => (
-                    <tr key={it.id}>
-                      <td>{formatDate(it.ngay_kham)}</td>
-                      <td>{it.gio_bat_dau} - {it.gio_ket_thuc}</td>
-                      <td>{it.ten_chuyen_gia}</td>
-                      <td>{it.loai_dinh_duong}</td>
-                      <td>{it.loai_hen}</td>
-                      <td>{it.trang_thai}</td>
-                      <td>
-                        {it._raw_trang_thai !== "da_huy" &&
-                          it._raw_trang_thai !== "da_hoan_thanh" && (
-                            <button className="cancel-btn" onClick={() => handleCancelTuVan(it.id)}>
-                              Hủy
-                            </button>
-                          )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <Table
+              columns={tuVanColumns}
+              dataSource={lichTuVan}
+              rowKey="id"
+              pagination={{ pageSize: 10 }}
+            />
           )}
-        </div>
-      )}
+        </Card>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ background: "#f0f2f5", minHeight: "100vh", padding: "40px 0" }}>
+      <div className="container" style={{ maxWidth: 1200 }}>
+        <Title level={2} style={{ textAlign: "center", color: "#096dd9", marginBottom: 32 }}>
+          Quản lý lịch hẹn
+        </Title>
+        <Tabs
+          activeKey={selectedTab}
+          onChange={setSelectedTab}
+          items={tabItems}
+          size="large"
+        />
+      </div>
     </div>
   );
 };

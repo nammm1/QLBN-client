@@ -1,113 +1,466 @@
-
 .home-container {
-  min-height: 100vh; /* đảm bảo trang ít nhất cao bằng màn hình */
-  padding-bottom: 40px;
-  background-color: #ffffff; /* màu nền nhẹ */
+  overflow-x: hidden;
 }
 
-/* Tạo lớp xám phủ ảnh */
-.banner-overlay {
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 16px;
+  }
+}
+
+.hero-banner {
+  position: relative;
+  animation: heroFadeIn 1s ease-out;
+}
+
+@keyframes heroFadeIn {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1;
+}
+
+.hero-content {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scroll Animations */
+.animate-on-scroll {
+  opacity: 1;
+  transition: opacity 0.6s ease-out;
+}
+
+.animate-on-scroll.visible {
+  opacity: 1;
+}
+
+/* Fade In Up Animation */
+.animate-fade-in-up {
+  opacity: 1;
+  transform: translateY(0);
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.animate-fade-in-up-delay {
+  opacity: 1;
+  transform: translateY(0);
+  animation: fadeInUp 0.8s ease-out 0.2s forwards;
+}
+
+/* Slide In Left */
+.animate-slide-in-left {
+  opacity: 1;
+  transform: translateX(0);
+  animation: slideInLeft 0.8s ease-out forwards;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Stagger Animation for Cards */
+.animate-stagger {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  animation: staggerIn 0.6s ease-out forwards;
+}
+
+@keyframes staggerIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Scale In Animation */
+.animate-scale-in {
+  opacity: 1;
+  transform: scale(1);
+  animation: scaleIn 0.6s ease-out forwards;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Feature Cards */
+.feature-card {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.5s;
+}
+
+.feature-card:hover::before {
+  left: 100%;
+}
+
+.feature-card:hover {
+  transform: translateY(-12px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(9, 109, 217, 0.2) !important;
+}
+
+.feature-icon-wrapper {
+  transition: all 0.4s ease;
+  display: inline-block;
+}
+
+.feature-card:hover .feature-icon-wrapper {
+  transform: rotate(360deg) scale(1.1);
+}
+
+/* Service Cards */
+.service-card {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+}
+
+.service-card::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(9, 109, 217, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.service-card:hover::after {
+  width: 300px;
+  height: 300px;
+}
+
+.service-card:hover {
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: 0 12px 32px rgba(9, 109, 217, 0.25) !important;
+}
+
+.service-icon-wrapper {
+  transition: all 0.4s ease;
+  display: inline-block;
+}
+
+.service-card:hover .service-icon-wrapper {
+  transform: scale(1.2) rotate(5deg);
+}
+
+/* Testimonial Cards */
+.testimonial-card {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
 }
 
-.banner-overlay img {
-  filter: brightness(60%); /* làm tối ảnh */
+.testimonial-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Achievement Items */
+.achievement-item {
+  transition: all 0.4s ease;
+}
+
+.achievement-item:hover {
+  transform: scale(1.1);
+}
+
+.achievement-icon {
+  transition: all 0.4s ease;
+  display: inline-block;
+}
+
+.achievement-item:hover .achievement-icon {
+  transform: scale(1.2) rotate(5deg);
+}
+
+/* Pulse Animation */
+.pulse-animation {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
+}
+
+/* Doctor Image */
+.doctor-image {
+  transition: all 0.6s ease;
+}
+
+.doctor-image-wrapper:hover .doctor-image {
+  transform: scale(1.05);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Section Titles */
+.section-title {
+  position: relative;
+  display: inline-block;
+}
+
+.section-title::after {
+  display: none !important;
+}
+
+.section-title.animate-fade-in-up::after {
+  display: none !important;
+}
+
+@keyframes expandLine {
+  from {
+    width: 0;
+  }
+  to {
+    width: 80px;
+  }
+}
+
+.section-white {
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.section-gradient {
+  position: relative;
+  overflow: hidden;
+}
+
+.section-gradient::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: rotate 20s linear infinite;
+}
+
+.section-gradient::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.3;
+  animation: float 20s ease-in-out infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.custom-dots li button {
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+}
+
+.custom-dots li.slick-active button {
+  background: white !important;
+}
+
+.partners-glide .hospital_slide {
+  transition: all 0.4s ease;
+}
+
+.partners-glide .hospital_slide img {
   width: 100%;
   height: auto;
-}
-
-.carousel img {
-  max-height: 500px;
-  object-fit: cover;
-}
-
-.why-choose-us .card {
-  transition: transform 0.3s;
-}
-
-.why-choose-us .card:hover {
-  transform: translateY(-10px); /* hiệu ứng hover nâng card */
-}
-
-.why-choose-us img {
-  max-width: 100%;
-  height: 611px;
-}
-
-.why-choose-us .card {
-  border-radius: 10px;
-  transition: 0.3s;
-}
-
-.why-choose-us .card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-.custom-heading {
-  display: inline-block;         /* gạch chỉ dài theo text */
-  margin-left: 120px;            /* chỉnh để ngang với ảnh bác sĩ, thay số cho phù hợp */
-}
-
-.custom-heading::after {
-  content: "";
-  display: block;
-  width: 25%;                   /* độ dài gạch */
-  height: 4px;                  /* độ dày gạch */
-  background-color: #45bd21;     /* màu xanh */
-  margin-top: 6px;               /* khoảng cách với chữ */
-  border-radius: 2px;
-}
-
-.card-title {
-  justify-content: center;
-}
-
-/* Partners / Glide styling */
-.partners-glide {
-  margin-top: 20px;
-}
-
-/* đảm bảo slide item có kích thước giống ví dụ (350px + gap 15) trên desktop */
-.hospital_slide {
-  width: 350px;
-  margin: 0 15px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.hospital_slide img {
-  max-width: 100%;
-  height: auto;
-  max-height: 100px;
   object-fit: contain;
-  filter: grayscale(100%);
-  transition: transform .3s ease, filter .3s ease;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: grayscale(30%);
 }
 
-.hospital_slide img:hover {
+.partners-glide .hospital_slide:hover img {
+  transform: scale(1.08) rotate(2deg);
   filter: grayscale(0%);
-  transform: scale(1.03);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
-/* Glide slides row alignment */
-.glide__slides {
-  display: flex;
-  align-items: center;
+/* Button Animations */
+.ant-btn {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
 }
 
-/* (tweak) override glide theme spacing if needed */
-.glide__slide {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.ant-btn::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
 }
 
-/* Responsive adjustments */
-@media (max-width: 991px) {
-  .hospital_slide { width: 260px; margin: 0 12px; }
+.ant-btn:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
-@media (max-width: 575px) {
-  .hospital_slide { width: 180px; margin: 0 8px; }
+.ant-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(9, 109, 217, 0.3);
+}
+
+.ant-btn:active {
+  transform: translateY(0);
+}
+
+/* Floating Action Button Enhancements */
+.ant-float-btn {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.ant-float-btn:hover {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* Timeline Enhancements */
+.ant-timeline-item {
+  transition: all 0.4s ease;
+}
+
+.ant-timeline-item:hover {
+  transform: translateX(10px);
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Loading Skeleton Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Parallax Effect for Hero */
+.hero-banner {
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+@media (max-width: 768px) {
+  .hero-banner {
+    background-attachment: scroll;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 2rem !important;
+  }
+
+  .hero-content h3 {
+    font-size: 1.2rem !important;
+  }
+
+  .hero-content p {
+    font-size: 1rem !important;
+  }
 }

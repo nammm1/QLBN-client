@@ -1,351 +1,396 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Button,
+  Card,
+  Table,
+  Typography,
+  Modal,
+  Row,
+  Col,
+  Tag,
+  Space,
+  Descriptions,
+  Divider,
+  Empty,
+  Collapse,
+  Spin,
+} from "antd";
+import { ArrowLeftOutlined, AppleOutlined, UserOutlined, CheckCircleOutlined, ClockCircleOutlined } from "@ant-design/icons";
 import "./NutritionRecords.css";
+import apiHoSoDinhDuong from "../../api/HoSoDinhDuong";
+import apiBenhNhan from "../../api/BenhNhan";
+import apiNguoiDung from "../../api/NguoiDung";
 
-const personalInfo = {
-  ho_ten: "Nguyễn Văn A",
-  gioi_tinh: "Nam",
-  tuoi: 39,
-  dan_toc: "Kinh",
-  so_dien_thoai: "0123456789",
-  dia_chi: "123 Đường ABC, Phường XYZ, Quận 1, TP.HCM",
+const { Title, Paragraph, Text } = Typography;
+const { Panel } = Collapse;
+
+const formatDate = (date) => {
+  if (!date) return "—";
+  try {
+    const d = new Date(date);
+    return isNaN(d) ? "—" : d.toLocaleDateString("vi-VN");
+  } catch {
+    return "—";
+  }
 };
 
-const nutritionData = [
-  {
-    ngay_tao: "2024-10-01",
-    chuyen_gia: "PGS.TS Nguyễn Thị B",
-    loai_tu_van: "Giảm cân",
-    phuong_thuc: "Trực tiếp",
-    chi_so: {
-      chieu_cao: "170 cm",
-      can_nang: "75 kg",
-      vong_eo: "85 cm",
-      mo_co_the: "22%",
-      khoi_co: "58 kg",
-      nuoc_trong_co_the: "60%",
-    },
-    nhan_xet: "Thừa cân nhẹ, tỷ lệ mỡ cơ thể cao hơn bình thường. Cần điều chỉnh chế độ ăn và tăng vận động.",
-    ke_hoach_dinh_duong: "Giảm 500-750 kcal/ngày so với nhu cầu duy trì. Tăng protein, giảm carb đơn giản, tăng chất xơ.",
-    nhu_cau_calo: "1800 kcal/ngày",
-    cham_soc: "Uống đủ nước, tập thể dục 150 phút/tuần, theo dõi cân nặng hàng tuần",
-    ghi_chu: "Tái khám sau 2 tuần để đánh giá tiến triển",
-    thuc_don: {
-      "Bữa sáng": "1 bát cháo yến mạch + 1 quả chuối + 1 ly sữa tươi không đường",
-      "Bữa trưa": "100g cơm gạo lứt + 150g thịt gà luộc + Canh rau mồng tơi + 1 quả táo",
-      "Bữa chiều": "1 ly nước ép cà chua + 10 hạt hạnh nhân",
-      "Bữa tối": "100g cá hồi nướng + Salad rau xanh + 50g khoai lang luộc",
-      "Bữa phụ": "1 hộp sữa chua không đường + 1 thìa hạt chia",
-    },
-  },
-  {
-    ngay_tao: "2024-11-15",
-    chuyen_gia: "ThS. Trần Văn C",
-    loai_tu_van: "Thể thao",
-    phuong_thuc: "Online",
-    chi_so: {
-      chieu_cao: "170 cm",
-      can_nang: "78 kg",
-      vong_eo: "83 cm",
-      mo_co_the: "20%",
-      khoi_co: "60 kg",
-      nuoc_trong_co_the: "62%",
-    },
-    nhan_xet: "Thể trạng tốt, cần tăng cường protein và tập luyện sức mạnh.",
-    ke_hoach_dinh_duong: "Tăng 300 kcal/ngày, bổ sung thực phẩm giàu protein, tập gym 3 buổi/tuần.",
-    nhu_cau_calo: "2300 kcal/ngày",
-    cham_soc: "Ngủ đủ 8h, uống 2 lít nước/ngày, tập thể dục đều đặn",
-    ghi_chu: "Theo dõi cân nặng và khối cơ hàng tháng",
-    thuc_don: {
-      "Bữa sáng": "2 quả trứng + 1 lát bánh mì đen + 1 ly sữa tươi",
-      "Bữa trưa": "150g thịt bò + 200g cơm + rau xanh",
-      "Bữa chiều": "1 quả chuối + 1 ly whey protein",
-      "Bữa tối": "100g cá + 100g ức gà + salad",
-      "Bữa phụ": "1 hộp sữa chua + 1 quả táo",
-    },
-  },
-];
+const unwrap = (res) => {
+  if (res?.data !== undefined) return res.data;
+  return res ?? null;
+};
 
 const NutritionRecords = () => {
   const [selectedNutrition, setSelectedNutrition] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [personalInfo, setPersonalInfo] = useState(null);
+  const [nutritionData, setNutritionData] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
+  const patientId =
+    userInfo?.user?.id_benh_nhan ||
+    userInfo?.user?.id_nguoi_dung ||
+    null;
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!patientId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Load thông tin bệnh nhân
+        const benhNhanRes = await apiBenhNhan.getById(patientId).catch(() => null);
+        const benhNhan = unwrap(benhNhanRes);
+        
+        if (benhNhan) {
+          const userInfoData = await apiNguoiDung.getUserById(patientId).catch(() => ({}));
+          const userData = unwrap(userInfoData) || {};
+          
+          setPersonalInfo({
+            ho_ten: benhNhan.ho_ten || userData.ho_ten || "—",
+            gioi_tinh: benhNhan.gioi_tinh || userData.gioi_tinh || "—",
+            tuoi: benhNhan.tuoi || "—",
+            dan_toc: benhNhan.dan_toc || userData.dan_toc || "—",
+            so_dien_thoai: benhNhan.so_dien_thoai || userData.so_dien_thoai || "—",
+            dia_chi: benhNhan.dia_chi || userData.dia_chi || "—",
+          });
+        }
+
+        // Load danh sách hồ sơ dinh dưỡng
+        const hoSoRes = await apiHoSoDinhDuong.getByBenhNhan(patientId).catch(() => []);
+        const hoSoList = Array.isArray(hoSoRes) ? hoSoRes : (unwrap(hoSoRes) || []);
+        
+        const enrichedData = await Promise.all(
+          hoSoList.map(async (hoSo) => {
+            // Lấy tên chuyên gia
+            let ten_chuyen_gia = "—";
+            const cgId = hoSo.id_chuyen_gia;
+            if (cgId) {
+              try {
+                const cgRes = await apiNguoiDung.getUserById(cgId);
+                const cgData = unwrap(cgRes);
+                ten_chuyen_gia = cgData?.ho_ten ? cgData.ho_ten : "—";
+              } catch {}
+            }
+
+            return {
+              id_ho_so: hoSo.id_ho_so || hoSo.id,
+              ngay_tao: hoSo.ngay_tao || "—",
+              chuyen_gia: ten_chuyen_gia,
+              loai_tu_van: hoSo.loai_tu_van || hoSo.loai_dinh_duong || "—",
+              phuong_thuc: hoSo.phuong_thuc || hoSo.loai_hen === "truc_tiep" ? "Trực tiếp" : (hoSo.loai_hen === "online" ? "Online" : "—"),
+              chi_so: {
+                chieu_cao: hoSo.chieu_cao ? `${hoSo.chieu_cao} cm` : "—",
+                can_nang: hoSo.can_nang ? `${hoSo.can_nang} kg` : "—",
+                vong_eo: hoSo.vong_eo ? `${hoSo.vong_eo} cm` : "—",
+                mo_co_the: hoSo.mo_co_the ? `${hoSo.mo_co_the}%` : "—",
+                khoi_co: hoSo.khoi_co ? `${hoSo.khoi_co} kg` : "—",
+                nuoc_trong_co_the: hoSo.nuoc_trong_co_the ? `${hoSo.nuoc_trong_co_the}%` : "—",
+              },
+              nhan_xet: hoSo.nhan_xet || "—",
+              ke_hoach_dinh_duong: hoSo.ke_hoach_dinh_duong || "—",
+              nhu_cau_calo: hoSo.nhu_cau_calo ? `${hoSo.nhu_cau_calo} kcal/ngày` : "—",
+              cham_soc: hoSo.cham_soc || "—",
+              ghi_chu: hoSo.ghi_chu || "—",
+              thuc_don: hoSo.thuc_don || {},
+            };
+          })
+        );
+
+        setNutritionData(enrichedData);
+      } catch (err) {
+        console.error("Lỗi khi load dữ liệu:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [patientId]);
+
+  const columns = [
+    {
+      title: "Ngày tư vấn",
+      dataIndex: "ngay_tao",
+      key: "ngay_tao",
+      width: 120,
+      render: (text) => formatDate(text),
+    },
+    {
+      title: "Chuyên gia",
+      dataIndex: "chuyen_gia",
+      key: "chuyen_gia",
+      width: 180,
+    },
+    {
+      title: "Loại tư vấn",
+      dataIndex: "loai_tu_van",
+      key: "loai_tu_van",
+      render: (text) => (
+        <Tag color={text === "Giảm cân" ? "red" : "blue"}>{text}</Tag>
+      ),
+      width: 120,
+    },
+    {
+      title: "Phương thức",
+      dataIndex: "phuong_thuc",
+      key: "phuong_thuc",
+      render: (text) => (
+        <Tag color={text === "Trực tiếp" ? "green" : "cyan"}>{text}</Tag>
+      ),
+      width: 120,
+    },
+  ];
+
+  const handleRowClick = (record) => {
+    setSelectedNutrition(record);
+    setModalVisible(true);
+  };
+
+  if (loading) {
+    return (
+      <div style={{ background: "#f0f2f5", minHeight: "100vh", padding: "40px 0", textAlign: "center" }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
-    <div style={{ background: "#f8f9fb", minHeight: "100vh", padding: "32px 0" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 24 }}>
-          <button
-            className="btn btn-outline-success"
-            style={{ marginRight: 16 }}
+    <div style={{ background: "#f0f2f5", minHeight: "100vh", padding: "40px 0" }}>
+      <div className="container" style={{ maxWidth: 1200 }}>
+        <Space align="center" style={{ marginBottom: 32, width: "100%" }}>
+          <Button
+            icon={<ArrowLeftOutlined />}
             onClick={() => navigate("/patient-function")}
+            style={{ background: "#52c41a", color: "white", border: "none" }}
           >
-            ← Quay lại
-          </button>
-          <h2 style={{
-            textAlign: "center",
-            color: "#389e0d",
-            fontWeight: 700,
-            marginBottom: 0,
-            letterSpacing: 1,
-            flex: 1
-          }}>
+            Quay lại
+          </Button>
+          <Title level={2} style={{ color: "#52c41a", margin: 0, flex: 1, textAlign: "center" }}>
             HỒ SƠ DINH DƯỠNG
-          </h2>
-        </div>
+          </Title>
+          <div style={{ width: 100 }}></div>
+        </Space>
 
         {/* Thông tin cá nhân */}
-        <div style={{
-          background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-          padding: "32px 32px 24px 32px",
-          marginBottom: 32
-        }}>
-          <h4 style={{ color: "#389e0d", marginBottom: 18 }}>Thông tin cá nhân</h4>
-          <div style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "32px 48px",
-            fontSize: 17,
-            lineHeight: 1.7
-          }}>
-            <div>
-              <div><b>Họ tên:</b> {personalInfo.ho_ten}</div>
-              <div><b>Giới tính:</b> {personalInfo.gioi_tinh}</div>
-              <div><b>Tuổi:</b> {personalInfo.tuoi}</div>
-            </div>
-            <div>
-              <div><b>Dân tộc:</b> {personalInfo.dan_toc}</div>
-              <div><b>Số điện thoại:</b> {personalInfo.so_dien_thoai}</div>
-              <div><b>Địa chỉ:</b> {personalInfo.dia_chi}</div>
-            </div>
-          </div>
-        </div>
+        {personalInfo && (
+          <Card
+            style={{
+              borderRadius: 12,
+              border: "1px solid #d9f7be",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              marginBottom: 32,
+            }}
+          >
+            <Title level={4} style={{ color: "#52c41a", marginBottom: 24 }}>
+              <UserOutlined /> Thông tin cá nhân
+            </Title>
+            <Descriptions bordered column={{ xs: 1, sm: 2 }}>
+              <Descriptions.Item label="Họ tên">{personalInfo.ho_ten}</Descriptions.Item>
+              <Descriptions.Item label="Giới tính">{personalInfo.gioi_tinh}</Descriptions.Item>
+              <Descriptions.Item label="Tuổi">{personalInfo.tuoi}</Descriptions.Item>
+              <Descriptions.Item label="Dân tộc">{personalInfo.dan_toc}</Descriptions.Item>
+              <Descriptions.Item label="Số điện thoại">{personalInfo.so_dien_thoai}</Descriptions.Item>
+              <Descriptions.Item label="Địa chỉ" span={2}>{personalInfo.dia_chi}</Descriptions.Item>
+            </Descriptions>
+          </Card>
+        )}
 
         {/* Lịch sử tư vấn dinh dưỡng */}
-        <div style={{
-          background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-          padding: "32px 32px 24px 32px"
-        }}>
-          <h4 style={{ color: "#389e0d", marginBottom: 18 }}>Lịch sử tư vấn dinh dưỡng</h4>
-          <table style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            background: "#f6fff6",
-            borderRadius: 8,
-            overflow: "hidden"
-          }}>
-            <thead>
-              <tr style={{ background: "#e6ffed", color: "#389e0d" }}>
-                <th style={{ padding: "10px 8px", fontWeight: 600 }}>Ngày tư vấn</th>
-                <th style={{ padding: "10px 8px", fontWeight: 600 }}>Chuyên gia</th>
-                <th style={{ padding: "10px 8px", fontWeight: 600 }}>Loại tư vấn</th>
-                <th style={{ padding: "10px 8px", fontWeight: 600 }}>Phương thức</th>
-              </tr>
-            </thead>
-            <tbody>
-              {nutritionData.map((record, idx) => (
-                <tr
-                  key={idx}
-                  style={{
-                    cursor: "pointer",
-                    background: selectedNutrition === record ? "#e6ffed" : "#fff"
-                  }}
-                  onClick={() => {
-                    setSelectedNutrition(record);
-                    setShowMenu(false);
-                  }}
-                >
-                  <td style={{ padding: "10px 8px" }}>{record.ngay_tao}</td>
-                  <td style={{ padding: "10px 8px" }}>{record.chuyen_gia}</td>
-                  <td style={{ padding: "10px 8px" }}>
-                    <span style={{
-                      background: record.loai_tu_van === "Giảm cân" ? "#ffccc7" : "#bae7ff",
-                      color: record.loai_tu_van === "Giảm cân" ? "#cf1322" : "#096dd9",
-                      borderRadius: 6,
-                      padding: "2px 10px",
-                      fontWeight: 500,
-                    }}>
-                      {record.loai_tu_van}
-                    </span>
-                  </td>
-                  <td style={{ padding: "10px 8px" }}>
-                    <span style={{
-                      background: record.phuong_thuc === "Trực tiếp" ? "#b7eb8f" : "#91d5ff",
-                      color: record.phuong_thuc === "Trực tiếp" ? "#389e0d" : "#096dd9",
-                      borderRadius: 6,
-                      padding: "2px 10px",
-                      fontWeight: 500,
-                    }}>
-                      {record.phuong_thuc}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Card
+          style={{
+            borderRadius: 12,
+            border: "1px solid #d9f7be",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          }}
+        >
+          <Title level={4} style={{ color: "#52c41a", marginBottom: 24 }}>
+            <AppleOutlined /> Lịch sử tư vấn dinh dưỡng
+          </Title>
+          {nutritionData.length === 0 ? (
+            <Empty description="Không có lịch sử tư vấn dinh dưỡng" />
+          ) : (
+            <Table
+              columns={columns}
+              dataSource={nutritionData}
+              rowKey={(record, index) => index}
+              onRow={(record) => ({
+                onClick: () => handleRowClick(record),
+                style: { cursor: "pointer" },
+              })}
+              pagination={false}
+              style={{ background: "#fff" }}
+            />
+          )}
+        </Card>
       </div>
 
-      {/* Modal chi tiết tư vấn dinh dưỡng */}
-      {selectedNutrition && (
-        <div className="custom-modal">
-          <div className="modal-content" style={{ maxWidth: 540 }}>
-            <div className="modal-header" style={{ background: "#fff" }}>
-              <span className="modal-title" style={{ color: "#389e0d" }}>
-                Chi tiết tư vấn dinh dưỡng - {selectedNutrition.ngay_tao}
-              </span>
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setSelectedNutrition(null)}
-                aria-label="Đóng"
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              {/* Cột trái: thông tin tư vấn */}
-              <div className="modal-col">
-                <h6>Thông tin tư vấn</h6>
-                <div className="modal-box">
-                  <b>Ngày tư vấn:</b> {selectedNutrition.ngay_tao}
-                  <br />
-                  <b>Chuyên gia:</b> {selectedNutrition.chuyen_gia}
-                  <br />
-                  <b>Loại tư vấn:</b>{" "}
-                  <span style={{
-                    background: selectedNutrition.loai_tu_van === "Giảm cân" ? "#ffccc7" : "#bae7ff",
-                    color: selectedNutrition.loai_tu_van === "Giảm cân" ? "#cf1322" : "#096dd9",
-                    borderRadius: 6,
-                    padding: "2px 10px",
-                    fontWeight: 500,
-                  }}>
-                    {selectedNutrition.loai_tu_van}
-                  </span>
-                  <br />
-                  <b>Phương thức:</b>{" "}
-                  <span style={{
-                    background: selectedNutrition.phuong_thuc === "Trực tiếp" ? "#b7eb8f" : "#91d5ff",
-                    color: selectedNutrition.phuong_thuc === "Trực tiếp" ? "#389e0d" : "#096dd9",
-                    borderRadius: 6,
-                    padding: "2px 10px",
-                    fontWeight: 500,
-                  }}>
-                    {selectedNutrition.phuong_thuc}
-                  </span>
-                </div>
-                <h6>Các chỉ số dinh dưỡng/cơ thể</h6>
-                <div className="modal-box modal-box-info">
-                  <div><b>Chiều cao:</b> {selectedNutrition.chi_so.chieu_cao}</div>
-                  <div><b>Cân nặng:</b> {selectedNutrition.chi_so.can_nang}</div>
-                  <div><b>Vòng eo:</b> {selectedNutrition.chi_so.vong_eo}</div>
-                  <div><b>Mỡ cơ thể:</b> {selectedNutrition.chi_so.mo_co_the}</div>
-                  <div><b>Khối cơ:</b> {selectedNutrition.chi_so.khoi_co}</div>
-                  <div><b>Nước trong cơ thể:</b> {selectedNutrition.chi_so.nuoc_trong_co_the}</div>
-                </div>
-                <h6>Nhu cầu calo hàng ngày</h6>
-                <div className="modal-box" style={{
-                  background: "#fff7e6",
-                  color: "#d46b08",
-                  fontWeight: 600,
-                  fontSize: 18,
-                  textAlign: "center"
-                }}>
-                  {selectedNutrition.nhu_cau_calo}
-                </div>
-              </div>
-              {/* Cột phải: nhận xét, kế hoạch, chăm sóc, ghi chú */}
-              <div className="modal-col">
-                <h6>Nhận xét</h6>
-                <div className="modal-box modal-box-warning">
-                  {selectedNutrition.nhan_xet}
-                </div>
-                <h6>Kế hoạch dinh dưỡng</h6>
-                <div className="modal-box modal-box-success">
-                  {selectedNutrition.ke_hoach_dinh_duong}
-                </div>
-                <h6>Chăm sóc</h6>
-                <div className="modal-box modal-box-note">
-                  {selectedNutrition.cham_soc}
-                </div>
-                <h6>Ghi chú</h6>
-                <div className="modal-box modal-box-note">
-                  {selectedNutrition.ghi_chu}
-                </div>
-              </div>
-            </div>
-            {/* Thực đơn mẫu */}
-            <div className="prescription-list">
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <b>Thực đơn mẫu</b>
-                <button
-                  style={{
-                    background: "#e6ffed",
-                    color: "#389e0d",
-                    border: "none",
-                    borderRadius: 6,
-                    padding: "2px 10px",
-                    cursor: "pointer",
-                    fontSize: 14
-                  }}
-                  onClick={() => setShowMenu(!showMenu)}
+      {/* Modal chi tiết */}
+      <Modal
+        title={
+          <Title level={3} style={{ color: "#52c41a", margin: 0 }}>
+            <AppleOutlined /> Chi tiết tư vấn dinh dưỡng - {selectedNutrition?.ngay_tao}
+          </Title>
+        }
+        open={modalVisible}
+        onCancel={() => {
+          setModalVisible(false);
+          setSelectedNutrition(null);
+        }}
+        footer={null}
+        width={900}
+      >
+        {selectedNutrition && (
+          <div style={{ padding: "20px 0" }}>
+            <Row gutter={[24, 24]}>
+              <Col xs={24} md={12}>
+                <Card
+                  title="Thông tin tư vấn"
+                  size="small"
+                  style={{ border: "1px solid #d9f7be", marginBottom: 16 }}
                 >
-                  {showMenu ? "Ẩn thực đơn" : "Xem thực đơn mẫu"}
-                </button>
-              </div>
+                  <Descriptions column={1} size="small">
+                    <Descriptions.Item label="Ngày tư vấn">{selectedNutrition.ngay_tao}</Descriptions.Item>
+                    <Descriptions.Item label="Chuyên gia">{selectedNutrition.chuyen_gia}</Descriptions.Item>
+                    <Descriptions.Item label="Loại tư vấn">
+                      <Tag color={selectedNutrition.loai_tu_van === "Giảm cân" ? "red" : "blue"}>
+                        {selectedNutrition.loai_tu_van}
+                      </Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Phương thức">
+                      <Tag color={selectedNutrition.phuong_thuc === "Trực tiếp" ? "green" : "cyan"}>
+                        {selectedNutrition.phuong_thuc}
+                      </Tag>
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Card>
+
+                <Card
+                  title="Các chỉ số dinh dưỡng/cơ thể"
+                  size="small"
+                  style={{ border: "1px solid #b7eb8f", marginBottom: 16 }}
+                >
+                  <Descriptions column={1} size="small">
+                    {Object.entries(selectedNutrition.chi_so).map(([key, value]) => (
+                      <Descriptions.Item key={key} label={key.replace(/_/g, " ")}>
+                        {value}
+                      </Descriptions.Item>
+                    ))}
+                  </Descriptions>
+                </Card>
+
+                <Card
+                  title="Nhu cầu calo hàng ngày"
+                  size="small"
+                  style={{ border: "1px solid #ffe58f", textAlign: "center" }}
+                >
+                  <Text strong style={{ color: "#d46b08", fontSize: 18 }}>
+                    {selectedNutrition.nhu_cau_calo}
+                  </Text>
+                </Card>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <Card
+                  title="Nhận xét"
+                  size="small"
+                  style={{ border: "1px solid #ffe58f", marginBottom: 16 }}
+                >
+                  <Paragraph>{selectedNutrition.nhan_xet}</Paragraph>
+                </Card>
+
+                <Card
+                  title="Kế hoạch dinh dưỡng"
+                  size="small"
+                  style={{ border: "1px solid #b7eb8f", marginBottom: 16 }}
+                >
+                  <Paragraph>{selectedNutrition.ke_hoach_dinh_duong}</Paragraph>
+                </Card>
+
+                <Card
+                  title="Chăm sóc"
+                  size="small"
+                  style={{ border: "1px solid #ffccc7", marginBottom: 16 }}
+                >
+                  <Paragraph>{selectedNutrition.cham_soc}</Paragraph>
+                </Card>
+
+                <Card
+                  title="Ghi chú"
+                  size="small"
+                  style={{ border: "1px solid #ffccc7" }}
+                >
+                  <Paragraph>{selectedNutrition.ghi_chu}</Paragraph>
+                </Card>
+              </Col>
+            </Row>
+
+            <Divider />
+
+            <Card
+              title={
+                <Space>
+                  <AppleOutlined />
+                  <span>Thực đơn mẫu</span>
+                  <Button
+                    size="small"
+                    type="link"
+                    onClick={() => setShowMenu(!showMenu)}
+                    style={{ color: "#52c41a" }}
+                  >
+                    {showMenu ? "Ẩn thực đơn" : "Xem thực đơn mẫu"}
+                  </Button>
+                </Space>
+              }
+              style={{ border: "1px solid #d9f7be" }}
+            >
               {showMenu && (
-                <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 12 }}>
+                <Row gutter={[16, 16]}>
                   {Object.entries(selectedNutrition.thuc_don).map(([buoi, thucdon], idx) => (
-                    <div
-                      key={buoi}
-                      style={{
-                        background:
-                          buoi === "Bữa sáng" ? "#fff7e6" :
-                          buoi === "Bữa trưa" ? "#fffbe6" :
-                          buoi === "Bữa chiều" ? "#e6f7ff" :
-                          buoi === "Bữa tối" ? "#f9f0ff" :
-                          "#fff0f6",
-                        borderRadius: 8,
-                        padding: "10px 14px",
-                        minWidth: 180,
-                        flex: "1 1 180px",
-                        fontSize: 15,
-                        border: "1px solid #f0f0f0"
-                      }}
-                    >
-                      <div style={{
-                        fontWeight: 600,
-                        color:
-                          buoi === "Bữa sáng" ? "#d46b08" :
-                          buoi === "Bữa trưa" ? "#ad8b00" :
-                          buoi === "Bữa chiều" ? "#1765ad" :
-                          buoi === "Bữa tối" ? "#722ed1" :
-                          "#eb2f96",
-                        marginBottom: 4
-                      }}>
-                        {buoi}
-                      </div>
-                      <div>{thucdon}</div>
-                    </div>
+                    <Col xs={24} sm={12} key={idx}>
+                      <Card
+                        size="small"
+                        title={buoi}
+                        style={{
+                          background: idx % 2 === 0 ? "#f6ffed" : "#fff7e6",
+                          border: "1px solid #d9f7be",
+                        }}
+                      >
+                        <Text>{thucdon}</Text>
+                      </Card>
+                    </Col>
                   ))}
-                </div>
+                </Row>
               )}
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setSelectedNutrition(null)}
-              >
-                Đóng
-              </button>
-            </div>
+            </Card>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };

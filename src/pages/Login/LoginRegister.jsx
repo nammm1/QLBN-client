@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import axios from "axios";
 import styles from "./LoginRegister.module.css";
 import { FaUser, FaEye, FaEyeSlash, FaPhone } from "react-icons/fa";
 import { IoMailSharp } from "react-icons/io5";
-import { BsCalendarDateFill } from "react-icons/bs";
 import { PiGenderIntersexBold } from "react-icons/pi";
 import apiAuth from '../../api/auth/index';
 import { login } from "../../store/slice/auth";
@@ -48,6 +47,35 @@ const LoginRegister = () => {
     const { name, value } = e.target;
     setRegisterData({ ...registerData, [name]: value });
   };
+
+  const handleGenderSelect = (gender) => {
+    setRegisterData({ ...registerData, gioi_tinh: gender });
+  };
+
+  // Reset forms khi chuyển đổi
+  useEffect(() => {
+    if (isRegister) {
+      // Reset form đăng nhập khi chuyển sang đăng ký
+      setLoginData({
+        ten_dang_nhap: "",
+        mat_khau: "",
+      });
+      setShowPassword(false);
+    } else {
+      // Reset form đăng ký khi chuyển sang đăng nhập
+      setRegisterData({
+        ho_ten: "",
+        email: "",
+        so_dien_thoai: "",
+        ten_dang_nhap: "",
+        mat_khau: "",
+        ngay_sinh: "",
+        gioi_tinh: "",
+      });
+      setShowRegisterPassword(false);
+      setShowConfirmPassword(false);
+    }
+  }, [isRegister]);
 
   // Submit Login
   const handleLoginSubmit = async (e) => {
@@ -116,6 +144,13 @@ const LoginRegister = () => {
   // Submit Register
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate giới tính
+    if (!registerData.gioi_tinh) {
+      toast.error("Vui lòng chọn giới tính!");
+      return;
+    }
+    
     try {
       const res = await axios.post("http://localhost:5005/nguoi-dung/register", registerData);
       console.log("Register success:", res.data);
@@ -167,7 +202,10 @@ const LoginRegister = () => {
             <div className={styles["register-link"]}>
               <p>
                 Bạn chưa có tài khoản?{" "}
-                <a href="#" onClick={() => setIsRegister(true)}>
+                <a href="#" onClick={(e) => {
+                  e.preventDefault();
+                  setIsRegister(true);
+                }}>
                   Đăng ký
                 </a>
               </p>
@@ -199,22 +237,43 @@ const LoginRegister = () => {
                 value={registerData.ngay_sinh}
                 onChange={handleRegisterChange}
                 required
+                style={{
+                  color: registerData.ngay_sinh ? '#333' : '#999',
+                  cursor: 'pointer',
+                  paddingRight: '20px' // Giảm padding để không bị trùng icon
+                }}
+                onFocus={(e) => {
+                  if (typeof e.target.showPicker === 'function') {
+                    try {
+                      e.target.showPicker();
+                    } catch (error) {
+                      // Ignore error
+                    }
+                  }
+                }}
               />
-              <BsCalendarDateFill className={styles.icon} />
             </div>
 
-            <div className={styles["input-box"]}>
-              <select
-                name="gioi_tinh"
-                value={registerData.gioi_tinh}
-                onChange={handleRegisterChange}
-                required
-              >
-                <option value="">Chọn giới tính</option>
-                <option value="Nam">Nam</option>
-                <option value="Nữ">Nữ</option>
-              </select>
-              <PiGenderIntersexBold className={styles.icon}/>
+            <div className={styles["gender-selector"]}>
+              <label className={styles["gender-label"]}>Giới tính</label>
+              <div className={styles["gender-buttons"]}>
+                <button
+                  type="button"
+                  className={`${styles["gender-btn"]} ${registerData.gioi_tinh === "Nam" ? styles["gender-btn-active"] : ""}`}
+                  onClick={() => handleGenderSelect("Nam")}
+                >
+                  <span className={styles["gender-icon"]}>♂</span>
+                  <span>Nam</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles["gender-btn"]} ${registerData.gioi_tinh === "Nữ" ? styles["gender-btn-active"] : ""}`}
+                  onClick={() => handleGenderSelect("Nữ")}
+                >
+                  <span className={styles["gender-icon"]}>♀</span>
+                  <span>Nữ</span>
+                </button>
+              </div>
             </div>
 
 
@@ -256,21 +315,36 @@ const LoginRegister = () => {
 
             <div className={styles["input-box"]}>
               <input
-                type="password"
+                type={showRegisterPassword ? "text" : "password"}
                 name="mat_khau"
                 placeholder="Mật khẩu"
                 value={registerData.mat_khau}
                 onChange={handleRegisterChange}
                 required
               />
-              <FaEyeSlash className={styles.icon} />
+              {showRegisterPassword ? (
+                <FaEye 
+                  onClick={() => setShowRegisterPassword(false)} 
+                  className={styles.icon} 
+                  style={{ cursor: 'pointer' }}
+                />
+              ) : (
+                <FaEyeSlash 
+                  onClick={() => setShowRegisterPassword(true)} 
+                  className={styles.icon} 
+                  style={{ cursor: 'pointer' }}
+                />
+              )}
             </div>
 
             <button type="submit">Đăng ký</button>
             <div className={styles["register-link"]}>
               <p>
                 Bạn đã có tài khoản?{" "}
-                <a href="#" onClick={() => setIsRegister(false)}>
+                <a href="#" onClick={(e) => {
+                  e.preventDefault();
+                  setIsRegister(false);
+                }}>
                   Đăng nhập
                 </a>
               </p>

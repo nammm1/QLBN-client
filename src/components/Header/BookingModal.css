@@ -1,159 +1,652 @@
+/* ========================================
+   MODAL OVERLAY & CONTAINER
+   ======================================== */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1050;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .modal-container {
-  background: linear-gradient(to bottom, #b3ecff, #e6faff);
-  padding: 25px 30px;
-  border-radius: 12px;
-  width: 600px;
-  max-width: 95%;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-  animation: fadeIn 0.3s ease-in-out;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+  padding: 0;
+  border-radius: 24px;
+  width: 650px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
+              0 0 0 1px rgba(255, 255, 255, 0.1);
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
 
-/* Header modal */
-.modal-header-title {
-  background-color: #5184f3;
-  color: #fff;
-  padding: 10px;
-  border-radius: 8px;
-  font-size: 18px;
-}
-
-/* Hiệu ứng xuất hiện */
-@keyframes fadeIn {
-  from { transform: translateY(-25px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-/* Dấu * màu đỏ */
-.form-label::before {
-  content: "* ";
-  color: red;
-  font-weight: bold;
-}
-
-/* ===================== */
-/* Nút chọn loại dịch vụ */
-/* ===================== */
-.service-buttons {
+/* ========================================
+   MODAL HEADER
+   ======================================== */
+.modal-header-wrapper {
+  background: linear-gradient(135deg, #096dd9 0%, #40a9ff 100%);
+  padding: 24px 32px;
+  border-radius: 24px 24px 0 0;
   display: flex;
-  margin-top: 6px;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(9, 109, 217, 0.2);
 }
 
-.service-buttons .btn {
+.modal-header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-header-icon {
+  color: #ffffff;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  animation: iconFloat 3s ease-in-out infinite;
+}
+
+.modal-header-title {
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  letter-spacing: 0.3px;
+}
+
+.modal-close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ffffff;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg) scale(1.1);
+}
+
+/* ========================================
+   FORM STYLES
+   ======================================== */
+.booking-form {
+  padding: 32px;
+}
+
+.form-group {
+  margin-bottom: 28px;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1f2937;
+  margin-bottom: 10px;
+  letter-spacing: 0.2px;
+}
+
+.label-icon {
+  color: #096dd9;
+  flex-shrink: 0;
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+/* ========================================
+   SELECT INPUTS
+   ======================================== */
+.modern-select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 15px;
+  color: #1f2937;
+  outline: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23334155' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 12px;
+  padding-right: 40px;
+}
+
+.modern-select:hover {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 3px rgba(64, 169, 255, 0.1);
+}
+
+.modern-select:focus {
+  border-color: #096dd9;
+  box-shadow: 0 0 0 4px rgba(9, 109, 217, 0.15);
+  transform: translateY(-1px);
+}
+
+.modern-select:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ========================================
+   TEXTAREA
+   ======================================== */
+.modern-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 15px;
+  color: #1f2937;
+  outline: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.modern-textarea:hover {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 3px rgba(64, 169, 255, 0.1);
+}
+
+.modern-textarea:focus {
+  border-color: #096dd9;
+  box-shadow: 0 0 0 4px rgba(9, 109, 217, 0.15);
+  transform: translateY(-1px);
+}
+
+.modern-textarea::placeholder {
+  color: #9ca3af;
+}
+
+/* ========================================
+   SERVICE TYPE BUTTONS
+   ======================================== */
+.service-type-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.service-type-btn {
   flex: 1;
-  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-.service-buttons .btn:first-child {
-  border-top-left-radius: 20px;
-  border-bottom-left-radius: 20px;
+.service-type-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
 }
 
-.service-buttons .btn:last-child {
-  border-top-right-radius: 20px;
-  border-bottom-right-radius: 20px;
+.service-type-btn:hover::before {
+  left: 100%;
 }
 
-/* ================ */
-/* Nút chọn buổi    */
-/* ================ */
+.service-type-btn:hover {
+  border-color: #40a9ff;
+  color: #096dd9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 169, 255, 0.2);
+}
+
+.service-type-btn.active {
+  background: linear-gradient(135deg, #096dd9 0%, #40a9ff 100%);
+  border-color: #096dd9;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(9, 109, 217, 0.3);
+  transform: translateY(-2px);
+}
+
+.service-type-btn.active svg {
+  color: #ffffff;
+}
+
+/* ========================================
+   SESSION BUTTONS
+   ======================================== */
 .session-buttons {
   display: flex;
-  margin-top: 6px;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
 }
 
-.session-buttons .btn {
+.session-btn {
   flex: 1;
-  border-radius: 0;
+  min-width: 100px;
+  padding: 12px 18px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-.session-buttons .btn:first-child {
-  border-top-left-radius: 20px;
-  border-bottom-left-radius: 20px;
+.session-btn::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(9, 109, 217, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
 }
 
-.session-buttons .btn:last-child {
-  border-top-right-radius: 20px;
-  border-bottom-right-radius: 20px;
+.session-btn:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
-/* ======================== */
-/* Khung giờ                */
-/* ======================== */
+.session-btn:hover {
+  border-color: #40a9ff;
+  color: #096dd9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 169, 255, 0.2);
+}
+
+.session-btn.active {
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+  transform: translateY(-2px);
+}
+
+/* ========================================
+   TIME SLOT BUTTONS
+   ======================================== */
 .time-slots {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 12px;
 }
 
-.time-slots .btn {
-  flex: 1 1 calc(33.33% - 10px); /* 3 cột */
-  min-width: 95px;
-  font-size: 13px;
-}
-
-/* ======================== */
-/* Buttons hành động        */
-/* ======================== */
-.form-actions {
+.time-slot-btn {
   display: flex;
-  justify-content: space-between; /* tách xa nhau */
-  margin-top: 25px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 1 calc(33.333% - 10px);
+  min-width: 110px;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-.form-actions .btn {
-  padding: 6px 14px;
-  font-size: 14px;
-  min-width: 85px;
-  border-radius: 6px;
+.time-slot-btn::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
 }
-/* Ô chọn ngày */
+
+.time-slot-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.time-slot-btn:hover {
+  border-color: #60a5fa;
+  color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.time-slot-btn.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+  border-color: #3b82f6;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px);
+}
+
+.time-slot-btn.active svg {
+  color: #ffffff;
+}
+
+/* ========================================
+   DATE PICKER
+   ======================================== */
 .react-datepicker-wrapper {
-  width: 100%; /* cho dài bằng ô input khác */
+  width: 100%;
+}
+
+.modern-datepicker {
+  width: 100%;
+}
+
+.react-datepicker__input-container {
+  position: relative;
 }
 
 .react-datepicker__input-container input {
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-  background-color: #fff;
-  font-size: 14px;
-  color: #333;
+  padding: 14px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 15px;
+  color: #1f2937;
   outline: none;
-  box-shadow: none;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  padding-right: 45px;
 }
 
-/* Khi focus vào input */
+.react-datepicker__input-container input:hover {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 3px rgba(64, 169, 255, 0.1);
+}
+
 .react-datepicker__input-container input:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+  border-color: #096dd9;
+  box-shadow: 0 0 0 4px rgba(9, 109, 217, 0.15);
+  transform: translateY(-1px);
 }
 
-/* Icon lịch trong input */
-.react-datepicker__calendar-icon {
+.react-datepicker__input-container input:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.react-datepicker__input-container::after {
+  content: "📅";
   position: absolute;
-  right: 12px;   /* canh phải */
+  right: 16px;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
-  color: #666;
-  font-size: 16px;
+  font-size: 18px;
 }
-.react-datepicker__input-container {
+
+/* DatePicker Calendar Customization */
+.react-datepicker {
+  font-family: inherit;
+  border: 2px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.react-datepicker__header {
+  background: linear-gradient(135deg, #096dd9 0%, #40a9ff 100%);
+  border-bottom: none;
+  border-radius: 0;
+  padding-top: 16px;
+}
+
+.react-datepicker__current-month {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 15px;
+  padding-bottom: 8px;
+}
+
+.react-datepicker__day-name {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.react-datepicker__day {
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.react-datepicker__day:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background: linear-gradient(135deg, #096dd9 0%, #40a9ff 100%);
+  border-radius: 8px;
+  color: #ffffff;
+}
+
+.react-datepicker__day--disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   FORM ACTIONS (BUTTONS)
+   ======================================== */
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-cancel,
+.btn-submit {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  overflow: hidden;
+}
+
+.btn-cancel {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.btn-cancel:hover {
+  background: #e5e7eb;
+  color: #374151;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.btn-submit::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.btn-submit:hover::before {
+  left: 100%;
+}
+
+.btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-submit:active {
+  transform: translateY(0);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes iconFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+@media (max-width: 768px) {
+  .modal-container {
+    width: 95vw;
+    border-radius: 20px;
+  }
+
+  .modal-header-wrapper {
+    padding: 20px 24px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .booking-form {
+    padding: 24px;
+  }
+
+  .form-group {
+    margin-bottom: 24px;
+  }
+
+  .service-type-buttons {
+    flex-direction: column;
+  }
+
+  .time-slot-btn {
+    flex: 1 1 calc(50% - 10px);
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .btn-cancel,
+  .btn-submit {
+    width: 100%;
+  }
+}
+
+/* ========================================
+   SCROLLBAR CUSTOMIZATION
+   ======================================== */
+.modal-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.modal-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #096dd9 0%, #40a9ff 100%);
+  border-radius: 4px;
+}
+
+.modal-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #0050b3 0%, #096dd9 100%);
 }

@@ -1,102 +1,395 @@
-.header {
-  background-color: #ff6600;
-  padding: 10px 0;
-  position: fixed;
-  top: 0;
-  width: 100%;
-  z-index: 10;
+/* Header Container */
+.modern-header {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-bottom: none !important;
 }
 
-.navbar {
+/* Logo Styling */
+.logo-container {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.nav-links {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-}
-
-.nav-links li {
-  margin: 0 15px;
-}
-
-.nav-links a {
-  color: white;
-  text-decoration: none;
-  font-size: 25px;
-}
-
-.nav-links a:hover {
-  text-decoration: underline;
-}
-
-.auth-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.auth-button {
-  text-decoration: none; /* Loại bỏ dấu gạch chân */
-  color: black; /* Giữ nguyên màu chữ, nếu muốn */
-  padding: 10px 20px; /* Thêm padding cho button */
-  border: 1px solid #ccc; /* Thêm border nếu muốn */
-  border-radius: 4px; /* Bo tròn góc */
-  transition: background-color 0.3s;
-  background-color: white; /* Màu xám nhạt */
-}
-.auth-button-login {
-  cursor: pointer;
-  color: #fff;
-}
-
-.auth-button:hover {
-  background-color: rgb(238, 129, 129);
-}
-.logo {
-  color: white;
-  font-size: 40px;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.content-header {
-  display: flex;
+  flex-direction: column;
   justify-content: center;
-  align-items: center;
-}
-.cart-icon {
-  padding-left: 10px;
-}
-
-/* Kích hoạt dropdown khi hover */
-.nav-item.dropdown:hover > .dropdown-menu {
-  display: block !important;
-  visibility: visible;
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Style cho dropdown */
-.dropdown-menu {
-  display: none;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(10px);
-  transition: all 0.2s ease-in-out;
+  align-items: flex-start;
+  background: linear-gradient(135deg, #096dd9 0%, #40a9ff 100%);
+  padding: 10px 18px;
   border-radius: 8px;
-  border: none;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(9, 109, 217, 0.2);
+  transition: all 0.3s ease;
+  line-height: 1.2;
+  height: auto;
 }
 
-/* Màu khi hover item */
-.dropdown-item:hover {
-  background-color: #00b5f1 !important;
-  color: #fff !important;
+.logo-container:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(9, 109, 217, 0.3);
+}
+
+.logo-text {
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  margin: 0;
+  line-height: 1.2;
+  display: block;
+}
+
+.logo-text-care {
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 1px;
+  margin: 0;
+  line-height: 1.2;
+  display: block;
+  opacity: 0.95;
+}
+
+/* Menu Styling */
+.header-menu .ant-menu-item {
+  font-weight: 500;
+  transition: all 0.3s;
+  margin: 0 4px !important;
+  padding: 0 12px !important;
+  border-radius: 6px;
+  height: 36px;
+  line-height: 36px;
+}
+
+.header-menu .ant-menu-item:hover {
+  background: rgba(9, 109, 217, 0.08) !important;
+  color: #096dd9 !important;
+}
+
+.header-menu .ant-menu-item-selected {
+  background: rgba(9, 109, 217, 0.12) !important;
+  color: #096dd9 !important;
+  font-weight: 600;
+}
+
+.header-menu .ant-menu-submenu {
+  margin: 0 4px !important;
+  border-radius: 6px;
+}
+
+.header-menu .ant-menu-submenu-title {
+  padding: 0 12px !important;
+  height: 36px;
+  line-height: 36px;
+  border-radius: 6px;
+}
+
+.header-menu .ant-menu-submenu-title:hover {
+  background: rgba(9, 109, 217, 0.08) !important;
+  color: #096dd9 !important;
+}
+
+/* Search - Centered in Header */
+.header-search-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: auto;
+}
+
+/* Ensure menu items don't overlap with search */
+.header-menu .ant-menu-item {
+  pointer-events: auto;
+}
+
+.header-menu .ant-menu-submenu {
+  pointer-events: auto;
+}
+
+/* Search Input */
+.modern-search .ant-input {
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.3s;
+  height: 40px;
+  padding: 0 16px;
+  font-size: 14px;
+}
+
+.modern-search .ant-input:hover {
+  border-color: #40a9ff;
+}
+
+.modern-search .ant-input:focus,
+.modern-search .ant-input-focused {
+  border-color: #096dd9;
+  box-shadow: 0 0 0 3px rgba(9, 109, 217, 0.1);
+}
+
+.modern-search .ant-input-affix-wrapper {
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.3s;
+  height: 40px;
+  padding: 0 12px;
+  background: #fafafa;
+}
+
+.modern-search .ant-input-affix-wrapper:hover {
+  border-color: #40a9ff;
+  background: #fff;
+}
+
+.modern-search .ant-input-affix-wrapper-focused {
+  border-color: #096dd9;
+  box-shadow: 0 0 0 3px rgba(9, 109, 217, 0.1);
+  background: #fff;
+}
+
+.modern-search .ant-input-search-button {
+  border-radius: 0 8px 8px 0;
+  border: none;
+  background: linear-gradient(135deg, #096dd9 0%, #40a9ff 100%);
+  height: 40px;
+  width: 48px;
+  transition: all 0.3s;
+}
+
+.modern-search .ant-input-search-button:hover {
+  background: linear-gradient(135deg, #0050b3 0%, #096dd9 100%);
+}
+
+.modern-search .ant-input-group-addon {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+/* User Dropdown */
+.user-dropdown {
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.user-dropdown:hover {
+  background: rgba(9, 109, 217, 0.08);
+}
+
+/* Header Search */
+.header-search {
+  display: block;
+}
+
+/* Mobile Menu Button */
+.mobile-menu-btn {
+  display: none;
+}
+
+.mobile-menu-btn:hover {
+  background: rgba(9, 109, 217, 0.08) !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header-search {
+    display: none !important;
+  }
+
+  .mobile-menu-btn {
+    display: block !important;
+  }
+
+  .header-menu {
+    display: none !important;
+  }
+
+  .logo-container {
+    padding: 8px 14px;
+  }
+
+  .logo-text {
+    font-size: 14px;
+  }
+
+  .logo-text-care {
+    font-size: 12px;
+  }
+}
+
+/* Footer Link */
+.footer-link:hover {
+  color: #40a9ff !important;
+}
+
+/* Ant Menu Override */
+.modern-header .ant-menu-horizontal {
+  border-bottom: none !important;
+}
+
+.modern-header .ant-menu-horizontal > .ant-menu-item::after,
+.modern-header .ant-menu-horizontal > .ant-menu-submenu::after {
+  display: none !important;
+}
+
+/* Remove border from menu items */
+.header-menu .ant-menu-item,
+.header-menu .ant-menu-submenu {
+  border-bottom: none !important;
+}
+
+.header-menu .ant-menu-item::after,
+.header-menu .ant-menu-submenu::after {
+  display: none !important;
+}
+
+.header-menu .ant-menu-submenu-title {
+  border-bottom: none !important;
+}
+
+/* Remove border from Ant Layout Header */
+.ant-layout-header {
+  border-bottom: none !important;
+}
+
+/* Remove border from Ant Typography */
+.ant-typography h2.section-title,
+.ant-typography h3.section-title {
+  border-bottom: none !important;
+}
+/* Complete fix for menu borders - Remove all underlines */
+.ant-menu-horizontal {
+  border-bottom: 0 !important;
+  line-height: 46px !important;
+}
+
+.ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-item,
+.ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-submenu {
+  border-bottom: none !important;
+  margin: 0 4px !important;
+}
+
+.ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-item:hover,
+.ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-submenu:hover,
+.ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-item-active,
+.ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-submenu-active,
+.ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-item-selected,
+.ant-menu-horizontal:not(.ant-menu-dark) > .ant-menu-submenu-selected {
+  border-bottom: none !important;
+}
+
+.ant-menu-horizontal > .ant-menu-item::after,
+.ant-menu-horizontal > .ant-menu-submenu::after {
+  display: none !important;
+}
+
+/* Additional fixes for menu borders */
+.ant-menu-horizontal > .ant-menu-item,
+.ant-menu-horizontal > .ant-menu-submenu {
+  border-bottom: 2px solid transparent !important;
+}
+
+.ant-menu-horizontal > .ant-menu-item:hover,
+.ant-menu-horizontal > .ant-menu-submenu:hover,
+.ant-menu-horizontal > .ant-menu-item-active,
+.ant-menu-horizontal > .ant-menu-submenu-active,
+.ant-menu-horizontal > .ant-menu-item-selected,
+.ant-menu-horizontal > .ant-menu-submenu-selected {
+  border-bottom: 2px solid transparent !important;
+}
+
+/* Remove any remaining borders */
+.ant-menu {
+  border: none !important;
+}
+
+.ant-menu-item::after,
+.ant-menu-submenu::after {
+  border: none !important;
+}
+
+/* Fix for the specific menu in header */
+.header-menu .ant-menu-horizontal {
+  border-bottom: 0 !important;
+}
+
+.header-menu .ant-menu-horizontal > .ant-menu-item,
+.header-menu .ant-menu-horizontal > .ant-menu-submenu {
+  border-bottom: 0 !important;
+}
+
+.header-menu .ant-menu-horizontal > .ant-menu-item::after,
+.header-menu .ant-menu-horizontal > .ant-menu-submenu::after {
+  display: none !important;
+}
+
+/* Nuclear option - remove all borders completely */
+.ant-menu-item, 
+.ant-menu-submenu, 
+.ant-menu-item-group, 
+.ant-menu-item-group-list, 
+.ant-menu-light, 
+.ant-menu-root, 
+.ant-menu-inline, 
+.ant-menu-vertical, 
+.ant-menu-vertical-left, 
+.ant-menu-vertical-right {
+  border: none !important;
+  border-bottom: none !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+.ant-menu-item::after, 
+.ant-menu-submenu::after, 
+.ant-menu-item::before, 
+.ant-menu-submenu::before {
+  all: unset !important;
+  display: none !important;
+  border: none !important;
+  content: none !important;
+}
+
+/* Force remove all pseudo-element borders */
+.ant-menu-horizontal > .ant-menu-item::after,
+.ant-menu-horizontal > .ant-menu-submenu::after,
+.ant-menu-item::after,
+.ant-menu-submenu::after {
+  all: unset !important;
+  display: none !important;
+  border: none !important;
+  content: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Remove focus and active states borders */
+.ant-menu-item:focus,
+.ant-menu-submenu:focus,
+.ant-menu-item:active,
+.ant-menu-submenu:active,
+.ant-menu-item-selected,
+.ant-menu-submenu-selected {
+  border: none !important;
+  border-bottom: none !important;
+  outline: none !important;
+}
+
+/* Remove the bottom border from the entire header */
+.ant-layout-header {
+  border-bottom: none !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+
+/* Ensure no border on menu title */
+.ant-menu-submenu-title {
+  border: none !important;
+  border-bottom: none !important;
+}
+
+/* Remove border from dropdown menu as well */
+.ant-menu-vertical,
+.ant-menu-vertical-left,
+.ant-menu-vertical-right,
+.ant-menu-inline {
+  border: none !important;
+  border-right: none !important;
 }

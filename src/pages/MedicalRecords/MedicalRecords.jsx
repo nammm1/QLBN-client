@@ -1,291 +1,420 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Button,
+  Card,
+  Table,
+  Typography,
+  Modal,
+  Row,
+  Col,
+  Tag,
+  Space,
+  Descriptions,
+  Divider,
+  Collapse,
+  Empty,
+  Spin
+} from "antd";
+import { ArrowLeftOutlined, FileTextOutlined, MedicineBoxOutlined, HeartOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import "./MedicalRecords.css";
+import apiHoSoKhamBenh from "../../api/HoSoKhamBenh";
+import apiBenhNhan from "../../api/BenhNhan";
+import apiNguoiDung from "../../api/NguoiDung";
+import apiDonThuoc from "../../api/DonThuoc";
 
-const personalInfo = {
-  ho_ten: "Nguyễn Văn A",
-  gioi_tinh: "Nam",
-  ngay_sinh: 30-4-1985,
-  tuoi: 39,
-  dan_toc: "Kinh",
-  so_dien_thoai: "0123456789",
-  dia_chi: "123 Đường ABC, Phường XYZ, Quận 1, TP.HCM",
-  doi_tuong: "BH",
-  ma_BHYT: "DN4010123456789",
+const { Title, Paragraph, Text } = Typography;
+const { Panel } = Collapse;
+
+const formatDate = (date) => {
+  if (!date) return "—";
+  try {
+    const d = new Date(date);
+    return isNaN(d) ? "—" : d.toLocaleDateString("vi-VN");
+  } catch {
+    return "—";
+  }
 };
 
-const medicalData = [
-  {
-    thoi_gian_tao: "2024-10-01",
-    bac_si: "BS. Nguyễn Văn B",
-    ly_do_kham: "Đau bụng",
-    chuan_doan: "Viêm dạ dày",
-    ket_qua_cls: "Nội soi: viêm niêm mạc dạ dày",
-    tham_do_chuc_nang: "Không có bất thường",
-    dieu_tri: "Thuốc kháng acid, nghỉ ngơi",
-    cham_soc: "Ăn uống nhẹ, tránh thức ăn cay nóng",
-    ghi_chu: "Tái khám sau 7 ngày",
-    don_thuoc: [
-      {
-        ten_thuoc: "Omeprazole 20mg",
-        lieu_dung: "1 viên x 2 lần/ngày",
-        so_luong: "14 viên",
-      },
-      {
-        ten_thuoc: "Antacid",
-        lieu_dung: "1 viên x 3 lần/ngày",
-        so_luong: "21 viên",
-      },
-    ],
-  },
-  {
-    thoi_gian_tao: "2024-11-15",
-    bac_si: "BS. Trần Văn C",
-    ly_do_kham: "Ho khan",
-    chuan_doan: "Viêm phế quản",
-    ket_qua_cls: "X-quang phổi: Tăng ẩm phế quản hai phổi",
-    tham_do_chuc_nang: "SpO2: 98%",
-    dieu_tri: "Kháng sinh, thuốc long đờm",
-    cham_soc: "Uống nhiều nước, nghỉ ngơi đầy đủ",
-    ghi_chu: "Tái khám sau 5 ngày nếu không đỡ",
-    don_thuoc: [
-      {
-        ten_thuoc: "Amoxicillin 500mg",
-        lieu_dung: "1 viên x 3 lần/ngày",
-        so_luong: "21 viên",
-      },
-      {
-        ten_thuoc: "Bromhexine 8mg",
-        lieu_dung: "1 viên x 3 lần/ngày",
-        so_luong: "15 viên",
-      },
-    ],
-  },
-];
+const unwrap = (res) => {
+  if (res?.data !== undefined) return res.data;
+  return res ?? null;
+};
 
 const MedicalRecords = () => {
   const [selectedMedical, setSelectedMedical] = useState(null);
   const [showPrescription, setShowPrescription] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [personalInfo, setPersonalInfo] = useState(null);
+  const [medicalData, setMedicalData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [prescriptionLoading, setPrescriptionLoading] = useState(false);
   const navigate = useNavigate();
 
+  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
+  const patientId =
+    userInfo?.user?.id_benh_nhan ||
+    userInfo?.user?.id_nguoi_dung ||
+    null;
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!patientId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Load thông tin bệnh nhân
+        const [benhNhanRes, hoSoRes] = await Promise.all([
+          apiBenhNhan.getById(patientId).catch(() => null),
+          apiHoSoKhamBenh.getByBenhNhan(patientId).catch(() => []),
+        ]);
+
+        const benhNhan = unwrap(benhNhanRes);
+        if (benhNhan) {
+          const userInfoData = await apiNguoiDung.getUserById(patientId).catch(() => ({}));
+          const userData = unwrap(userInfoData) || {};
+          
+          setPersonalInfo({
+            ho_ten: benhNhan.ho_ten || userData.ho_ten || "—",
+            gioi_tinh: benhNhan.gioi_tinh || userData.gioi_tinh || "—",
+            ngay_sinh: benhNhan.ngay_sinh || userData.ngay_sinh || "—",
+            tuoi: benhNhan.tuoi || "—",
+            dan_toc: benhNhan.dan_toc || userData.dan_toc || "—",
+            so_dien_thoai: benhNhan.so_dien_thoai || userData.so_dien_thoai || "—",
+            dia_chi: benhNhan.dia_chi || userData.dia_chi || "—",
+            doi_tuong: benhNhan.doi_tuong || "—",
+            ma_BHYT: benhNhan.ma_BHYT || "—",
+          });
+        }
+
+        // Load danh sách hồ sơ khám bệnh
+        const hoSoList = Array.isArray(hoSoRes) ? hoSoRes : (unwrap(hoSoRes) || []);
+        
+        const enrichedData = await Promise.all(
+          hoSoList.map(async (hoSo) => {
+            const id_ho_so = hoSo.id_ho_so || hoSo.id;
+            
+            // Lấy tên bác sĩ
+            let ten_bac_si = "—";
+            const bsId = hoSo.id_bac_si_tao || hoSo.id_bac_si;
+            if (bsId) {
+              try {
+                const bsRes = await apiNguoiDung.getUserById(bsId);
+                const bsData = unwrap(bsRes);
+                ten_bac_si = bsData?.ho_ten ? `BS. ${bsData.ho_ten}` : "—";
+              } catch {}
+            }
+
+            return {
+              id_ho_so,
+              thoi_gian_tao: hoSo.thoi_gian_tao || hoSo.ngay_tao || "—",
+              bac_si: ten_bac_si,
+              ly_do_kham: hoSo.ly_do_kham || "—",
+              chuan_doan: hoSo.chuan_doan || hoSo.chan_doan || "—",
+              ket_qua_cls: hoSo.ket_qua_cls || hoSo.ket_qua_can_lam_sang || "—",
+              tham_do_chuc_nang: hoSo.tham_do_chuc_nang || "—",
+              dieu_tri: hoSo.dieu_tri || "—",
+              cham_soc: hoSo.cham_soc || "—",
+              ghi_chu: hoSo.ghi_chu || "—",
+              don_thuoc: [],
+            };
+          })
+        );
+
+        setMedicalData(enrichedData);
+      } catch (err) {
+        console.error("Lỗi khi load dữ liệu:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [patientId]);
+
+  // Load đơn thuốc khi mở modal
+  useEffect(() => {
+    if (selectedMedical?.id_ho_so && modalVisible) {
+      setPrescriptionLoading(true);
+      apiDonThuoc.getByHoSo(selectedMedical.id_ho_so)
+        .then((res) => {
+          const donThuocData = unwrap(res);
+          if (donThuocData && donThuocData.chi_tiet_don_thuoc) {
+            const chiTiet = Array.isArray(donThuocData.chi_tiet_don_thuoc)
+              ? donThuocData.chi_tiet_don_thuoc
+              : [donThuocData.chi_tiet_don_thuoc];
+            
+            setSelectedMedical(prev => ({
+              ...prev,
+              don_thuoc: chiTiet.map(ct => ({
+                ten_thuoc: ct.ten_thuoc || ct.thuoc?.ten_thuoc || "—",
+                lieu_dung: ct.lieu_dung || ct.cach_dung || "—",
+                so_luong: ct.so_luong ? `${ct.so_luong} ${ct.don_vi || ""}`.trim() : "—",
+              })),
+            }));
+          }
+        })
+        .catch((err) => {
+          console.error("Lỗi load đơn thuốc:", err);
+        })
+        .finally(() => {
+          setPrescriptionLoading(false);
+        });
+    }
+  }, [selectedMedical?.id_ho_so, modalVisible]);
+
+  const columns = [
+    {
+      title: "Ngày khám",
+      dataIndex: "thoi_gian_tao",
+      key: "thoi_gian_tao",
+      width: 120,
+      render: (text) => formatDate(text),
+    },
+    {
+      title: "Bác sĩ",
+      dataIndex: "bac_si",
+      key: "bac_si",
+      width: 150,
+    },
+    {
+      title: "Lý do khám",
+      dataIndex: "ly_do_kham",
+      key: "ly_do_kham",
+      width: 150,
+    },
+    {
+      title: "Chẩn đoán",
+      dataIndex: "chuan_doan",
+      key: "chuan_doan",
+      render: (text) => <Tag color="red">{text}</Tag>,
+      width: 150,
+    },
+  ];
+
+  const handleRowClick = (record) => {
+    setSelectedMedical(record);
+    setModalVisible(true);
+  };
+
+  if (loading) {
+    return (
+      <div style={{ background: "#f0f2f5", minHeight: "100vh", padding: "40px 0", textAlign: "center" }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
-    <div style={{ background: "#f8f9fb", minHeight: "100vh", padding: "32px 0" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 24 }}>
-          <button
-            className="btn btn-outline-primary"
-            style={{ marginRight: 16 }}
+    <div style={{ background: "#f0f2f5", minHeight: "100vh", padding: "40px 0" }}>
+      <div className="container" style={{ maxWidth: 1200 }}>
+        <Space align="center" style={{ marginBottom: 32, width: "100%" }}>
+          <Button
+            icon={<ArrowLeftOutlined />}
             onClick={() => navigate("/patient-function")}
+            style={{ background: "#096dd9", color: "white", border: "none" }}
           >
-            ← Quay lại
-          </button>
-          <h2 style={{
-            textAlign: "center",
-            color: "#1765ad",
-            fontWeight: 700,
-            marginBottom: 0,
-            letterSpacing: 1,
-            flex: 1
-          }}>
+            Quay lại
+          </Button>
+          <Title level={2} style={{ color: "#096dd9", margin: 0, flex: 1, textAlign: "center" }}>
             HỒ SƠ BỆNH ÁN
-          </h2>
-        </div>
+          </Title>
+          <div style={{ width: 100 }}></div>
+        </Space>
 
         {/* Thông tin cá nhân */}
-        <div style={{
-          background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-          padding: "32px 32px 24px 32px",
-          marginBottom: 32
-        }}>
-          <h4 style={{ color: "#1765ad", marginBottom: 18 }}>Thông tin bệnh nhân</h4>
-          <div style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "32px 48px",
-            fontSize: 17,
-            lineHeight: 1.7
-          }}>
-            <div>
-              <div><b>Họ tên:</b> {personalInfo.ho_ten}</div>
-              <div><b>Giới tính:</b> {personalInfo.gioi_tinh}</div>
-              <div><b>Năm sinh:</b> {personalInfo.ngay_sinh}</div>
-              <div><b>Tuổi:</b> {personalInfo.tuoi}</div>
-            </div>
-            <div>
-              <div><b>Dân tộc:</b> {personalInfo.dan_toc}</div>
-              <div><b>Số điện thoại:</b> {personalInfo.so_dien_thoai}</div>
-              <div><b>Địa chỉ:</b> {personalInfo.dia_chi}</div>
-            </div>
-            <div>
-              <div>
-                <b>Đối tượng:</b> <span style={{
-                  background: "#e6f7ff",
-                  color: "#1765ad",
-                  borderRadius: 6,
-                  padding: "2px 10px",
-                  fontWeight: 500,
-                  marginLeft: 4
-                }}>{personalInfo.doi_tuong}</span>
-              </div>
-              <div>
-                <b>Mã BHYT:</b> <span style={{
-                  color: "#389e0d",
-                  fontWeight: 600,
-                  marginLeft: 4
-                }}>{personalInfo.ma_BHYT}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        {personalInfo && (
+          <Card
+            style={{
+              borderRadius: 12,
+              border: "1px solid #e6f7ff",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              marginBottom: 32,
+            }}
+          >
+            <Title level={4} style={{ color: "#096dd9", marginBottom: 24 }}>
+              <HeartOutlined /> Thông tin bệnh nhân
+            </Title>
+            <Descriptions bordered column={{ xs: 1, sm: 2, md: 3 }}>
+              <Descriptions.Item label="Họ tên">{personalInfo.ho_ten}</Descriptions.Item>
+              <Descriptions.Item label="Giới tính">{personalInfo.gioi_tinh}</Descriptions.Item>
+              <Descriptions.Item label="Năm sinh">{formatDate(personalInfo.ngay_sinh)}</Descriptions.Item>
+              <Descriptions.Item label="Tuổi">{personalInfo.tuoi}</Descriptions.Item>
+              <Descriptions.Item label="Dân tộc">{personalInfo.dan_toc}</Descriptions.Item>
+              <Descriptions.Item label="Số điện thoại">{personalInfo.so_dien_thoai}</Descriptions.Item>
+              <Descriptions.Item label="Địa chỉ" span={2}>{personalInfo.dia_chi}</Descriptions.Item>
+              <Descriptions.Item label="Đối tượng">
+                <Tag color="blue">{personalInfo.doi_tuong}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Mã BHYT">
+                <Tag color="green">{personalInfo.ma_BHYT}</Tag>
+              </Descriptions.Item>
+            </Descriptions>
+          </Card>
+        )}
 
         {/* Lịch sử khám bệnh */}
-        <div style={{
-          background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-          padding: "32px 32px 24px 32px"
-        }}>
-          <h4 style={{ color: "#1765ad", marginBottom: 18 }}>Lịch sử khám bệnh</h4>
-          <table style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            background: "#f6faff",
-            borderRadius: 8,
-            overflow: "hidden"
-          }}>
-            <thead>
-              <tr style={{ background: "#e6f7ff", color: "#1765ad" }}>
-                <th style={{ padding: "10px 8px", fontWeight: 600 }}>Ngày khám</th>
-                <th style={{ padding: "10px 8px", fontWeight: 600 }}>Bác sĩ</th>
-                <th style={{ padding: "10px 8px", fontWeight: 600 }}>Lý do khám</th>
-                <th style={{ padding: "10px 8px", fontWeight: 600 }}>Chẩn đoán</th>
-              </tr>
-            </thead>
-            <tbody>
-              {medicalData.map((record, idx) => (
-                <tr
-                  key={idx}
-                  style={{
-                    cursor: "pointer",
-                    background: selectedMedical === record ? "#e6f7ff" : "#fff"
-                  }}
-                  onClick={() => setSelectedMedical(record)}
-                >
-                  <td style={{ padding: "10px 8px" }}>{record.thoi_gian_tao}</td>
-                  <td style={{ padding: "10px 8px" }}>{record.bac_si}</td>
-                  <td style={{ padding: "10px 8px" }}>{record.ly_do_kham}</td>
-                  <td style={{ padding: "10px 8px" }}>{record.chuan_doan}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Card
+          style={{
+            borderRadius: 12,
+            border: "1px solid #e6f7ff",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          }}
+        >
+          <Title level={4} style={{ color: "#096dd9", marginBottom: 24 }}>
+            <FileTextOutlined /> Lịch sử khám bệnh
+          </Title>
+          {medicalData.length === 0 ? (
+            <Empty description="Không có lịch sử khám bệnh" />
+          ) : (
+            <Table
+              columns={columns}
+              dataSource={medicalData}
+              rowKey={(record) => record.id_ho_so || record.thoi_gian_tao}
+              onRow={(record) => ({
+                onClick: () => handleRowClick(record),
+                style: { cursor: "pointer" },
+              })}
+              pagination={false}
+              style={{ background: "#fff" }}
+            />
+          )}
+        </Card>
       </div>
 
-      {/* Modal chi tiết khám bệnh */}
-      {selectedMedical && (
-        <div className="custom-modal">
-          <div className="modal-content" style={{ maxWidth: 540 }}>
-            <div className="modal-header">
-              <span className="modal-title">
-                Chi tiết khám bệnh - {selectedMedical.thoi_gian_tao}
-              </span>
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => setSelectedMedical(null)}
-                aria-label="Đóng"
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              {/* Cột trái: thông tin khám */}
-              <div className="modal-col">
-                <h6>Thông tin khám</h6>
-                <div className="modal-box">
-                  <b>Ngày khám:</b> {selectedMedical.thoi_gian_tao}
-                  <br />
-                  <b>Bác sĩ:</b> {selectedMedical.bac_si}
-                  <br />
-                  <b>Lý do khám:</b> {selectedMedical.ly_do_kham}
-                  <br />
-                  <b>Chẩn đoán:</b>{" "}
-                  <span className="modal-box-red">{selectedMedical.chuan_doan}</span>
-                </div>
-                <h6>Kết quả cận lâm sàng</h6>
-                <div className="modal-box modal-box-info">
-                  {selectedMedical.ket_qua_cls}
-                </div>
-                <h6>Thăm dò chức năng</h6>
-                <div className="modal-box modal-box-info">
-                  {selectedMedical.tham_do_chuc_nang}
-                </div>
-              </div>
-              {/* Cột phải: điều trị, chăm sóc, ghi chú */}
-              <div className="modal-col">
-                <h6>Điều trị</h6>
-                <div className="modal-box modal-box-success">
-                  {selectedMedical.dieu_tri}
-                </div>
-                <h6>Chăm sóc</h6>
-                <div className="modal-box modal-box-warning">
-                  {selectedMedical.cham_soc}
-                </div>
-                <h6>Ghi chú</h6>
-                <div className="modal-box modal-box-note">
-                  {selectedMedical.ghi_chu}
-                </div>
-              </div>
-            </div>
-            {/* Đơn thuốc */}
-            <div className="prescription-list">
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <b>Đơn thuốc</b>
-                <button
-                  style={{
-                    background: "#e6f7ff",
-                    color: "#1765ad",
-                    border: "none",
-                    borderRadius: 6,
-                    padding: "2px 10px",
-                    cursor: "pointer",
-                    fontSize: 14
-                  }}
-                  onClick={() => setShowPrescription(!showPrescription)}
+      {/* Modal chi tiết */}
+      <Modal
+        title={
+          <Title level={3} style={{ color: "#096dd9", margin: 0 }}>
+            <MedicineBoxOutlined /> Chi tiết khám bệnh - {selectedMedical?.thoi_gian_tao}
+          </Title>
+        }
+        open={modalVisible}
+        onCancel={() => {
+          setModalVisible(false);
+          setSelectedMedical(null);
+        }}
+        footer={null}
+        width={900}
+      >
+        {selectedMedical && (
+          <div style={{ padding: "20px 0" }}>
+            <Row gutter={[24, 24]}>
+              <Col xs={24} md={12}>
+                <Card
+                  title="Thông tin khám"
+                  size="small"
+                  style={{ border: "1px solid #e6f7ff", marginBottom: 16 }}
                 >
-                  {showPrescription ? "Ẩn đơn thuốc" : "Hiện đơn thuốc"}
-                </button>
-              </div>
-              {showPrescription && (
-                <div style={{ marginTop: 8 }}>
+                  <Descriptions column={1} size="small">
+                    <Descriptions.Item label="Ngày khám">{selectedMedical.thoi_gian_tao}</Descriptions.Item>
+                    <Descriptions.Item label="Bác sĩ">{selectedMedical.bac_si}</Descriptions.Item>
+                    <Descriptions.Item label="Lý do khám">{selectedMedical.ly_do_kham}</Descriptions.Item>
+                    <Descriptions.Item label="Chẩn đoán">
+                      <Tag color="red">{selectedMedical.chuan_doan}</Tag>
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Card>
+
+                <Card
+                  title="Kết quả cận lâm sàng"
+                  size="small"
+                  style={{ border: "1px solid #91d5ff", marginBottom: 16 }}
+                >
+                  <Paragraph>{selectedMedical.ket_qua_cls}</Paragraph>
+                </Card>
+
+                <Card
+                  title="Thăm dò chức năng"
+                  size="small"
+                  style={{ border: "1px solid #91d5ff" }}
+                >
+                  <Paragraph>{selectedMedical.tham_do_chuc_nang}</Paragraph>
+                </Card>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <Card
+                  title="Điều trị"
+                  size="small"
+                  style={{ border: "1px solid #b7eb8f", marginBottom: 16 }}
+                >
+                  <Paragraph>{selectedMedical.dieu_tri}</Paragraph>
+                </Card>
+
+                <Card
+                  title="Chăm sóc"
+                  size="small"
+                  style={{ border: "1px solid #ffe58f", marginBottom: 16 }}
+                >
+                  <Paragraph>{selectedMedical.cham_soc}</Paragraph>
+                </Card>
+
+                <Card
+                  title="Ghi chú"
+                  size="small"
+                  style={{ border: "1px solid #ffccc7" }}
+                >
+                  <Paragraph>{selectedMedical.ghi_chu}</Paragraph>
+                </Card>
+              </Col>
+            </Row>
+
+            <Divider />
+
+            <Card
+              title={
+                <Space>
+                  <MedicineBoxOutlined />
+                  <span>Đơn thuốc</span>
+                  <Button
+                    size="small"
+                    type="link"
+                    onClick={() => setShowPrescription(!showPrescription)}
+                    style={{ color: "#096dd9" }}
+                  >
+                    {showPrescription ? "Ẩn đơn thuốc" : "Hiện đơn thuốc"}
+                  </Button>
+                </Space>
+              }
+              style={{ border: "1px solid #e6f7ff" }}
+            >
+              {prescriptionLoading ? (
+                <div style={{ textAlign: "center", padding: "20px 0" }}>
+                  <Spin />
+                </div>
+              ) : showPrescription && (
+                <Space direction="vertical" size="middle" style={{ width: "100%" }}>
                   {selectedMedical.don_thuoc && selectedMedical.don_thuoc.length > 0 ? (
                     selectedMedical.don_thuoc.map((thuoc, idx) => (
-                      <div className="prescription-item" key={idx}>
-                        <div className="prescription-title">{thuoc.ten_thuoc}</div>
-                        <div>Liều dùng: {thuoc.lieu_dung}</div>
-                        <div>Số lượng: {thuoc.so_luong}</div>
-                      </div>
+                      <Card
+                        key={idx}
+                        size="small"
+                        style={{
+                          background: "#f0f9ff",
+                          border: "1px solid #91d5ff",
+                        }}
+                      >
+                        <Text strong style={{ color: "#096dd9", fontSize: 16 }}>
+                          {thuoc.ten_thuoc}
+                        </Text>
+                        <br />
+                        <Text>Liều dùng: {thuoc.lieu_dung}</Text>
+                        <br />
+                        <Text>Số lượng: {thuoc.so_luong}</Text>
+                      </Card>
                     ))
                   ) : (
-                    <div style={{ color: "#aaa" }}>Không có đơn thuốc.</div>
+                    <Empty description="Không có đơn thuốc" />
                   )}
-                </div>
+                </Space>
               )}
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setSelectedMedical(null)}
-              >
-                Đóng
-              </button>
-            </div>
+            </Card>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };
