@@ -6,6 +6,8 @@ import News from "./pages/News/News";
 import About from "./pages/About/About";
 import Layout from "./layouts";
 import DoctorLayout from "./layouts/DoctorLayout";
+import StaffLayout from "./layouts/StaffLayout";
+import ReceptionistLayout from "./layouts/ReceptionistLayout";
 import DoctorDashboard from "./pages/Doctors/DoctorDashboard";
 import DoctorProfile from "./pages/BacSi/Profile/DoctorProfile";
 import DoctorAppointments from "./pages/BacSi/Appointments/DoctorAppointments";
@@ -13,8 +15,18 @@ import DoctorAppointmentDetail from "./pages/BacSi/Appointments/AppointmentDetai
 import WorkSchedule from "./pages/BacSi/WorkSchedule/WorkSchedule";
 import DoctorRecords from "./pages/BacSi/DoctorRecords/DoctorRecords";
 import DoctorRecordDetail from "./pages/BacSi/DoctorRecords/DoctorRecordDetail";
-import DoctorConsultations from "./pages/BacSi/Consultations/DoctorConsultations";
 import Report from "./pages/BacSi/Report/DoctorReports";
+import StaffDashboard from "./pages/NhanVienPhanCong/Dashboard/StaffDashboard";
+import StaffWorkSchedule from "./pages/NhanVienPhanCong/WorkSchedule/StaffWorkSchedule";
+import StaffProfile from "./pages/NhanVienPhanCong/Profile/StaffProfile";
+import ManageSchedule from "./pages/NhanVienPhanCong/ManageSchedule/ManageSchedule";
+import LeaveRequests from "./pages/NhanVienPhanCong/LeaveRequests/LeaveRequests";
+import ReceptionistDashboard from "./pages/NhanVienQuay/Dashboard/ReceptionistDashboard";
+import PatientManagement from "./pages/NhanVienQuay/PatientManagement/PatientManagement";
+import AppointmentManagement from "./pages/NhanVienQuay/AppointmentManagement/AppointmentManagement";
+import Billing from "./pages/NhanVienQuay/Billing/Billing";
+import ReceptionistWorkSchedule from "./pages/NhanVienQuay/WorkSchedule/ReceptionistWorkSchedule";
+import ReceptionistProfile from "./pages/NhanVienQuay/Profile/ReceptionistProfile";
 import Login from "./pages/Login/LoginRegister";
 import Specialties from "./pages/Specialties/Specialties";
 import Doctors from "./pages/Doctors/Doctors";
@@ -38,6 +50,7 @@ import AdminAccountDetail from "./pages/Admin/Accounts/AdminAccountDetail";
 import AdminMedicines from "./pages/Admin/Medicines/AdminMedicines";
 import AdminServices from "./pages/Admin/Services/AdminServices";
 import AdminReports from "./pages/Admin/Reports/AdminReports";
+import Chat from "./pages/Chat/Chat";
 // import Register from "./Pages/Register/Register";
 
 function App() {
@@ -70,7 +83,7 @@ function App() {
           <Route path="records" element={<DoctorRecords />} />
           <Route path="record/:id_ho_so" element={<DoctorRecordDetail />} />
           <Route path="profile" element={<DoctorProfile />} />
-          <Route path="consultations" element={<DoctorConsultations />} />
+          <Route path="chat" element={<Chat />} />
           <Route path="reports" element={<Report />} />
         </Route>
 
@@ -82,7 +95,25 @@ function App() {
           <Route path="services" element={<AdminServices />} />
           <Route path="specialties" element={<AdminSpecialties />} />
           <Route path="reports" element={<AdminReports />} />
-          
+        </Route>
+
+        <Route path="/staff" element={<StaffLayout />}>
+          <Route index element={<StaffDashboard />} />
+          <Route path="work-schedule" element={<StaffWorkSchedule />} />
+          <Route path="schedule-assignment" element={<ManageSchedule />} />
+          <Route path="leave-requests" element={<LeaveRequests />} />
+          <Route path="chat" element={<Chat />} />
+          <Route path="profile" element={<StaffProfile />} />
+        </Route>
+
+        <Route path="/receptionist" element={<ReceptionistLayout />}>
+          <Route index element={<ReceptionistDashboard />} />
+          <Route path="patients" element={<PatientManagement />} />
+          <Route path="appointments" element={<AppointmentManagement />} />
+          <Route path="billing" element={<Billing />} />
+          <Route path="work-schedule" element={<ReceptionistWorkSchedule />} />
+          <Route path="chat" element={<Chat />} />
+          <Route path="profile" element={<ReceptionistProfile />} />
         </Route>
 
         <Route>

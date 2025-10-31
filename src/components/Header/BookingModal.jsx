@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./BookingModal.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import toast from "../../utils/toast";
 
 import apiChuyenKhoa from "../../api/ChuyenKhoa";
 import apiBacSi from "../../api/BacSi";
@@ -52,7 +53,7 @@ const BookingModal = ({ show, onClose }) => {
       const fetchDoctors = async () => {
         try {
           const allDoctors = await apiBacSi.getAll();
-          const filtered = allDoctors.data.filter(
+          const filtered = allDoctors.filter(
             (bs) => String(bs.id_chuyen_khoa) === String(specialty)
           );
 
@@ -60,7 +61,7 @@ const BookingModal = ({ show, onClose }) => {
             filtered.map(async (bs) => {
               try {
                 const user = await apiNguoiDung.getUserById(bs.id_bac_si);
-                return { ...bs, ...user.data };
+                return { ...bs, ...user };
               } catch (err) {
                 console.error("Lỗi khi lấy user cho bác sĩ:", err);
                 return bs;
@@ -138,7 +139,7 @@ const BookingModal = ({ show, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!serviceTypeBooking || !specialty || !doctor || !date || !session || !timeSlot || !desc) {
-      alert("Vui lòng nhập đầy đủ thông tin!");
+      toast.warning("Vui lòng nhập đầy đủ thông tin!");
       return;
     }
 
@@ -156,10 +157,10 @@ const BookingModal = ({ show, onClose }) => {
 
       await apiCuocHenKhamBenh.create(payload);
 
-      alert("Đặt lịch thành công!");
+      toast.success("Đặt lịch thành công!");
       onClose();
     } catch (err) {
-      alert("Có lỗi khi đặt lịch!");
+      toast.error("Có lỗi khi đặt lịch!");
       console.error(err);
     }
   };

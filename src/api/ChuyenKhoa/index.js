@@ -69,6 +69,11 @@ const apiChuyenKhoa = {
       throw error;
     }
   },
+
+  // Alias cho getAllChuyenKhoa để tương thích
+  getAll: async () => {
+    return apiChuyenKhoa.getAllChuyenKhoa();
+  },
 };
 
 export default apiChuyenKhoa;

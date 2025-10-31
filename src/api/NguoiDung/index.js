@@ -72,13 +72,31 @@ const apiNguoiDung = {
     }
   },
 
+  // Tìm kiếm người dùng nâng cao (cho chat)
+  searchUsersForChat: async (params = {}) => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params.search) queryParams.append('search', params.search);
+      if (params.vai_tro) queryParams.append('vai_tro', params.vai_tro);
+      if (params.exclude_id) queryParams.append('exclude_id', params.exclude_id);
+      
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.NguoiDung}/search/chat?${queryParams.toString()}`
+      );
+      return res.data;
+    } catch (err) {
+      console.error("Error search users for chat:", err);
+      throw err;
+    }
+  },
+
   // Lấy thông tin người dùng theo ID
   getUserById: async (id_nguoi_dung) => {
     try {
       const res = await axiosInstance.get(
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.NguoiDung}/${id_nguoi_dung}`
       );
-      return res.data;
+      return res.data.data;
     } catch (err) {
       console.error("Error get user by id:", err);
       throw err;

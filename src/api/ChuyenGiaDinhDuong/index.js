@@ -1,46 +1,47 @@
 import axiosInstance from "../axios";
 import API_CONFIG from "../../configs/api_configs.js";
-
-const apiChuyenGia = {
-  // Lấy tất cả chuyên gia
-  getAll: async () => {
+import axios from "axios";
+const apiChuyenGiaDinhDuong = {
+  // Lấy tất cả chuyên gia dinh dưỡng (có thể filter theo chuyên ngành và search)
+  getAll: async (params = {}) => {
     try {
-      const res = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenGiaDinhDuong}/`
+      const res = await axios.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenGiaDinhDuong}/`,
+        { params }
       );
-      return res.data;
+      return res.data.data;
     } catch (err) {
-      console.error("Error fetching all chuyên gia:", err);
+      console.error("Error fetching all chuyên gia dinh dưỡng:", err);
       throw err;
     }
   },
 
-  // Lấy thông tin chuyên gia theo ID
+  // Lấy chuyên gia dinh dưỡng theo ID
   getById: async (id_chuyen_gia) => {
     try {
-      const res = await axiosInstance.get(
+      const res = await axios.get(
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenGiaDinhDuong}/${id_chuyen_gia}`
       );
-      return res.data;
+      return res.data.data;
     } catch (err) {
-      console.error("Error fetching chuyên gia by id:", err);
+      console.error("Error fetching chuyên gia dinh dưỡng by id:", err);
       throw err;
     }
   },
 
-  // Cập nhật thông tin chuyên gia
+  // Cập nhật thông tin chuyên gia dinh dưỡng
   update: async (id_chuyen_gia, data) => {
     try {
       const res = await axiosInstance.put(
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenGiaDinhDuong}/${id_chuyen_gia}`,
         data
       );
-      return res.data;
+      return res.data.data;
     } catch (err) {
-      console.error("Error updating chuyên gia:", err);
+      console.error("Error updating chuyên gia dinh dưỡng:", err);
       throw err;
     }
   },
 };
 
-export default apiChuyenGia;
+export default apiChuyenGiaDinhDuong;

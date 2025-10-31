@@ -14,15 +14,13 @@ const Doctors = () => {
   useEffect(() => {
   const fetchDoctors = async () => {
     try {
-      const res = await apiBacSi.getAll();
-      const bacSiList = res.data; // vì backend trả về { success, data }
+      const bacSiList = await apiBacSi.getAll();
 
       const mergedData = await Promise.all(
         bacSiList.map(async (bs) => {
           try {
             // dùng id_bac_si để gọi sang API người dùng
-            const userRes = await apiNguoiDung.getUserById(bs.id_bac_si);
-            const user = userRes.data;
+            const user = await apiNguoiDung.getUserById(bs.id_bac_si);
             return { ...bs, ...user }; 
           } catch (err) {
             console.error("Lỗi lấy user:", err);

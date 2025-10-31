@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./Nutritionist.css";
-import apiChuyenGia from "../../api/ChuyenGiaDinhDuong";
+import apiChuyenGiaDinhDuong from "../../api/ChuyenGiaDinhDuong";
 import apiNguoiDung from "../../api/NguoiDung";
 
 const Nutritionist = () => {
@@ -14,15 +14,13 @@ const Nutritionist = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await apiChuyenGia.getAll();
-        const chuyenGiaList = res.data; // backend trả { success, data }
+        const chuyenGiaList = await apiChuyenGiaDinhDuong.getAll();
 
         const mergedData = await Promise.all(
           chuyenGiaList.map(async (cg) => {
             try {
               // gọi thêm thông tin user bằng id_chuyen_gia
-              const userRes = await apiNguoiDung.getUserById(cg.id_chuyen_gia);
-              const user = userRes.data;
+              const user = await apiNguoiDung.getUserById(cg.id_chuyen_gia);
               return { ...cg, ...user };
             } catch (err) {
               console.error("Lỗi lấy user:", err);

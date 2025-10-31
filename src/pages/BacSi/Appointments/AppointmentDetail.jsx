@@ -129,68 +129,138 @@ const DoctorAppointmentDetail = () => {
     return gender?.toLowerCase() === 'nam' ? 'blue' : 'pink';
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const appt = await apiCuocHenKham.getById(id_cuoc_hen);
-        setAppointment(appt);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const appt = await apiCuocHenKham.getById(id_cuoc_hen);
+      setAppointment(appt);
 
-        if (appt?.id_benh_nhan) {
-          const bnFull = await apiBenhNhan.getById(appt.id_benh_nhan);
-          setBenhNhanFull(bnFull);
+      if (appt?.id_benh_nhan) {
+        const bnFull = await apiBenhNhan.getById(appt.id_benh_nhan);
+        setBenhNhanFull(bnFull);
 
-          const hs = await apiHoSoKhamBenh.getByBenhNhan(appt.id_benh_nhan);
-          setHoSo(hs);
+        const hs = await apiHoSoKhamBenh.getByBenhNhan(appt.id_benh_nhan);
+        setHoSo(hs);
 
-          const lichSuTruoc = await apiLichSuKham.getLichSuKhamByBenhNhan(appt.id_benh_nhan);
-          setLichSuKhamTruoc(lichSuTruoc || []);
+        const lichSuTruoc = await apiLichSuKham.getLichSuKhamByBenhNhan(appt.id_benh_nhan);
+        setLichSuKhamTruoc(lichSuTruoc || []);
 
-          // Lấy chỉ định xét nghiệm (cho cả 2 trạng thái)
-          const chiDinhData = await apiChiDinhXetNghiem.getByCuocHen(id_cuoc_hen);
-          setChiDinhXetNghiem(chiDinhData || []);
+        // Lấy chỉ định xét nghiệm (cho cả 2 trạng thái)
+        const chiDinhData = await apiChiDinhXetNghiem.getByCuocHen(id_cuoc_hen);
+        setChiDinhXetNghiem(chiDinhData || []);
 
-          // Lấy kết quả xét nghiệm cho từng chỉ định
-          if (chiDinhData && chiDinhData.length > 0) {
-            const ketQuaMap = {};
-            for (const chiDinh of chiDinhData) {
-              const ketQua = await apiKetQuaXetNghiem.getByChiDinh(chiDinh.id_chi_dinh);
-              if (ketQua) {
-                ketQuaMap[chiDinh.id_chi_dinh] = ketQua;
+        // Lấy kết quả xét nghiệm cho từng chỉ định
+        if (chiDinhData && chiDinhData.length > 0) {
+          const ketQuaMap = {};
+          const ketQuaPromises = chiDinhData.map(async (chiDinh) => {
+              try {
+                const ketQua = await apiKetQuaXetNghiem.getByChiDinh(chiDinh.id_chi_dinh);
+                console.log("Kết quả API cho", chiDinh.id_chi_dinh, ":", ketQua);
+
+                // Kiểm tra cấu trúc response thực tế
+                if (ketQua && ketQua.data) {
+                  return { 
+                    chiDinhId: chiDinh.id_chi_dinh, 
+                    data: ketQua.data 
+                  };
+                }
+                return null;
+              } catch (error) {
+                console.error(`Lỗi khi lấy kết quả cho ${chiDinh.id_chi_dinh}:`, error);
+                return null;
               }
-            }
+            });
+          
+            const ketQuaResults = await Promise.all(ketQuaPromises);
+
+            // Xây dựng map kết quả
+            ketQuaResults.forEach(result => {
+              if (result && result.data) {
+                ketQuaMap[result.chiDinhId] = result.data;
+              }
+            });
+
+            console.log("Kết quả cuối cùng:", ketQuaMap);
             setKetQuaXetNghiem(ketQuaMap);
           }
 
-          if (appt.trang_thai === "da_hoan_thanh") {
-            const lichSuHienTai = await apiLichSuKham.getLichSuKhamByCuocHen(appt.id_cuoc_hen);
-            setLichSuKhamHienTai(lichSuHienTai);
-            
-            // Lấy đơn thuốc đã lưu
-            const donThuocData = await apiDonThuoc.getByLichSu(lichSuHienTai.id_lich_su);
-            if (donThuocData) {
-              setDonThuocTamThoi(donThuocData.chi_tiet || []);
-              setGhiChuDonThuoc(donThuocData.ghi_chu || "");
+        if (appt.trang_thai === "da_hoan_thanh") {
+          const lichSuHienTai = await apiLichSuKham.getLichSuKhamByCuocHen(appt.id_cuoc_hen);
+          setLichSuKhamHienTai(lichSuHienTai);
+          
+          // Lấy đơn thuốc đã lưu
+          if (lichSuHienTai) {
+            try {
+              const donThuocData = await apiDonThuoc.getByLichSu(lichSuHienTai.id_lich_su);
+              if (donThuocData) {
+                setDonThuocTamThoi(donThuocData.chi_tiet || []);
+                setGhiChuDonThuoc(donThuocData.ghi_chu || "");
+              }
+            } catch (error) {
+              console.error("Lỗi khi lấy đơn thuốc:", error);
+              // Không hiển thị lỗi nếu không tìm thấy đơn thuốc
             }
+          }
 
-            // Lấy dịch vụ đã lưu
+          // Lấy dịch vụ đã lưu
+          try {
             const HoaDon = await apiHoaDon.getByCuocHenKham(appt.id_cuoc_hen);
             if (HoaDon) {
               const ChiTietHoaDonData = await apiChiTietHoaDon.getByHoaDon(HoaDon.id_hoa_don);
-              if (ChiTietHoaDonData) {
+              if (ChiTietHoaDonData && ChiTietHoaDonData.data) {
                 setDichVuTamThoi(ChiTietHoaDonData.data || []);
               }
             }
+          } catch (error) {
+            console.error("Lỗi khi lấy dịch vụ:", error);
+            // Không hiển thị lỗi nếu không tìm thấy hóa đơn
           }
         }
-      } catch (error) {
-        console.error(error);
-        message.error("Có lỗi xảy ra khi tải dữ liệu");
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error(error);
+      message.error("Có lỗi xảy ra khi tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [id_cuoc_hen]);
+
+  // Tự động load dữ liệu vào form hồ sơ khi modal mở
+  useEffect(() => {
+    if (modalHoSoOpen) {
+      if (hoSo) {
+        // Nếu có hồ sơ, load dữ liệu hồ sơ vào form
+        formHoSo.setFieldsValue({
+          ho_ten: hoSo.ho_ten || '',
+          so_dien_thoai: hoSo.so_dien_thoai || '',
+          tuoi: hoSo.tuoi ? Number(hoSo.tuoi) : '',
+          gioi_tinh: hoSo.gioi_tinh || '',
+          dan_toc: hoSo.dan_toc || '',
+          ma_BHYT: hoSo.ma_BHYT || '',
+          dia_chi: hoSo.dia_chi || ''
+        });
+      } else if (benhNhanFull?.data) {
+        // Nếu chưa có hồ sơ, load dữ liệu từ bệnh nhân
+        const tuoiCalculated = calculateAge(benhNhanFull.data.ngay_sinh);
+        formHoSo.setFieldsValue({
+          ho_ten: benhNhanFull.data.ho_ten || '',
+          so_dien_thoai: benhNhanFull.data.so_dien_thoai || '',
+          gioi_tinh: benhNhanFull.data.gioi_tinh || '',
+          tuoi: tuoiCalculated ? Number(tuoiCalculated) : '',
+          dan_toc: benhNhanFull.data.dan_toc || '',
+          ma_BHYT: benhNhanFull.data.ma_BHYT || '',
+          dia_chi: benhNhanFull.data.dia_chi || ''
+        });
+      }
+    } else {
+      // Reset form khi đóng modal
+      formHoSo.resetFields();
+    }
+  }, [modalHoSoOpen, hoSo, benhNhanFull, formHoSo]);
 
   // Hàm xử lý chỉ định xét nghiệm
   const handleChiDinhXetNghiem = async (values) => {
@@ -217,6 +287,8 @@ const DoctorAppointmentDetail = () => {
 
   // Hàm xem kết quả xét nghiệm
   const handleViewKetQua = (chiDinh) => {
+    console.log("Chi định được chọn:", chiDinh);
+    console.log("Kết quả tương ứng:", ketQuaXetNghiem[chiDinh.id_chi_dinh]);
     setSelectedChiDinh(chiDinh);
     setViewKetQuaXN(true);
   };
@@ -368,28 +440,42 @@ const DoctorAppointmentDetail = () => {
 
   const handleExportPdf = async () => {
     try {
-      if (donThuocTamThoi.length > 0 && donThuocTamThoi[0].id_thuoc) {
-        await apiDonThuoc.create({
-          id_ho_so: hoSo?.id_ho_so, 
-          ghi_chu: ghiChuDonThuoc || "",
-          trang_thai: "dang_su_dung",
-          chi_tiet: donThuocTamThoi
-        });
+      // Kiểm tra và lưu đơn thuốc - kiểm tra tất cả các phần tử có id_thuoc không
+      const coDonThuoc = donThuocTamThoi.length > 0 && donThuocTamThoi.some(item => item.id_thuoc);
+      if (coDonThuoc) {
+        // Lọc ra chỉ những thuốc có id_thuoc hợp lệ
+        const donThuocHopLe = donThuocTamThoi.filter(item => item.id_thuoc);
+        if (donThuocHopLe.length > 0) {
+          await apiDonThuoc.create({
+            id_ho_so: hoSo?.id_ho_so, 
+            id_lich_su : lichSuKhamHienTai?.id_lich_su,
+            ghi_chu: ghiChuDonThuoc || "",
+            trang_thai: "dang_su_dung",
+            chi_tiet: donThuocHopLe
+          });
+        }
       }
 
-      if (dichVuTamThoi.length > 0 && dichVuTamThoi[0].id_dich_vu) {
-        const tong_tien = dichVuTamThoi.reduce(
-          (sum, dv) => sum + dv.so_luong * dv.don_gia,
-          0
-        );
-        await apiHoaDon.create({
-          id_cuoc_hen_kham: id_cuoc_hen,
-          tong_tien,
-          chi_tiet: dichVuTamThoi,
-        });
+      // Kiểm tra và lưu dịch vụ - kiểm tra tất cả các phần tử có id_dich_vu không
+      const coDichVu = dichVuTamThoi.length > 0 && dichVuTamThoi.some(item => item.id_dich_vu);
+      if (coDichVu) {
+        // Lọc ra chỉ những dịch vụ có id_dich_vu hợp lệ
+        const dichVuHopLe = dichVuTamThoi.filter(item => item.id_dich_vu);
+        if (dichVuHopLe.length > 0) {
+          const tong_tien = dichVuHopLe.reduce(
+            (sum, dv) => sum + (dv.so_luong || 0) * (dv.don_gia || 0),
+            0
+          );
+          await apiHoaDon.create({
+            id_cuoc_hen_kham: id_cuoc_hen,
+            tong_tien,
+            chi_tiet: dichVuHopLe,
+          });
+        }
       }
 
-      await apiCuocHenKham.updateTrangThai(id_cuoc_hen, { trang_thai: "da_hoan_thanh" });
+      // Update trạng thái cuộc hẹn
+      await apiCuocHenKham.updateTrangThai(id_cuoc_hen, "da_hoan_thanh");
 
       const input = document.getElementById("invoicePreview");
       if (!input) return;
@@ -426,11 +512,14 @@ const DoctorAppointmentDetail = () => {
 
       pdf.save(`HoaDon_${id_cuoc_hen}.pdf`);
       message.success("Xuất hóa đơn thành công");
-      navigate(`/doctor/appointments`);
+      
+      // Refresh lại dữ liệu sau khi lưu thành công
+      setShowPreview(false);
+      await fetchData();
 
     } catch (err) {
       console.error("Lỗi khi xuất PDF:", err);
-      message.error("Có lỗi xảy ra khi xuất hóa đơn");
+      message.error("Có lỗi xảy ra khi xuất hóa đơn: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -443,8 +532,8 @@ const DoctorAppointmentDetail = () => {
     }
   };
 
-  const totalDichVu = dichVuTamThoi.reduce((sum, dv) => sum + (dv.so_luong * dv.don_gia || 0), 0);
-  const totalThuoc = donThuocTamThoi.reduce((sum, t) => sum + (t.so_luong * t.don_gia || 0), 0);
+  const totalDichVu = dichVuTamThoi.reduce((sum, dv) => sum + (dv.so_luong * (dv.don_gia || 0)), 0);
+  const totalThuoc = donThuocTamThoi.reduce((sum, t) => sum + (t.so_luong * (t.don_gia || t.thuoc?.don_gia || 0)), 0);
   const tongCong = totalDichVu + totalThuoc;
 
   if (loading) {
@@ -525,19 +614,6 @@ const DoctorAppointmentDetail = () => {
                     type="primary" 
                     icon={hoSo ? <EditOutlined /> : <PlusOutlined />}
                     onClick={() => {
-                      if (hoSo) {
-                        formHoSo.setFieldsValue(hoSo);
-                      } else {
-                        formHoSo.setFieldsValue({
-                          ho_ten: benhNhanFull?.data.ho_ten,
-                          so_dien_thoai: benhNhanFull?.data.so_dien_thoai,
-                          gioi_tinh: benhNhanFull?.data.gioi_tinh,
-                          tuoi: calculateAge(benhNhanFull?.data.ngay_sinh),
-                          dan_toc: benhNhanFull?.data.dan_toc,
-                          ma_BHYT: benhNhanFull?.data.ma_BHYT,
-                          dia_chi: benhNhanFull?.data.dia_chi
-                        });
-                      }
                       setModalHoSoOpen(true);
                     }}
                     size="small"
@@ -587,15 +663,6 @@ const DoctorAppointmentDetail = () => {
                       <Button 
                         type="primary" 
                         onClick={() => {
-                          formHoSo.setFieldsValue({
-                            ho_ten: benhNhanFull?.data.ho_ten,
-                            so_dien_thoai: benhNhanFull?.data.so_dien_thoai,
-                            gioi_tinh: benhNhanFull?.data.gioi_tinh,
-                            tuoi: calculateAge(benhNhanFull?.data.ngay_sinh),
-                            dan_toc: benhNhanFull?.data.dan_toc,
-                            ma_BHYT: benhNhanFull?.data.ma_BHYT,
-                            dia_chi: benhNhanFull?.data.dia_chi
-                          });
                           setModalHoSoOpen(true);
                         }}
                       >
@@ -771,7 +838,7 @@ const DoctorAppointmentDetail = () => {
                           <List.Item>
                             <List.Item.Meta
                               avatar={<Avatar size="small" icon={<MedicineBoxOutlined />} />}
-                              title={`${thuoc.thuoc.ten_thuoc}`}
+                              title={`${thuoc.thuoc?.ten_thuoc || thuoc.ten_thuoc || 'Chưa chọn thuốc'}`}
                               description={`Số lượng: ${thuoc.so_luong} - Liều dùng: ${thuoc.lieu_dung}`}
                             />
                           </List.Item>
@@ -1129,6 +1196,26 @@ const DoctorAppointmentDetail = () => {
                 <Input prefix={<EnvironmentOutlined />} />
               </Form.Item>
             </Col>
+            <Col span={12}>
+              <Form.Item
+                label="Trạng thái"
+              >
+                <Tag color={appointment ? getStatusColor(appointment.trang_thai) : 'default'}>
+                  {appointment ? getStatusText(appointment.trang_thai) : 'N/A'}
+                </Tag>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label="Chẩn đoán"
+              >
+                <Input 
+                  readOnly 
+                  value={lichSuKhamHienTai?.chuan_doan || 'Chưa có chẩn đoán'} 
+                  placeholder="Chưa có chẩn đoán"
+                />
+              </Form.Item>
+            </Col>
           </Row>
           <div style={{ textAlign: 'right' }}>
             <Button onClick={() => setModalHoSoOpen(false)} style={{ marginRight: 8 }}>
@@ -1274,8 +1361,8 @@ const DoctorAppointmentDetail = () => {
                       (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
                     }
                     options={dsThuoc.map(t => ({
-                      value: t.thuoc?.id_thuoc,
-                      label: `${t.thuoc?.ten_thuoc}`
+                      value: t.id_thuoc,
+                      label: `${t.ten_thuoc}`
                     }))}
                     style={{ width: '100%' }}
                   />
@@ -1375,8 +1462,8 @@ const DoctorAppointmentDetail = () => {
                       (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
                     }
                     options={dsDichVu.map(dv => ({
-                      value: dv.dich_vu?.id_dich_vu,
-                      label: `${dv.dich_vu?.ten_dich_vu} - ${dv.don_gia?.toLocaleString()} VND`
+                      value: dv.id_dich_vu,
+                      label: `${dv.ten_dich_vu} - ${dv.don_gia?.toLocaleString()} VND`
                     }))}
                     style={{ width: '100%' }}
                   />
@@ -1455,7 +1542,7 @@ const DoctorAppointmentDetail = () => {
               >
                 <Descriptions column={2} size="small">
                   <Descriptions.Item label="Tên thuốc" span={2}>
-                    <Text strong>{row.thuoc?.ten_thuoc} ({row.ham_luong})</Text>
+                    <Text strong>{row.thuoc?.ten_thuoc || row.ten_thuoc || 'Chưa chọn thuốc'} ({row.ham_luong || row.thuoc?.ham_luong || ''})</Text>
                   </Descriptions.Item>
                   <Descriptions.Item label="Số lượng">
                     <Tag color="blue">{row.so_luong}</Tag>
@@ -1510,7 +1597,7 @@ const DoctorAppointmentDetail = () => {
                 dataSource={dichVuTamThoi.map((d, i) => ({
                   key: i,
                   stt: i + 1,
-                  ten_dich_vu: d.dich_vu.ten_dich_vu,
+                  ten_dich_vu: d.ten_dich_vu,
                   so_luong: d.so_luong,
                   don_gia: d.don_gia?.toLocaleString(),
                   thanh_tien: (d.so_luong * d.don_gia)?.toLocaleString()
@@ -1706,7 +1793,32 @@ const DoctorAppointmentDetail = () => {
               </Col>
             </Row>
           </Card>
-
+          {/* Xét nghiệm đã chỉ định */}
+          {chiDinhXetNghiem.length > 0 && (
+            <Card title="XÉT NGHIỆM CHỈ ĐỊNH" size="small" style={{ marginBottom: 20 }}>
+              <Table
+                size="small"
+                pagination={false}
+                dataSource={chiDinhXetNghiem.map((xn, i) => ({
+                  key: i,
+                  stt: i + 1,
+                  ten_xet_nghiem: xn.ten_dich_vu,
+                  yeu_cau: xn.yeu_cau_ghi_chu || 'Không có yêu cầu đặc biệt',
+                  trang_thai: xn.trang_thai === 'cho_xy_ly' ? 'Chờ xử lý' : 
+                             xn.trang_thai === 'dang_xu_ly' ? 'Đang xử lý' : 
+                             xn.trang_thai === 'hoan_thanh' ? 'Hoàn thành' : xn.trang_thai,
+                  ket_qua: ketQuaXetNghiem[xn.id_chi_dinh] ? 'Đã có kết quả' : 'Chờ kết quả'
+                }))}
+                columns={[
+                  { title: 'STT', dataIndex: 'stt', width: 60 },
+                  { title: 'Tên xét nghiệm', dataIndex: 'ten_xet_nghiem' },
+                  { title: 'Yêu cầu', dataIndex: 'yeu_cau', width: 200 },
+                  { title: 'Trạng thái', dataIndex: 'trang_thai', width: 100, align: 'center' },
+                  { title: 'Kết quả', dataIndex: 'ket_qua', width: 100, align: 'center' },
+                ]}
+              />
+            </Card>
+          )}
           {/* Dịch vụ */}
           {dichVuTamThoi.length > 0 && (
             <Card title="DỊCH VỤ SỬ DỤNG" size="small" style={{ marginBottom: 20 }}>
@@ -1753,7 +1865,7 @@ const DoctorAppointmentDetail = () => {
                 dataSource={donThuocTamThoi.map((t, i) => ({
                   key: i,
                   stt: i + 1,
-                  tenthuoc: `${t.thuoc?.ten_thuoc}`,
+                  tenthuoc: `${t.thuoc?.ten_thuoc || t.ten_thuoc || 'Chưa chọn thuốc'}`,
                   sl: t.so_luong,
                   lieudung: t.lieu_dung,
                   tansuat: t.tan_suat,

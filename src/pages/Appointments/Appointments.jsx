@@ -5,6 +5,7 @@ import apiCuocHenTuVan from "../../api/CuocHenTuVan";
 import apiNguoiDung from "../../api/NguoiDung";
 import apiChuyenKhoa from "../../api/ChuyenKhoa";
 import apiKhungGioKham from "../../api/KhungGioKham";
+import toast from "../../utils/toast";
 
 const statusLabel = (s) => {
   switch (s) {
@@ -241,9 +242,9 @@ const Appointments = () => {
           it.id === id ? { ...it, trang_thai: "Đã hủy", _raw_trang_thai: "da_huy" } : it
         )
       );
-      alert("Hủy lịch khám thành công!");
+      toast.success("Hủy lịch khám thành công!");
     } catch (err) {
-      alert("Hủy thất bại!");
+      toast.error("Hủy thất bại!");
     }
   };
 
@@ -255,9 +256,9 @@ const Appointments = () => {
           it.id === id ? { ...it, trang_thai: "Đã hủy", _raw_trang_thai: "da_huy" } : it
         )
       );
-      alert("Hủy lịch tư vấn thành công!");
+      toast.success("Hủy lịch tư vấn thành công!");
     } catch (err) {
-      alert("Hủy thất bại!");
+      toast.error("Hủy thất bại!");
     }
   };
 

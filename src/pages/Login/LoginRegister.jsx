@@ -8,9 +8,8 @@ import { IoMailSharp } from "react-icons/io5";
 import { BsCalendarDateFill } from "react-icons/bs";
 import { PiGenderIntersexBold } from "react-icons/pi";
 import apiAuth from '../../api/auth/index';
-import apiChuyenKhoa from '../../api/ChuyenKhoa/index.js';
-import API_CONFIG from "../../configs/api_configs.js";
-import { login } from "../../store/slice/auth"; 
+import { login } from "../../store/slice/auth";
+import toast from "../../utils/toast"; 
 
 const LoginRegister = () => {
   const navigate = useNavigate();
@@ -52,12 +51,9 @@ const LoginRegister = () => {
 
   // Submit Login
   const handleLoginSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const response = await apiChuyenKhoa.getAllChuyenKhoa();
-    console.log(response);
-    const res  = await apiAuth.login(loginData);
-    console.log(res);
+    e.preventDefault();
+    try {
+      const res = await apiAuth.login(loginData);
     const { success } = res;
     const { user, accessToken, refreshToken } = res.data;
     if (success && accessToken && refreshToken) {
@@ -74,31 +70,46 @@ const LoginRegister = () => {
       }));
       switch (user.vai_tro) {
         case "bac_si":
-          alert("Chào mừng bác sĩ, đăng nhập thành công!");
+          toast.success("Chào mừng bác sĩ, đăng nhập thành công!");
           navigate("/doctor");
           break;
 
         case "benh_nhan":
-          alert("Chào mừng bệnh nhân, đăng nhập thành công!");
+          toast.success("Chào mừng bệnh nhân, đăng nhập thành công!");
           navigate("/");
           break;
 
-        case "quan_tri":
-          alert("Chào mừng quản trị viên, đăng nhập thành công!");
+        case "quan_tri_vien":
+          toast.success("Chào mừng quản trị viên, đăng nhập thành công!");
           navigate("/admin");
           break;
 
+        case "nhan_vien_phan_cong":
+          toast.success("Chào mừng nhân viên phân công, đăng nhập thành công!");
+          navigate("/staff");
+          break;
+
+        case "nhan_vien_quay":
+          toast.success("Chào mừng nhân viên quầy, đăng nhập thành công!");
+          navigate("/receptionist");
+          break;
+
+        case "chuyen_gia_dinh_duong":
+          toast.success("Chào mừng chuyên gia dinh dưỡng, đăng nhập thành công!");
+          navigate("/");
+          break;
+
         default:
-          alert("Đăng nhập thành công!");
+          toast.success("Đăng nhập thành công!");
           navigate("/");
           break;
       }
     } else {
-      alert("Tên đăng nhập hoặc mật khẩu không đúng!");
+      toast.error("Tên đăng nhập hoặc mật khẩu không đúng!");
     }
   } catch (err) {
     console.error("Login failed:", err);
-    alert("Đăng nhập thất bại!");
+    toast.error("Đăng nhập thất bại!");
   }
 };
 
@@ -108,11 +119,11 @@ const LoginRegister = () => {
     try {
       const res = await axios.post("http://localhost:5005/nguoi-dung/register", registerData);
       console.log("Register success:", res.data);
-      alert("Đăng ký thành công!");
+      toast.success("Đăng ký thành công!");
       setIsRegister(false); // Quay lại login
     } catch (err) {
       console.error("Register failed:", err);
-      alert("Đăng ký thất bại!");
+      toast.error("Đăng ký thất bại!");
     }
   };
 

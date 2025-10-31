@@ -2,13 +2,14 @@ import axiosInstance from "../axios";
 import API_CONFIG from "../../configs/api_configs.js";
 import axios from "axios";
 const apiBacSi = {
-  // Lấy tất cả bác sĩ
-  getAll: async () => {
+  // Lấy tất cả bác sĩ (có thể filter theo chuyên khoa và search)
+  getAll: async (params = {}) => {
     try {
       const res = await axios.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.BacSi}/`
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.BacSi}/`,
+        { params }
       );
-      return res.data;
+      return res.data.data;
     } catch (err) {
       console.error("Error fetching all bác sĩ:", err);
       throw err;
@@ -21,7 +22,7 @@ const apiBacSi = {
       const res = await axios.get(
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.BacSi}/${id_bac_si}`
       );
-      return res.data;
+      return res.data.data;
     } catch (err) {
       console.error("Error fetching bác sĩ by id:", err);
       throw err;
@@ -35,7 +36,7 @@ const apiBacSi = {
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.BacSi}/${id_bac_si}`,
         data
       );
-      return res.data;
+      return res.data.data;
     } catch (err) {
       console.error("Error updating bác sĩ:", err);
       throw err;

@@ -92,6 +92,19 @@ const apiCuocHenKhamBenh = {
     }
   },
 
+  // Lấy cuộc hẹn theo ngày và ca
+  getByDateAndCa: async (date, ca) => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenKhamBenh}/filter/date-ca?ngay=${date}&ca=${ca}`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error fetching cuoc hen kham by date and ca:", err);
+      throw err;
+    }
+  },
+
   // Xóa cuộc hẹn
   delete: async (id_cuoc_hen) => {
     try {

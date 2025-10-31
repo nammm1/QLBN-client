@@ -17,14 +17,27 @@ const apiHoSoDinhDuong = {
   },
 
   // Lấy hồ sơ dinh dưỡng theo ID
-  getById: async (id_ho_so_dinh_duong) => {
+  getById: async (id_ho_so) => {
     try {
       const res = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.HoSoDinhDuong}/${id_ho_so_dinh_duong}`
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.HoSoDinhDuong}/${id_ho_so}`
       );
       return res.data.data;
     } catch (err) {
       console.error("Error fetching ho so dinh duong by id:", err);
+      throw err;
+    }
+  },
+
+  // Lấy tất cả hồ sơ dinh dưỡng
+  getAll: async () => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.HoSoDinhDuong}/all/`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error fetching all ho so dinh duong:", err);
       throw err;
     }
   },

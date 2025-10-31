@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./BookingModal.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import toast from "../../utils/toast";
 
 import apiChuyenGiaDinhDuong from "../../api/ChuyenGiaDinhDuong";
 import apiLichLamViec from "../../api/LichLamViec";
@@ -36,10 +37,10 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
       try {
         const allExperts = await apiChuyenGiaDinhDuong.getAll();
         const mergedExperts = await Promise.all(
-          allExperts.data.map(async (cg) => {
+          allExperts.map(async (cg) => {
             try {
               const user = await apiNguoiDung.getUserById(cg.id_chuyen_gia);
-              return { ...cg, ...user.data };
+              return { ...cg, ...user };
             } catch (err) {
               console.error("Lỗi khi lấy user cho chuyên gia:", err);
               return cg;
@@ -111,7 +112,7 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!serviceType || !topic || !expert || !date || !session || !timeSlot || !desc) {
-      alert("Vui lòng nhập đầy đủ thông tin!");
+      toast.warning("Vui lòng nhập đầy đủ thông tin!");
       return;
     }
 
@@ -129,10 +130,10 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
 
       await apiCuocHenTuVan.create(payload);
 
-      alert("Đặt lịch tư vấn thành công!");
+      toast.success("Đặt lịch tư vấn thành công!");
       onClose();
     } catch (err) {
-      alert("Có lỗi khi đặt lịch tư vấn!");
+      toast.error("Có lỗi khi đặt lịch tư vấn!");
       console.error(err);
     }
   };

@@ -28,7 +28,8 @@ import {
   HeartOutlined,
   FileTextOutlined,
   ClockCircleOutlined,
-  TeamOutlined
+  TeamOutlined,
+  MessageOutlined
 } from "@ant-design/icons";
 import apiHoSoKhamBenh from "../../../api/HoSoKhamBenh";
 import apiBenhNhan from "../../../api/BenhNhan";
@@ -70,6 +71,14 @@ const DoctorRecordDetail = () => {
 
   const handleViewAppointment = (id_cuoc_hen) => {
     navigate(`/doctor/appointment/${id_cuoc_hen}`);
+  };
+
+  const handleChat = () => {
+    // id_benh_nhan cũng chính là id_nguoi_dung của bệnh nhân
+    const id_nguoi_nhan = hoSo?.id_benh_nhan;
+    if (id_nguoi_nhan) {
+      navigate(`/doctor/chat?user=${id_nguoi_nhan}`);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -130,7 +139,19 @@ const DoctorRecordDetail = () => {
               <Text type="secondary">Chi tiết thông tin hồ sơ và lịch sử khám bệnh</Text>
             </div>
           </div>
-          <Badge count={`Mã HS: ${hoSo.id_ho_so}`} style={{ backgroundColor: '#52c41a' }} />
+          <Space>
+            {hoSo?.id_benh_nhan && (
+              <Button
+                type="primary"
+                icon={<MessageOutlined />}
+                onClick={handleChat}
+                style={{ borderRadius: 6 }}
+              >
+                Chat với bệnh nhân
+              </Button>
+            )}
+            <Badge count={`Mã HS: ${hoSo.id_ho_so}`} style={{ backgroundColor: '#52c41a' }} />
+          </Space>
         </div>
       </Card>
 

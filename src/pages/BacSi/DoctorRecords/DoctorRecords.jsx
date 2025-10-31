@@ -5,8 +5,6 @@ import {
   Card,
   Table,
   Input,
-  DatePicker,
-  Select,
   Tag,
   Space,
   Button,
@@ -14,31 +12,22 @@ import {
   Col,
   Typography,
   Avatar,
-  Tooltip,
   Badge
 } from "antd";
 import {
   SearchOutlined,
   CalendarOutlined,
   UserOutlined,
-  PhoneOutlined,
-  FileTextOutlined,
-  IdcardOutlined,
-  MedicineBoxOutlined
+  PhoneOutlined
 } from "@ant-design/icons";
-import dayjs from "dayjs";
 import "../Appointments/DoctorAppointments.css";
 
 const { Title, Text } = Typography;
-const { Option } = Select;
-const { TextArea } = Input;
 
 const DoctorRecords = () => {
   const [records, setRecords] = useState([]);
   const [filteredRecords, setFilteredRecords] = useState([]);
   const [searchName, setSearchName] = useState("");
-  const [searchDate, setSearchDate] = useState("");
-  const [searchStatus, setSearchStatus] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
@@ -68,26 +57,9 @@ const DoctorRecords = () => {
       );
     }
 
-    if (searchDate.trim()) {
-      filtered = filtered.filter((item) => {
-        const itemDate = new Date(item.ngay_tao);
-        const itemDateStr =
-          itemDate.getFullYear() +
-          "-" +
-          String(itemDate.getMonth() + 1).padStart(2, "0") +
-          "-" +
-          String(itemDate.getDate()).padStart(2, "0");
-        return itemDateStr === searchDate;
-      });
-    }
-
-    if (searchStatus.trim()) {
-      filtered = filtered.filter((item) => item.trang_thai === searchStatus);
-    }
-
     setFilteredRecords(filtered);
     setCurrentPage(1);
-  }, [searchName, searchDate, searchStatus, records]);
+  }, [searchName, records]);
 
   const handleSelect = (id_ho_so) => {
     navigate(`/doctor/record/${id_ho_so}`);
@@ -99,22 +71,6 @@ const DoctorRecords = () => {
     startIndex + pageSize
   );
   const totalPages = Math.ceil(filteredRecords.length / pageSize);
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "dang_dieu_tri": return "orange";
-      case "da_ket_thuc": return "green";
-      default: return "default";
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case "dang_dieu_tri": return "Đang điều trị";
-      case "da_ket_thuc": return "Đã kết thúc";
-      default: return "N/A";
-    }
-  };
 
   const getGenderColor = (gender) => {
     switch (gender?.toLowerCase()) {
@@ -199,32 +155,6 @@ const DoctorRecords = () => {
       ),
       width: 120,
     },
-    {
-      title: "TRẠNG THÁI",
-      dataIndex: "trang_thai",
-      key: "trang_thai",
-      render: (status) => (
-        <Tag color={getStatusColor(status)} style={{ fontWeight: 600, minWidth: 100 }}>
-          {getStatusText(status)}
-        </Tag>
-      ),
-      width: 120,
-    },
-    {
-      title: "CHẨN ĐOÁN",
-      dataIndex: "chuan_doan",
-      key: "chuan_doan",
-      render: (diagnosis) => (
-        <Tooltip title={diagnosis || "Chưa có chẩn đoán"}>
-          <Space>
-            <MedicineBoxOutlined style={{ color: '#ff4d4f' }} />
-            <Text style={{ maxWidth: 200 }} ellipsis={{ tooltip: diagnosis }}>
-              {diagnosis ? diagnosis.slice(0, 50) + "..." : "..."}
-            </Text>
-          </Space>
-        </Tooltip>
-      ),
-    },
   ];
 
   return (
@@ -243,7 +173,7 @@ const DoctorRecords = () => {
         {/* Filter Bar */}
         <Card size="small" className="filter-card">
           <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} sm={8} md={6}>
+            <Col xs={24} sm={12} md={8}>
               <Input
                 placeholder="Tìm theo tên bệnh nhân..."
                 prefix={<SearchOutlined />}
@@ -252,29 +182,7 @@ const DoctorRecords = () => {
                 size="large"
               />
             </Col>
-            <Col xs={24} sm={8} md={6}>
-              <DatePicker
-                placeholder="Chọn ngày tạo"
-                value={searchDate ? dayjs(searchDate) : null}
-                onChange={(date) => setSearchDate(date ? date.format('YYYY-MM-DD') : '')}
-                style={{ width: '100%' }}
-                size="large"
-              />
-            </Col>
-            <Col xs={24} sm={8} md={6}>
-              <Select
-                placeholder="Trạng thái"
-                value={searchStatus || null}
-                onChange={setSearchStatus}
-                style={{ width: '100%' }}
-                size="large"
-                allowClear
-              >
-                <Option value="dang_dieu_tri">Đang điều trị</Option>
-                <Option value="da_ket_thuc">Đã kết thúc</Option>
-              </Select>
-            </Col>
-            <Col xs={24} sm={24} md={6}>
+            <Col xs={24} sm={12} md={16}>
               <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
                 <Text type="secondary">
                   Tổng: <Text strong>{filteredRecords.length}</Text> hồ sơ

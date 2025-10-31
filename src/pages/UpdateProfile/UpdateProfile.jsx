@@ -28,6 +28,9 @@ const toInputDateString = (value) => {
     return "";
   }
 };
+=======
+import toast from "../../utils/toast";
+>>>>>>> Stashed changes
 
 const UpdateProfile = () => {
   const [image, setImage] = useState(null);
@@ -115,6 +118,7 @@ const UpdateProfile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+<<<<<<< Updated upstream
     if (!id_nguoi_dung) return message.error("Không xác định được người dùng!");
 
     const userPayload = {

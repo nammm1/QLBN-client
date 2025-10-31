@@ -42,6 +42,19 @@ const apiLichSuTuVan = {
     }
   },
 
+  // Lấy lịch sử tư vấn theo cuộc hẹn
+  getLichSuTuVanByCuocHen: async (id_cuoc_hen) => {
+    try {
+      const response = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichSuTuVan}/cuoc-hen/${id_cuoc_hen}`
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching lịch sử tư vấn by cuộc hẹn:", error);
+      throw error;
+    }
+  },
+
   // Tạo mới lịch sử tư vấn
   createLichSuTuVan: async (data) => {
     try {

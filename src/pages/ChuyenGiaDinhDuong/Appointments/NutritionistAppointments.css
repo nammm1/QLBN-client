@@ -1,0 +1,40 @@
+.nutritionist-appointments-container {
+  padding: 24px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.shadow-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+}
+
+.header-section {
+  margin-bottom: 24px;
+}
+
+.page-title {
+  margin-bottom: 8px !important;
+  color: #1890ff;
+}
+
+.filter-card {
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+
+.table-card {
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.pagination-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+}
+
+.pagination-btn {
+  margin: 0 4px;
+}

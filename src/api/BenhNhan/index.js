@@ -8,7 +8,7 @@ const apiBenhNhan = {
       const res = await axiosInstance.get(
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.BenhNhan}/`
       );
-      return res.data;
+      return res.data.data;
     } catch (err) {
       console.error("Error fetching all bệnh nhân:", err);
       throw err;
@@ -21,7 +21,7 @@ const apiBenhNhan = {
       const res = await axiosInstance.get(
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.BenhNhan}/${id_benh_nhan}`
       );
-      return res.data;
+      return res.data.data;
     } catch (err) {
       console.error("Error fetching bệnh nhân by id:", err);
       throw err;
@@ -35,7 +35,7 @@ const apiBenhNhan = {
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.BenhNhan}/${id_benh_nhan}`,
         data
       );
-      return res.data;
+      return res.data.data;
     } catch (err) {
       console.error("Error updating bệnh nhân:", err);
       throw err;

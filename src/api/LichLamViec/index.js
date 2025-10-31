@@ -1,128 +1,125 @@
-import axiosInstance from "../axios";
+import axiosInstance from "../axios.js";
 import API_CONFIG from "../../configs/api_configs.js";
 
 const apiLichLamViec = {
-  // Tạo lịch làm việc mới
-  create: async (data) => {
-    try {
-      const res = await axiosInstance.post(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/`,
-        data
-      );
-      return res.data.data;
-    } catch (err) {
-      console.error("Error creating lich lam viec:", err);
-      throw err;
-    }
-  },
+    // Lấy lịch làm việc theo tuần cho bác sĩ
+    getByWeek: async (weekStart, idBacSi) => {
+        try {
+            const { data } = await axiosInstance.get(
+                `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/filter/week/${idBacSi}?ngay=${weekStart}`
+            );
+            return data;
+        } catch (error) {
+            console.error("Error fetching schedule by week:", error);
+            throw error;
+        }
+    },
 
-  // Lấy tất cả lịch làm việc
-  getAll: async () => {
-    try {
-      const res = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/`
-      );
-      return res.data.data;
-    } catch (err) {
-      console.error("Error fetching lich lam viec list:", err);
-      throw err;
-    }
-  },
+    // Lấy tất cả lịch làm việc
+    getAll: async () => {
+        try {
+            const res = await axiosInstance.get(
+                `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/`
+            );
+            return res.data.data;
+        } catch (error) {
+            console.error("Error fetching all schedules:", error);
+            throw error;
+        }
+    },
 
-  // Lấy chi tiết lịch làm việc theo ID
-  getById: async (id_lich_lam_viec) => {
-    try {
-      const res = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/${id_lich_lam_viec}`
-      );
-      return res.data.data;
-    } catch (err) {
-      console.error("Error fetching lich lam viec by id:", err);
-      throw err;
-    }
-  },
+    // Lấy lịch làm việc theo ID
+    getById: async (idLichLamViec) => {
+        try {
+            const { data } = await axiosInstance.get(
+                `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/${idLichLamViec}`
+            );
+            return data;
+        } catch (error) {
+            console.error("Error fetching schedule by ID:", error);
+            throw error;
+        }
+    },
 
-  // Cập nhật lịch làm việc
-  update: async (id_lich_lam_viec, data) => {
-    try {
-      const res = await axiosInstance.put(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/${id_lich_lam_viec}`,
-        data
-      );
-      return res.data.data;
-    } catch (err) {
-      console.error("Error updating lich lam viec:", err);
-      throw err;
-    }
-  },
+    // Tạo lịch làm việc mới
+    create: async (scheduleData) => {
+        try {
+            const { data } = await axiosInstance.post(
+                `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/`,
+                scheduleData
+            );
+            return data;
+        } catch (error) {
+            console.error("Error creating schedule:", error);
+            throw error;
+        }
+    },
 
-  // Xóa lịch làm việc
-  delete: async (id_lich_lam_viec) => {
-    try {
-      const res = await axiosInstance.delete(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/${id_lich_lam_viec}`
-      );
-      return res.data.data;
-    } catch (err) {
-      console.error("Error deleting lich lam viec:", err);
-      throw err;
-    }
-  },
+    // Cập nhật lịch làm việc
+    update: async (idLichLamViec, updateData) => {
+        try {
+            const { data } = await axiosInstance.put(
+                `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/${idLichLamViec}`,
+                updateData
+            );
+            return data;
+        } catch (error) {
+            console.error("Error updating schedule:", error);
+            throw error;
+        }
+    },
 
-  // Lọc theo ngày
-  getByNgay: async (ngay) => {
-    try {
-      const res = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/filter/ngay`,
-        { params: { ngay } }
-      );
-      return res.data.data;
-    } catch (err) {
-      console.error("Error fetching lich lam viec by ngay:", err);
-      throw err;
-    }
-  },
+    // Xóa lịch làm việc
+    delete: async (idLichLamViec) => {
+        try {
+            const { data } = await axiosInstance.delete(
+                `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/${idLichLamViec}`
+            );
+            return data;
+        } catch (error) {
+            console.error("Error deleting schedule:", error);
+            throw error;
+        }
+    },
 
-  // Lọc theo tuần
-  getByWeek: async (ngay,id) => {
-    try {
-      const res = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/filter/week/${id}`,{
-         params: { ngay }});
-      return res.data.data;
-    } catch (err) {
-      console.error("Error fetching lich lam viec by week:", err);
-      throw err;
-    }
-  },
+    // Lấy lịch làm việc theo ngày
+    getByDate: async (date) => {
+        try {
+            const { data } = await axiosInstance.get(
+                `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/filter/ngay?date=${date}`
+            );
+            return data;
+        } catch (error) {
+            console.error("Error fetching schedule by date:", error);
+            throw error;
+        }
+    },
 
-  // Lọc theo tháng
-  getByMonth: async (thang, nam) => {
-    try {
-      const res = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/filter/month`,
-        { params: { thang, nam } }
-      );
-      return res.data.data;
-    } catch (err) {
-      console.error("Error fetching lich lam viec by month:", err);
-      throw err;
-    }
-  },
+    // Lấy lịch làm việc theo tháng
+    getByMonth: async (month, year) => {
+        try {
+            const { data } = await axiosInstance.get(
+                `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/filter/month?month=${month}&year=${year}`
+            );
+            return data;
+        } catch (error) {
+            console.error("Error fetching schedule by month:", error);
+            throw error;
+        }
+    },
 
-  // Lọc theo năm
-  getByYear: async (nam) => {
-    try {
-      const res = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/filter/year`,
-        { params: { nam } }
-      );
-      return res.data.data;
-    } catch (err) {
-      console.error("Error fetching lich lam viec by year:", err);
-      throw err;
+    // Lấy lịch làm việc theo năm
+    getByYear: async (year) => {
+        try {
+            const { data } = await axiosInstance.get(
+                `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.LichLamViec}/filter/year?year=${year}`
+            );
+            return data;
+        } catch (error) {
+            console.error("Error fetching schedule by year:", error);
+            throw error;
+        }
     }
-  },
 };
 
 export default apiLichLamViec;

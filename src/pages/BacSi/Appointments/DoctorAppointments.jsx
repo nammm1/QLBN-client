@@ -5,7 +5,6 @@ import {
   Card,
   Table,
   Input,
-  DatePicker,
   Select,
   Tag,
   Space,
@@ -14,35 +13,39 @@ import {
   Col,
   Typography,
   Avatar,
-  Tooltip
+  Tooltip,
+  Popover,
+  Form,
+  DatePicker
 } from "antd";
 import {
   SearchOutlined,
-  CalendarOutlined,
   FilterOutlined,
   UserOutlined,
   PhoneOutlined,
   IdcardOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined,
+  CalendarOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import "./DoctorAppointments.css";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
-const { RangePicker } = DatePicker;
 
 const DoctorAppointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [filteredAppointments, setFilteredAppointments] = useState([]);
   const [searchName, setSearchName] = useState("");
-  const [searchDate, setSearchDate] = useState("");
   const [searchStatus, setSearchStatus] = useState("");
+  const [searchDate, setSearchDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [filterOpen, setFilterOpen] = useState(false);
   const pageSize = 10;
 
   const navigate = useNavigate();
   const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+  const [form] = Form.useForm();
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -66,6 +69,10 @@ const DoctorAppointments = () => {
       );
     }
 
+    if (searchStatus.trim()) {
+      filtered = filtered.filter(item => item.trang_thai === searchStatus);
+    }
+
     if (searchDate.trim()) {
       filtered = filtered.filter(item => {
         const itemDate = new Date(item.ngay_kham);
@@ -76,16 +83,24 @@ const DoctorAppointments = () => {
       });
     }
 
-    if (searchStatus.trim()) {
-      filtered = filtered.filter(item => item.trang_thai === searchStatus);
-    }
-
     setFilteredAppointments(filtered);
     setCurrentPage(1);
-  }, [searchName, searchDate, searchStatus, appointments]);
+  }, [searchName, searchStatus, searchDate, appointments]);
 
   const handleSelect = (id_cuoc_hen) => {
     navigate(`/doctor/appointment/${id_cuoc_hen}`);
+  };
+
+  const handleApplyFilters = (values) => {
+    setSearchStatus(values.status || "");
+    setSearchDate(values.date ? values.date.format('YYYY-MM-DD') : "");
+    setFilterOpen(false);
+  };
+
+  const handleResetFilters = () => {
+    setSearchStatus("");
+    setSearchDate("");
+    form.resetFields();
   };
 
   const startIndex = (currentPage - 1) * pageSize;
@@ -117,6 +132,53 @@ const DoctorAppointments = () => {
       default: return "default";
     }
   };
+
+  // Nội dung Popover Filter
+  const filterContent = (
+    <div style={{ width: 250 }}>
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleApplyFilters}
+        initialValues={{
+          status: searchStatus,
+          date: searchDate ? dayjs(searchDate) : null
+        }}
+      >
+        <Form.Item name="status" label="Trạng thái">
+          <Select placeholder="Chọn trạng thái" allowClear>
+            <Option value="da_dat">Đã đặt</Option>
+            <Option value="da_huy">Đã hủy</Option>
+            <Option value="da_hoan_thanh">Đã hoàn thành</Option>
+          </Select>
+        </Form.Item>
+
+        <Form.Item name="date" label="Ngày khám">
+          <DatePicker 
+            style={{ width: '100%' }}
+            format="DD/MM/YYYY"
+            placeholder="Chọn ngày"
+          />
+        </Form.Item>
+
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
+          <Button 
+            onClick={handleResetFilters}
+            style={{ flex: 1 }}
+          >
+            Đặt lại
+          </Button>
+          <Button 
+            type="primary" 
+            htmlType="submit"
+            style={{ flex: 1 }}
+          >
+            Áp dụng
+          </Button>
+        </div>
+      </Form>
+    </div>
+  );
 
   const columns = [
     {
@@ -231,45 +293,39 @@ const DoctorAppointments = () => {
           </Text>
         </div>
 
-        {/* Filter Bar */}
+        {/* Search and Filter Bar */}
         <Card size="small" className="filter-card">
           <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} sm={8} md={6}>
+            <Col xs={24} sm={16} md={18}>
               <Input
-                placeholder="Tìm theo tên bệnh nhân..."
-                prefix={<SearchOutlined />}
+                placeholder="🔍 Tìm theo tên bệnh nhân..."
                 value={searchName}
                 onChange={e => setSearchName(e.target.value)}
                 size="large"
+                style={{ maxWidth: 400, marginRight: 8 }}
               />
+
+              {/* Filter Button */}
+                <Popover
+                  content={filterContent}
+                  trigger="click"
+                  open={filterOpen}
+                  onOpenChange={setFilterOpen}
+                  placement="bottomRight"
+                >
+                  <Button 
+                    icon={<FilterOutlined />}
+                    size="large"
+                  >
+                    Bộ lọc
+                  </Button>
+                </Popover>
             </Col>
+            
             <Col xs={24} sm={8} md={6}>
-              <DatePicker
-                placeholder="Chọn ngày khám"
-                value={searchDate ? dayjs(searchDate) : null}
-                onChange={(date) => setSearchDate(date ? date.format('YYYY-MM-DD') : '')}
-                style={{ width: '100%' }}
-                size="large"
-              />
-            </Col>
-            <Col xs={24} sm={8} md={6}>
-              <Select
-                placeholder="Trạng thái"
-                value={searchStatus || null}
-                onChange={setSearchStatus}
-                style={{ width: '100%' }}
-                size="large"
-                allowClear
-              >
-                <Option value="da_dat">Đã đặt</Option>
-                <Option value="da_huy">Đã hủy</Option>
-                <Option value="da_hoan_thanh">Đã hoàn thành</Option>
-              </Select>
-            </Col>
-            <Col xs={24} sm={24} md={6}>
               <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
                 <Text type="secondary">
-                  Tổng: <Text strong>{filteredAppointments.length}</Text> cuộc hẹn
+                  <Text strong>{filteredAppointments.length}</Text> cuộc hẹn
                 </Text>
               </Space>
             </Col>

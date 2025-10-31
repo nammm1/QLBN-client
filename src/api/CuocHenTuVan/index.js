@@ -16,6 +16,19 @@ const apiCuocHenTuVan = {
     }
   },
 
+  // Lấy cuộc hẹn tư vấn theo ID
+  getById: async (id_cuoc_hen) => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenTuVan}/${id_cuoc_hen}`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error fetching cuoc hen tu van by Id:", err);
+      throw err;
+    }
+  },
+
   // Lấy tất cả cuộc hẹn tư vấn của bệnh nhân
   getByBenhNhan: async (id_benh_nhan) => {
     try {
@@ -25,6 +38,32 @@ const apiCuocHenTuVan = {
       return res.data.data;
     } catch (err) {
       console.error("Error fetching cuoc hen tu van by benh nhan:", err);
+      throw err;
+    }
+  },
+
+  // Lấy tất cả cuộc hẹn tư vấn của chuyên gia dinh dưỡng
+  getByChuyenGia: async (id_chuyen_gia) => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenTuVan}/chuyen-gia/${id_chuyen_gia}`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error fetching cuoc hen tu van by chuyen gia:", err);
+      throw err;
+    }
+  },
+
+  // Lấy cuộc hẹn theo ngày và ca
+  getByDateAndCa: async (date, ca) => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenTuVan}/filter/date-ca?ngay=${date}&ca=${ca}`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error fetching cuoc hen tu van by date and ca:", err);
       throw err;
     }
   },
