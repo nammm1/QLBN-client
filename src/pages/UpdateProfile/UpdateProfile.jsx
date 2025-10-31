@@ -3,6 +3,7 @@ import "./UpdateProfile.css";
 import { Modal, message } from "antd";
 import apiBenhNhan from "../../api/BenhNhan";
 import apiNguoiDung from "../../api/NguoiDung";
+import toast from "../../utils/toast";
 
 const unwrap = (res) => {
   if (res == null) return null;
@@ -28,9 +29,6 @@ const toInputDateString = (value) => {
     return "";
   }
 };
-=======
-import toast from "../../utils/toast";
->>>>>>> Stashed changes
 
 const UpdateProfile = () => {
   const [image, setImage] = useState(null);
@@ -92,7 +90,7 @@ const UpdateProfile = () => {
         if (merged.anh_dai_dien) setImage(merged.anh_dai_dien);
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu hồ sơ:", err);
-        message.error("Không thể tải thông tin bệnh nhân!");
+        toast.error("Không thể tải thông tin bệnh nhân!");
       }
     };
 
@@ -118,8 +116,7 @@ const UpdateProfile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-<<<<<<< Updated upstream
-    if (!id_nguoi_dung) return message.error("Không xác định được người dùng!");
+    if (!id_nguoi_dung) return toast.error("Không xác định được người dùng!");
 
     const userPayload = {
       email: formData.email,
@@ -142,10 +139,10 @@ const UpdateProfile = () => {
     try {
       await apiNguoiDung.updateUser(id_nguoi_dung, userPayload);
       await apiBenhNhan.update(id_nguoi_dung, patientPayload);
-      message.success("Cập nhật thông tin thành công!");
+      toast.success("Cập nhật thông tin thành công!");
     } catch (err) {
       console.error("Lỗi khi cập nhật:", err);
-      message.error("Cập nhật thất bại, vui lòng thử lại!");
+      toast.error("Cập nhật thất bại, vui lòng thử lại!");
     }
   };
 
@@ -153,16 +150,16 @@ const UpdateProfile = () => {
   const handleChangePassword = async () => {
     const { mat_khau_hien_tai, mat_khau_moi, xac_nhan_mat_khau } = passwordForm;
     if (!mat_khau_hien_tai || !mat_khau_moi || !xac_nhan_mat_khau)
-      return message.warning("Vui lòng nhập đầy đủ thông tin!");
+      return toast.warning("Vui lòng nhập đầy đủ thông tin!");
     if (mat_khau_moi !== xac_nhan_mat_khau)
-      return message.error("Mật khẩu mới không khớp!");
+      return toast.error("Mật khẩu mới không khớp!");
 
     try {
       await apiNguoiDung.changePassword(id_nguoi_dung, {
         mat_khau_hien_tai,
         mat_khau_moi,
       });
-      message.success("Đổi mật khẩu thành công!");
+      toast.success("Đổi mật khẩu thành công!");
       setPasswordModal(false);
       setPasswordForm({
         mat_khau_hien_tai: "",
@@ -171,7 +168,7 @@ const UpdateProfile = () => {
       });
     } catch (error) {
       console.error("Lỗi khi đổi mật khẩu:", error);
-      message.error("Đổi mật khẩu thất bại!");
+      toast.error("Đổi mật khẩu thất bại!");
     }
   };
 
