@@ -21,6 +21,7 @@ import {
   MedicineBoxOutlined,
   UserAddOutlined
 } from "@ant-design/icons";
+import medicalChatService from "../../api/MedicalChat";
 
 const { Sider } = Layout;
 const { Text } = Typography;
@@ -175,8 +176,12 @@ const AdminSidebar = () => {
             fontWeight: '500',
           }}
           onClick={() => {
-            // Handle logout logic here
+            // Clear all chat data before logging out
+            medicalChatService.clearAllChatData();
             localStorage.removeItem("userInfo");
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("isLogin");
             window.location.href = "/login";
           }}
         >

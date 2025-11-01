@@ -14,7 +14,6 @@ import {
   Timeline,
   Avatar,
   Rate,
-  FloatButton,
 } from "antd";
 import {
   HeartOutlined,
@@ -22,8 +21,6 @@ import {
   ClockCircleOutlined,
   GlobalOutlined,
   ArrowRightOutlined,
-  PhoneOutlined,
-  MessageOutlined,
   CalendarOutlined,
   TrophyOutlined,
   SafetyOutlined,
@@ -385,7 +382,7 @@ const Home = () => {
                         boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                         transition: "all 0.3s",
                       }}
-                      bodyStyle={{ padding: 32, textAlign: "center" }}
+                      styles={{ body: { padding: 32, textAlign: "center" } }}
                     >
                       <div className="feature-icon-wrapper" style={{ fontSize: "3.5rem", color: feature.color, marginBottom: 20 }}>
                         {feature.icon}
@@ -501,7 +498,7 @@ const Home = () => {
                     transition: "all 0.3s",
                     animationDelay: `${idx * 0.15}s`,
                   }}
-                  bodyStyle={{ padding: 32 }}
+                  styles={{ body: { padding: 32 } }}
                 >
                   <div className="service-icon-wrapper" style={{ fontSize: "3rem", color: service.color, marginBottom: 20 }}>
                     {service.icon}
@@ -521,7 +518,7 @@ const Home = () => {
               type="primary"
               size="large"
               icon={<ArrowRightOutlined />}
-              onClick={() => navigate("/specialties")}
+              onClick={() => navigate("/services")}
               style={{
                 background: "linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)",
                 border: "none",
@@ -565,7 +562,7 @@ const Home = () => {
                     animationDelay: `${idx * 0.2}s`,
                     transition: "all 0.3s",
                   }}
-                  bodyStyle={{ padding: 32 }}
+                  styles={{ body: { padding: 32 } }}
                 >
                   <Space direction="vertical" size="middle" style={{ width: "100%" }}>
                     <Rate disabled defaultValue={testimonial.rating} style={{ color: "#faad14" }} />
@@ -625,7 +622,7 @@ const Home = () => {
                       border: "1px solid #e6f7ff",
                       borderRadius: 12,
                     }}
-                    bodyStyle={{ padding: 24 }}
+                    styles={{ body: { padding: 24 } }}
                   >
                     <Space direction="vertical" size="small" style={{ width: "100%" }}>
                       <Tag color="blue" style={{ fontSize: 14, padding: "4px 12px" }}>
@@ -710,29 +707,6 @@ const Home = () => {
           </div>
         </div>
       </div>
-
-      {/* Floating Action Buttons */}
-      <FloatButton.Group
-        trigger="hover"
-        type="primary"
-        style={{ right: 24 }}
-        icon={<MessageOutlined />}
-      >
-        <FloatButton
-          icon={<PhoneOutlined />}
-          tooltip="Gọi hotline"
-          onClick={() => window.open("tel:1900123456")}
-        />
-        <FloatButton
-          icon={<CalendarOutlined />}
-          tooltip="Đặt lịch khám"
-          onClick={() => navigate("/specialties")}
-        />
-        <FloatButton
-          icon={<MessageOutlined />}
-          tooltip="Liên hệ tư vấn"
-        />
-      </FloatButton.Group>
     </div>
   );
 };

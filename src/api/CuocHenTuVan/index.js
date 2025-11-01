@@ -108,6 +108,19 @@ const apiCuocHenTuVan = {
       throw err;
     }
   },
+
+  // Đếm số lượng appointments đã đặt cho một khung giờ (tư vấn)
+  countByTimeSlot: async (id_chuyen_gia, id_khung_gio, ngay_kham) => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenTuVan}/count/time-slot?id_chuyen_gia=${id_chuyen_gia}&id_khung_gio=${id_khung_gio}&ngay_kham=${ngay_kham}`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error counting appointments by time slot:", err);
+      throw err;
+    }
+  },
 };
 
 export default apiCuocHenTuVan;

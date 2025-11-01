@@ -1,17 +1,280 @@
-.patient-function .function-card {
-  text-decoration: none;
-  color: inherit;
-  transition: transform 0.2s, box-shadow 0.2s;
+.patient-function-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f0f2f5 0%, #ffffff 100%);
+  position: relative;
+  overflow-x: hidden;
 }
 
-.patient-function .function-card:hover .card {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+/* Hero Section */
+.patient-function-hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 80px 20px;
+  position: relative;
+  overflow: hidden;
 }
 
-.patient-function .card-title {
-  font-size: 1.3rem;
-  font-weight: bold;
-  color: #00b5f1;
-  justify-content: center;
+.patient-function-hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='grid' width='100' height='100' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 100 0 L 0 0 0 100' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23grid)'/%3E%3C/svg%3E");
+  opacity: 0.3;
+}
+
+.patient-function-hero-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.patient-function-hero-title {
+  color: #ffffff !important;
+  font-size: 48px !important;
+  font-weight: 700 !important;
+  margin-bottom: 20px !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  animation: fadeInUp 0.8s ease;
+}
+
+.patient-function-hero-description {
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-size: 20px !important;
+  margin: 0 !important;
+  max-width: 700px;
+  margin: 0 auto !important;
+  animation: fadeInUp 0.8s ease 0.2s both;
+}
+
+/* Container */
+.patient-function-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 80px 20px;
+}
+
+.patient-function-header {
+  text-align: center;
+  margin-bottom: 60px;
+  animation: fadeInUp 0.8s ease 0.4s both;
+}
+
+.patient-function-main-title {
+  color: #1a1a1a !important;
+  font-size: 36px !important;
+  font-weight: 700 !important;
+  margin-bottom: 16px !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.patient-function-subtitle {
+  color: #666 !important;
+  font-size: 16px !important;
+  margin: 0 !important;
+}
+
+/* Grid */
+.patient-function-grid {
+  animation: fadeInUp 0.8s ease 0.6s both;
+}
+
+/* Card */
+.patient-function-card {
+  cursor: pointer;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+  animation: fadeInCard 0.6s ease both;
+}
+
+.patient-function-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 20px;
+  padding: 2px;
+  background: linear-gradient(135deg, #667eea, #764ba2, #f093fb, #f5576c);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.patient-function-card:hover {
+  transform: translateY(-12px) scale(1.02);
+  box-shadow: 0 20px 60px rgba(102, 126, 234, 0.25) !important;
+}
+
+.patient-function-card:hover::before {
+  opacity: 1;
+}
+
+.patient-function-card:hover .patient-function-icon-container {
+  transform: scale(1.15) rotate(5deg);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.patient-function-card:hover .patient-function-icon-container > div {
+  transform: scale(1.15);
+}
+
+.patient-function-card:hover .patient-function-card-title {
+  color: #667eea;
+  transform: translateY(-2px);
+}
+
+.patient-function-card:hover .patient-function-card-overlay {
+  opacity: 0.08;
+}
+
+.patient-function-card:hover .patient-function-card-description {
+  color: #333;
+}
+
+.patient-function-card .ant-card-body {
+  position: relative;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.patient-function-card[disabled],
+.patient-function-card.coming-soon {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.patient-function-card.coming-soon:hover {
+  transform: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Icon Container */
+.patient-function-icon-container {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.patient-function-icon-container > div {
+  transition: all 0.3s ease;
+}
+
+/* Card Title */
+.patient-function-card-title {
+  transition: all 0.3s ease;
+}
+
+.patient-function-card-description {
+  transition: color 0.3s ease;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .patient-function-hero-title {
+    font-size: 40px !important;
+  }
+
+  .patient-function-hero-description {
+    font-size: 18px !important;
+  }
+
+  .patient-function-main-title {
+    font-size: 32px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .patient-function-hero {
+    padding: 60px 20px;
+  }
+
+  .patient-function-hero-title {
+    font-size: 32px !important;
+  }
+
+  .patient-function-hero-description {
+    font-size: 16px !important;
+  }
+
+  .patient-function-container {
+    padding: 60px 16px;
+  }
+
+  .patient-function-main-title {
+    font-size: 28px !important;
+  }
+
+  .patient-function-header {
+    margin-bottom: 40px;
+  }
+
+  .patient-function-card .ant-card-body {
+    padding: 24px 20px !important;
+  }
+
+  .patient-function-icon-container {
+    width: 70px !important;
+    height: 70px !important;
+  }
+
+  .patient-function-icon-container > div {
+    font-size: 32px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .patient-function-hero-title {
+    font-size: 28px !important;
+  }
+
+  .patient-function-hero-description {
+    font-size: 14px !important;
+  }
+
+  .patient-function-main-title {
+    font-size: 24px !important;
+  }
+}
+
+/* Loading Animation */
+.patient-function-card {
+  animation: fadeInCard 0.6s ease both;
+}
+
+@keyframes fadeInCard {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
 }

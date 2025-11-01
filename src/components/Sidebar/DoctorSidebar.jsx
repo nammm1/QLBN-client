@@ -28,6 +28,7 @@ import {
   WechatOutlined
 } from "@ant-design/icons";
 import apiChat from "../../api/Chat";
+import medicalChatService from "../../api/MedicalChat";
 import apiCuocHenKham from "../../api/CuocHenKhamBenh";
 
 const { Sider } = Layout;
@@ -440,7 +441,12 @@ const DoctorSidebar = ({ collapsed = false }) => {
               e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
             }}
             onClick={() => {
+              // Clear all chat data before logging out
+              medicalChatService.clearAllChatData();
               localStorage.removeItem("userInfo");
+              localStorage.removeItem("accessToken");
+              localStorage.removeItem("refreshToken");
+              localStorage.removeItem("isLogin");
               window.location.href = "/login";
             }}
           >

@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import "./index.css";
+import "./styles/toast.css"; // Import custom toast styles
 import { store } from './store/config.js';
 import { Provider } from 'react-redux';
 import { ConfigProvider, App as AntdApp } from 'antd';

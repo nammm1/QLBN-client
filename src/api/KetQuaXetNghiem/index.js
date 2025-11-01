@@ -22,6 +22,11 @@ const apiKetQuaXetNghiem = {
       const res = await axiosInstance.get(
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.KetQuaXetNghiem}/${id_chi_dinh}`
       );
+      // API trả về { success: true, data: null } nếu chưa có kết quả
+      // Trả về null để FE dễ xử lý
+      if (res.data && res.data.success && res.data.data === null) {
+        return null;
+      }
       return res.data;
     } catch (err) {
       console.error("Error fetching kết quả xét nghiệm:", err);

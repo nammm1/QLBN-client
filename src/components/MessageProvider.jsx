@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useLayoutEffect } from 'react';
 import { App } from 'antd';
 import { setMessageApi } from '../utils/toast';
 
@@ -11,12 +11,20 @@ const MessageProvider = ({ children }) => {
   const { message } = App.useApp();
   const initialized = useRef(false);
   
-  // Set message API instance một lần khi mount
-  // Sử dụng useRef để tránh set lại mỗi lần re-render
-  if (!initialized.current) {
+  // Set message API instance ngay lập tức khi component render
+  // Sử dụng useLayoutEffect để set trước khi browser paint, đảm bảo API sẵn sàng
+  // và useRef để tránh set lại mỗi lần re-render
+  if (!initialized.current && message) {
     setMessageApi(message);
     initialized.current = true;
   }
+
+  // Fallback: đảm bảo API được set ngay cả khi message thay đổi
+  useLayoutEffect(() => {
+    if (message) {
+      setMessageApi(message);
+    }
+  }, [message]);
 
   return <>{children}</>;
 };

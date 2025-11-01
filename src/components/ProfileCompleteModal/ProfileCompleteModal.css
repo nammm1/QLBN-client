@@ -1,0 +1,210 @@
+.profile-complete-modal .ant-modal-content {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.profile-complete-content {
+  padding: 8px;
+  text-align: center;
+}
+
+.profile-complete-icon {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.profile-complete-icon-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(24, 144, 255, 0.3);
+  animation: pulse-blue 2s infinite;
+}
+
+.profile-complete-icon-circle .anticon {
+  font-size: 48px;
+  color: white;
+}
+
+@keyframes pulse-blue {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 8px 24px rgba(24, 144, 255, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 12px 32px rgba(24, 144, 255, 0.4);
+  }
+}
+
+.profile-complete-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 12px 0;
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.profile-complete-description {
+  font-size: 16px;
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+  padding: 0 16px;
+}
+
+.profile-complete-fields {
+  background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  text-align: left;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.profile-complete-field-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  font-size: 15px;
+  color: #333;
+  font-weight: 500;
+}
+
+.profile-complete-field-item:not(:last-child) {
+  border-bottom: 1px solid rgba(24, 144, 255, 0.15);
+}
+
+.profile-complete-field-item .field-icon {
+  font-size: 18px;
+  color: #1890ff;
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-complete-note {
+  background: #fff7e6;
+  border: 1px solid #ffe58f;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.profile-complete-note p {
+  margin: 0;
+  font-size: 14px;
+  color: #ad6800;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.profile-complete-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.profile-complete-actions .skip-btn {
+  height: 48px;
+  padding: 0 32px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  color: #666;
+  transition: all 0.3s;
+}
+
+.profile-complete-actions .skip-btn:hover {
+  border-color: #d1d5db;
+  color: #333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.profile-complete-actions .update-btn {
+  height: 48px;
+  padding: 0 32px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+  border: none;
+  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.3);
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-complete-actions .update-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(24, 144, 255, 0.4);
+  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+}
+
+.profile-complete-actions .update-btn .arrow-icon {
+  transition: transform 0.3s;
+}
+
+.profile-complete-actions .update-btn:hover .arrow-icon {
+  transform: translateX(4px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .profile-complete-modal .ant-modal {
+    margin: 16px;
+    max-width: calc(100% - 32px);
+  }
+
+  .profile-complete-icon-circle {
+    width: 80px;
+    height: 80px;
+  }
+
+  .profile-complete-icon-circle .anticon {
+    font-size: 36px;
+  }
+
+  .profile-complete-title {
+    font-size: 24px;
+  }
+
+  .profile-complete-description {
+    font-size: 14px;
+  }
+
+  .profile-complete-fields {
+    padding: 20px;
+    max-height: 250px;
+  }
+
+  .profile-complete-field-item {
+    font-size: 14px;
+    padding: 10px 0;
+  }
+
+  .profile-complete-actions {
+    flex-direction: column;
+  }
+
+  .profile-complete-actions .skip-btn,
+  .profile-complete-actions .update-btn {
+    width: 100%;
+  }
+}
+

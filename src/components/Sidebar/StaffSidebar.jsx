@@ -27,6 +27,7 @@ import {
 } from "@ant-design/icons";
 import apiChat from "../../api/Chat";
 import apiXinNghiPhep from "../../api/XinNghiPhep";
+import medicalChatService from "../../api/MedicalChat";
 
 const { Sider } = Layout;
 const { Text, Title } = Typography;
@@ -443,7 +444,12 @@ const StaffSidebar = ({ collapsed = false }) => {
               e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
             }}
             onClick={() => {
+              // Clear all chat data before logging out
+              medicalChatService.clearAllChatData();
               localStorage.removeItem("userInfo");
+              localStorage.removeItem("accessToken");
+              localStorage.removeItem("refreshToken");
+              localStorage.removeItem("isLogin");
               window.location.href = "/login";
             }}
           >

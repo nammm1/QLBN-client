@@ -13,9 +13,13 @@ const apiAuth = {
             throw new Error('Dữ liệu trả về bị thiếu')
         }
     },
-    renewAccessToken: async (RESOURCES, payloadRenewToken) => {
-        // dùng axios để bắn request login và nhận lại response
-        const { data } = await axiosInstance.post(`${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.NguoiDung}/auth/refreshToken`, payloadRenewToken)
+    renewAccessToken: async (refreshToken) => {
+        // dùng axios để bắn request refresh token và nhận lại response
+        // Sử dụng axios thường thay vì axiosInstance để tránh interceptor loop
+        const { data } = await axios.post(
+            `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.NguoiDung}/refresh-token`, 
+            { refreshToken }
+        );
         if (data) {
             return data
         } else {

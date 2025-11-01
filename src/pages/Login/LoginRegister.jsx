@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import axios from "axios";
+import { Button } from "antd";
+import { ArrowLeftOutlined } from "@ant-design/icons";
 import styles from "./LoginRegister.module.css";
 import { FaUser, FaEye, FaEyeSlash, FaPhone } from "react-icons/fa";
 import { IoMailSharp } from "react-icons/io5";
 import { PiGenderIntersexBold } from "react-icons/pi";
 import apiAuth from '../../api/auth/index';
 import { login } from "../../store/slice/auth";
-import toast from "../../utils/toast"; 
+import toast from "../../utils/toast";
+import medicalChatService from "../../api/MedicalChat"; 
 
 const LoginRegister = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isRegister, setIsRegister] = useState(false);
 
   const dispatch = useDispatch();
@@ -52,6 +56,16 @@ const LoginRegister = () => {
     setRegisterData({ ...registerData, gioi_tinh: gender });
   };
 
+  // Kiểm tra session expired từ query param
+  useEffect(() => {
+    const sessionExpired = searchParams.get('sessionExpired');
+    if (sessionExpired === 'true') {
+      toast.error("Phiên đăng nhập của bạn đã hết hạn. Vui lòng đăng nhập lại!");
+      // Xóa query param để tránh hiển thị lại thông báo khi refresh
+      navigate('/login', { replace: true });
+    }
+  }, [searchParams, navigate]);
+
   // Reset forms khi chuyển đổi
   useEffect(() => {
     if (isRegister) {
@@ -82,64 +96,84 @@ const LoginRegister = () => {
     e.preventDefault();
     try {
       const res = await apiAuth.login(loginData);
-    const { success } = res;
-    const { user, accessToken, refreshToken } = res.data;
-    if (success && accessToken && refreshToken) {
-
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("isLogin", "true");
-      localStorage.setItem("userInfo", JSON.stringify({ user }));
-      console.log(user);
-      dispatch(login({
-        userInfo: user,
-        accessToken,
-        vai_tro: user.vai_tro
-      }));
-      switch (user.vai_tro) {
-        case "bac_si":
-          toast.success("Chào mừng bác sĩ, đăng nhập thành công!");
-          navigate("/doctor");
-          break;
-
-        case "benh_nhan":
-          toast.success("Chào mừng bệnh nhân, đăng nhập thành công!");
-          navigate("/");
-          break;
-
-        case "quan_tri_vien":
-          toast.success("Chào mừng quản trị viên, đăng nhập thành công!");
-          navigate("/admin");
-          break;
-
-        case "nhan_vien_phan_cong":
-          toast.success("Chào mừng nhân viên phân công, đăng nhập thành công!");
-          navigate("/staff");
-          break;
-
-        case "nhan_vien_quay":
-          toast.success("Chào mừng nhân viên quầy, đăng nhập thành công!");
-          navigate("/receptionist");
-          break;
-
-        case "chuyen_gia_dinh_duong":
-          toast.success("Chào mừng chuyên gia dinh dưỡng, đăng nhập thành công!");
-          navigate("/");
-          break;
-
-        default:
-          toast.success("Đăng nhập thành công!");
-          navigate("/");
-          break;
+      const { success } = res;
+      
+      // Nếu success: false, hiển thị toast lỗi
+      if (success === false) {
+        const errorMessage = res.message || "Tên đăng nhập hoặc mật khẩu không đúng!";
+        toast.error(errorMessage);
+        return;
       }
-    } else {
-      toast.error("Tên đăng nhập hoặc mật khẩu không đúng!");
+      
+      const { user, accessToken, refreshToken } = res.data;
+      if (success && accessToken && refreshToken) {
+        // Clear all chat data before logging in (to prevent chat from previous user)
+        medicalChatService.clearAllChatData();
+        
+        localStorage.setItem("accessToken", accessToken);
+        localStorage.setItem("refreshToken", refreshToken);
+        localStorage.setItem("isLogin", "true");
+        localStorage.setItem("userInfo", JSON.stringify({ user }));
+        console.log(user);
+        dispatch(login({
+          userInfo: user,
+          accessToken,
+          vai_tro: user.vai_tro
+        }));
+        switch (user.vai_tro) {
+          case "bac_si":
+            toast.success("Chào mừng bác sĩ, đăng nhập thành công!");
+            navigate("/doctor");
+            break;
+
+          case "benh_nhan":
+            toast.success("Chào mừng bệnh nhân, đăng nhập thành công!");
+            // Đánh dấu cần kiểm tra profile sau khi đăng nhập (chỉ 1 lần)
+            // Với benh_nhan, id_nguoi_dung chính là id_benh_nhan
+            const benhNhanId = user.id_benh_nhan || user.id_nguoi_dung;
+            if (benhNhanId) {
+              const checkKey = `profile_check_needed_${benhNhanId}`;
+              localStorage.setItem(checkKey, "true");
+              console.log("Login - Set profile check flag:", checkKey);
+            } else {
+              console.warn("Login - Cannot set profile check flag: no benhNhanId", user);
+            }
+            navigate("/");
+            break;
+
+          case "quan_tri_vien":
+            toast.success("Chào mừng quản trị viên, đăng nhập thành công!");
+            navigate("/admin");
+            break;
+
+          case "nhan_vien_phan_cong":
+            toast.success("Chào mừng nhân viên phân công, đăng nhập thành công!");
+            navigate("/staff");
+            break;
+
+          case "nhan_vien_quay":
+            toast.success("Chào mừng nhân viên quầy, đăng nhập thành công!");
+            navigate("/receptionist");
+            break;
+
+          case "chuyen_gia_dinh_duong":
+            toast.success("Chào mừng chuyên gia dinh dưỡng, đăng nhập thành công!");
+            navigate("/");
+            break;
+
+          default:
+            toast.success("Đăng nhập thành công!");
+            navigate("/");
+            break;
+        }
+      }
+    } catch (err) {
+      console.error("Login failed:", err);
+      // Hiển thị toast lỗi từ response hoặc message mặc định
+      const errorMessage = err.response?.data?.message || err.message || "Đăng nhập thất bại!";
+      toast.error(errorMessage);
     }
-  } catch (err) {
-    console.error("Login failed:", err);
-    toast.error("Đăng nhập thất bại!");
-  }
-};
+  };
 
   // Submit Register
   const handleRegisterSubmit = async (e) => {
@@ -154,16 +188,56 @@ const LoginRegister = () => {
     try {
       const res = await axios.post("http://localhost:5005/nguoi-dung/register", registerData);
       console.log("Register success:", res.data);
-      toast.success("Đăng ký thành công!");
-      setIsRegister(false); // Quay lại login
+      if (res.data?.success === false) {
+        // Nếu success: false, hiển thị toast lỗi
+        const errorMessage = res.data.message || "Đăng ký thất bại!";
+        toast.error(errorMessage);
+      } else {
+        toast.success("Đăng ký thành công!");
+        setIsRegister(false); // Quay lại login
+      }
     } catch (err) {
       console.error("Register failed:", err);
-      toast.error("Đăng ký thất bại!");
+      // Hiển thị toast lỗi từ response hoặc message mặc định
+      const errorMessage = err.response?.data?.message || err.message || "Đăng ký thất bại!";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleBack = () => {
+    // Quay lại trang trước hoặc về trang chủ nếu không có
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/");
     }
   };
 
   return (
     <div className={styles.loginPage}>
+      {/* Back Button */}
+      <Button
+        icon={<ArrowLeftOutlined />}
+        onClick={handleBack}
+        style={{
+          position: "absolute",
+          top: 20,
+          left: 20,
+          zIndex: 1000,
+          background: "rgba(255, 255, 255, 0.9)",
+          border: "none",
+          borderRadius: 8,
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+          padding: "8px 16px",
+          height: "auto",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        Quay lại
+      </Button>
+      
       <div className={`${styles.wrapper} ${isRegister ? styles.active : ""}`}>
         
         {/* Login Form */}

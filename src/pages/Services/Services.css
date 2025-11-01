@@ -1,0 +1,516 @@
+/* Services Page Styles */
+.services-page {
+  min-height: 100vh;
+  background: #f0f2f5;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 16px;
+  }
+}
+
+/* Hero Section */
+.services-hero {
+  position: relative;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+  padding: 80px 20px;
+  overflow: hidden;
+}
+
+.services-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(120, 219, 255, 0.3) 0%, transparent 50%);
+  animation: float 20s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.1);
+  }
+}
+
+.services-hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  z-index: 1;
+}
+
+.services-hero-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  text-align: center;
+  color: white;
+}
+
+.services-main-title {
+  color: white !important;
+  font-size: 3.5rem !important;
+  font-weight: 700 !important;
+  margin-bottom: 16px !important;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.services-subtitle {
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-size: 1.25rem !important;
+  margin: 0 0 32px 0 !important;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.services-search {
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.services-search .ant-input {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 16px;
+  padding: 12px 20px;
+  transition: all 0.3s ease;
+}
+
+.services-search .ant-input:focus,
+.services-search .ant-input:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.services-search .ant-input-search-button {
+  border-radius: 0 12px 12px 0;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.services-search .ant-input-search-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Statistics Section */
+.section-gradient {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #096dd9 0%, #40a9ff 100%);
+  padding: 60px 0;
+  color: white;
+}
+
+.section-gradient::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: rotate 20s linear infinite;
+}
+
+.section-gradient::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.3;
+  animation: float 20s ease-in-out infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.stat-card {
+  text-align: center;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-8px) scale(1.05);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+.stat-card .ant-statistic-title {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.stat-card .ant-statistic-content {
+  color: white !important;
+}
+
+.stat-card .anticon {
+  font-size: 2rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-right: 8px;
+}
+
+/* Services Grid */
+.section-white {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Service Card */
+.service-card-item {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: visible;
+  cursor: pointer;
+}
+
+.service-card-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.5s;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.service-card-item:hover::before {
+  left: 100%;
+}
+
+.service-card-item:hover {
+  transform: translateY(-12px) scale(1.02);
+  box-shadow: 0 20px 48px rgba(9, 109, 217, 0.3) !important;
+  border-color: rgba(9, 109, 217, 0.4) !important;
+}
+
+.service-card-item .ant-card-cover {
+  overflow: hidden;
+  border-radius: 20px 20px 0 0;
+  position: relative;
+}
+
+.service-card-item .ant-card-cover img {
+  transition: transform 0.5s ease;
+}
+
+.service-card-item:hover .ant-card-cover img {
+  transform: scale(1.1);
+}
+
+/* Badge Ribbon */
+.ant-badge-ribbon {
+  z-index: 10;
+}
+
+/* Rating Badge */
+.ant-card-cover .ant-tag {
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Category Filter Buttons */
+.ant-btn {
+  transition: all 0.3s ease;
+}
+
+/* Enhanced Card Content */
+.service-card-item .ant-card-body {
+  background: white;
+  border-radius: 0 0 20px 20px;
+}
+
+.service-icon-container {
+  position: relative;
+  z-index: 2;
+}
+
+.service-icon-wrapper {
+  transition: all 0.4s ease;
+  position: relative;
+}
+
+.service-card-item:hover .service-icon-wrapper {
+  transform: scale(1.15) rotate(5deg);
+  background: linear-gradient(135deg, rgba(9, 109, 217, 0.15), rgba(64, 169, 255, 0.05)) !important;
+  box-shadow: 0 8px 20px rgba(9, 109, 217, 0.3);
+}
+
+.service-color-bar {
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.service-card-item:hover .service-color-bar {
+  height: 6px;
+  box-shadow: 0 2px 8px rgba(9, 109, 217, 0.4);
+}
+
+.service-card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(9, 109, 217, 0.05) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.service-card-item:hover .service-card-overlay {
+  opacity: 1;
+}
+
+.service-card-item .ant-card-body {
+  position: relative;
+  z-index: 2;
+}
+
+/* CTA Section */
+.cta-card {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: rotate 20s linear infinite;
+}
+
+.cta-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 48px rgba(9, 109, 217, 0.3);
+}
+
+.cta-card .ant-btn-primary {
+  transition: all 0.3s ease;
+}
+
+.cta-card .ant-btn-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(255, 255, 255, 0.3);
+}
+
+/* Animations */
+.animate-on-scroll {
+  opacity: 1;
+  transition: opacity 0.6s ease-out;
+}
+
+.animate-fade-in-up {
+  opacity: 1;
+  transform: translateY(0);
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.animate-fade-in-up-delay {
+  opacity: 1;
+  transform: translateY(0);
+  animation: fadeInUp 0.8s ease-out 0.2s forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-stagger {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  animation: staggerIn 0.6s ease-out forwards;
+}
+
+@keyframes staggerIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-scale-in {
+  opacity: 1;
+  transform: scale(1);
+  animation: scaleIn 0.6s ease-out forwards;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .services-main-title {
+    font-size: 2.5rem !important;
+  }
+
+  .services-subtitle {
+    font-size: 1.1rem !important;
+  }
+
+  .services-hero {
+    min-height: 300px;
+    padding: 60px 20px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-card .ant-statistic-content {
+    font-size: 1.8rem !important;
+  }
+
+  .service-card-item {
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .services-main-title {
+    font-size: 2rem !important;
+  }
+
+  .services-subtitle {
+    font-size: 1rem !important;
+  }
+
+  .services-hero {
+    min-height: 250px;
+    padding: 40px 16px;
+  }
+
+  .container {
+    padding: 0 12px;
+  }
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Loading State */
+.ant-spin-container {
+  min-height: 400px;
+}
+
+/* Empty State */
+.ant-empty {
+  padding: 80px 0;
+}
+
+/* Tag Styles */
+.ant-tag {
+  border-radius: 12px;
+  padding: 4px 12px;
+  font-weight: 500;
+}
+
+/* Card Text Visibility */
+.service-card-item .ant-typography {
+  color: #333 !important;
+  position: relative;
+  z-index: 2;
+}
+
+.service-card-item .ant-typography.ant-typography-h4 {
+  color: #096dd9 !important;
+}
+
+.service-card-item:hover .ant-typography.ant-typography-h4 {
+  color: #096dd9 !important;
+}
+
+/* Search Input Enhancement */
+.services-search .ant-input-search-button .anticon {
+  color: white;
+  font-size: 18px;
+}
+

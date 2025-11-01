@@ -39,6 +39,8 @@ import {
 } from "@ant-design/icons";
 import { motion, useAnimation } from "framer-motion";
 import { useInView } from "react-intersection-observer";
+import BookingModal from "../../components/Header/BookingModal";
+import LoginRequiredModal from "../../components/LoginRequiredModal/LoginRequiredModal";
 import "./About.css";
 import about1 from "../../images/about-img1.jpg";
 import about2 from "../../images/about-img2.jpg";
@@ -106,10 +108,27 @@ const SlideInItem = ({ children }) => {
 const About = () => {
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showLoginRequiredModal, setShowLoginRequiredModal] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
+
+  const checkLoginAndShowModal = (callback) => {
+    const loginStatus = localStorage.getItem("isLogin");
+    if (loginStatus !== "true") {
+      setShowLoginRequiredModal(true);
+      return;
+    }
+    callback();
+  };
+
+  const handleBookingClick = () => {
+    checkLoginAndShowModal(() => {
+      setShowBookingModal(true);
+    });
+  };
 
   const heartValues = [
     {
@@ -288,7 +307,7 @@ const About = () => {
           <div className="shape shape-2"></div>
           <div className="shape shape-3"></div>
         </div>
-        
+
         <div className="container">
           <Row gutter={[48, 32]} align="middle">
             <Col xs={24} md={12}>
@@ -311,7 +330,7 @@ const About = () => {
                       type="primary"
                       size="large"
                       icon={<CalendarOutlined />}
-                      onClick={() => navigate("/specialties")}
+                      onClick={handleBookingClick}
                       style={{
                         background: "white",
                         color: "#096dd9",
@@ -356,8 +375,8 @@ const About = () => {
                 style={{ textAlign: "center", position: "relative" }}
               >
                 <motion.img
-                  src={about1}
-                  alt="Giới thiệu"
+            src={about1}
+            alt="Giới thiệu"
                   style={{
                     width: "100%",
                     maxWidth: "100%",
@@ -547,7 +566,7 @@ const About = () => {
                             <Paragraph style={{ color: "#666", margin: 0, fontSize: 15, lineHeight: 1.8 }}>
                               {value.description}
                             </Paragraph>
-                          </div>
+            </div>
                         </Space>
                       </Card>
                     </motion.div>
@@ -556,7 +575,7 @@ const About = () => {
               ))}
             </Row>
           </StaggerChildren>
-        </div>
+            </div>
 
         {/* Timeline */}
         <div style={{ marginBottom: 80 }}>
@@ -623,7 +642,7 @@ const About = () => {
                           <Paragraph style={{ color: "#666", margin: 0, fontSize: 16, lineHeight: 1.8 }}>
                             {milestone.description}
                           </Paragraph>
-                        </div>
+            </div>
                       </Space>
                     </Card>
                   </motion.div>
@@ -742,8 +761,8 @@ const About = () => {
                     whileHover={{ scale: 1.05 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <img
-                      src={about2}
+          <img
+            src={about2}
                       alt="Liên hệ"
                       style={{
                         width: "100%",
@@ -766,6 +785,20 @@ const About = () => {
         style={{ 
           right: 24,
           bottom: 24,
+        }}
+      />
+
+      {/* Modals */}
+      <BookingModal
+        show={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+      />
+      
+      {/* Login Required Modal */}
+      <LoginRequiredModal
+        open={showLoginRequiredModal}
+        onCancel={() => {
+          setShowLoginRequiredModal(false);
         }}
       />
     </div>

@@ -30,9 +30,9 @@ const getMessageApi = () => {
 /**
  * Hiển thị thông báo thành công
  * @param {string} content - Nội dung thông báo
- * @param {number} duration - Thời gian hiển thị (giây), mặc định 3s
+ * @param {number} duration - Thời gian hiển thị (giây), mặc định 4s
  */
-export const showToastSuccess = (content, duration = 3) => {
+export const showToastSuccess = (content, duration = 4) => {
   const api = getMessageApi();
   if (api) {
     api.success(content, duration);
@@ -45,9 +45,9 @@ export const showToastSuccess = (content, duration = 3) => {
 /**
  * Hiển thị thông báo lỗi
  * @param {string} content - Nội dung thông báo
- * @param {number} duration - Thời gian hiển thị (giây), mặc định 3s
+ * @param {number} duration - Thời gian hiển thị (giây), mặc định 4s
  */
-export const showToastError = (content, duration = 3) => {
+export const showToastError = (content, duration = 4) => {
   const api = getMessageApi();
   if (api) {
     api.error(content, duration);
@@ -59,9 +59,9 @@ export const showToastError = (content, duration = 3) => {
 /**
  * Hiển thị thông báo cảnh báo
  * @param {string} content - Nội dung thông báo
- * @param {number} duration - Thời gian hiển thị (giây), mặc định 3s
+ * @param {number} duration - Thời gian hiển thị (giây), mặc định 4s
  */
-export const showToastWarning = (content, duration = 3) => {
+export const showToastWarning = (content, duration = 4) => {
   const api = getMessageApi();
   if (api) {
     api.warning(content, duration);
@@ -73,9 +73,9 @@ export const showToastWarning = (content, duration = 3) => {
 /**
  * Hiển thị thông báo thông tin
  * @param {string} content - Nội dung thông báo
- * @param {number} duration - Thời gian hiển thị (giây), mặc định 3s
+ * @param {number} duration - Thời gian hiển thị (giây), mặc định 4s
  */
-export const showToastInfo = (content, duration = 3) => {
+export const showToastInfo = (content, duration = 4) => {
   const api = getMessageApi();
   if (api) {
     api.info(content, duration);

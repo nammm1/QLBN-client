@@ -153,46 +153,46 @@ const DoctorAppointmentDetail = () => {
         if (chiDinhData && chiDinhData.length > 0) {
           const ketQuaMap = {};
           const ketQuaPromises = chiDinhData.map(async (chiDinh) => {
-              try {
-                const ketQua = await apiKetQuaXetNghiem.getByChiDinh(chiDinh.id_chi_dinh);
-                
-                // Kiểm tra cấu trúc response thực tế
-                // API có thể trả về trực tiếp data hoặc wrap trong object
-                if (ketQua) {
-                  // Nếu có thuộc tính data, lấy data
-                  if (ketQua.data) {
-                    return { 
-                      chiDinhId: chiDinh.id_chi_dinh, 
-                      data: ketQua.data 
-                    };
-                  }
-                  // Nếu không có, có thể response là data trực tiếp
-                  return { 
-                    chiDinhId: chiDinh.id_chi_dinh, 
-                    data: ketQua 
-                  };
-                }
-                return null;
-              } catch (error) {
-                // 404 hoặc lỗi khác - không có kết quả là bình thường
-                if (error.response?.status !== 404) {
-                  console.error(`Lỗi khi lấy kết quả cho ${chiDinh.id_chi_dinh}:`, error);
-                }
+            try {
+              // API trả về null nếu chưa có kết quả, không throw error
+              const ketQua = await apiKetQuaXetNghiem.getByChiDinh(chiDinh.id_chi_dinh);
+              
+              // Nếu ketQua là null, không có kết quả
+              if (!ketQua) {
                 return null;
               }
-            });
-          
-            const ketQuaResults = await Promise.all(ketQuaPromises);
-
-            // Xây dựng map kết quả
-            ketQuaResults.forEach(result => {
-              if (result && result.data) {
-                ketQuaMap[result.chiDinhId] = result.data;
+              
+              // Nếu có thuộc tính data, lấy data
+              if (ketQua.data) {
+                return { 
+                  chiDinhId: chiDinh.id_chi_dinh, 
+                  data: ketQua.data 
+                };
               }
-            });
+              
+              // Nếu không có, có thể response là data trực tiếp
+              return { 
+                chiDinhId: chiDinh.id_chi_dinh, 
+                data: ketQua 
+              };
+            } catch (error) {
+              // Chỉ log lỗi thực sự (không phải lỗi do chưa có kết quả)
+              console.error(`Lỗi khi lấy kết quả cho ${chiDinh.id_chi_dinh}:`, error);
+              return null;
+            }
+          });
+        
+          const ketQuaResults = await Promise.all(ketQuaPromises);
 
-            setKetQuaXetNghiem(ketQuaMap);
-          }
+          // Xây dựng map kết quả
+          ketQuaResults.forEach(result => {
+            if (result && result.data) {
+              ketQuaMap[result.chiDinhId] = result.data;
+            }
+          });
+
+          setKetQuaXetNghiem(ketQuaMap);
+        }
 
         if (appt.trang_thai === "da_hoan_thanh") {
           const lichSuHienTai = await apiLichSuKham.getLichSuKhamByCuocHen(appt.id_cuoc_hen);
@@ -457,6 +457,47 @@ const DoctorAppointmentDetail = () => {
 
   const handleExportPdf = async () => {
     try {
+      // Nếu đã hoàn thành thì chỉ in, không xử lý logic nữa
+      if (appointment?.trang_thai === "da_hoan_thanh") {
+        const input = document.getElementById("invoicePreview");
+        if (!input) return;
+
+        const canvas = await html2canvas(input, {
+          scale: 2,
+          useCORS: true,     
+          logging: false,
+        });
+
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF("p", "mm", "a4"); 
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+
+        const imgProps = {
+          width: pdfWidth,
+          height: (canvas.height * pdfWidth) / canvas.width,
+        };
+
+        if (imgProps.height <= pdfHeight) {
+          pdf.addImage(imgData, "PNG", 0, 0, imgProps.width, imgProps.height);
+        } else {
+          let heightLeft = imgProps.height;
+          let y = 0;
+          while (heightLeft > 0) {
+            pdf.addImage(imgData, "PNG", 0, y, imgProps.width, imgProps.height);
+            heightLeft -= pdfHeight;
+            y -= pdfHeight;
+            if (heightLeft > 0) pdf.addPage();
+          }
+        }
+
+        pdf.save(`HoaDon_${id_cuoc_hen}.pdf`);
+        message.success("Xuất hóa đơn thành công");
+        setShowPreview(false);
+        return;
+      }
+
+      // Logic xử lý khi chưa hoàn thành
       // Kiểm tra và lưu đơn thuốc - kiểm tra tất cả các phần tử có id_thuoc không
       const coDonThuoc = donThuocTamThoi.length > 0 && donThuocTamThoi.some(item => item.id_thuoc);
       if (coDonThuoc) {
@@ -1758,7 +1799,7 @@ const DoctorAppointmentDetail = () => {
             Đóng
           </Button>,
           <Button key="export" type="primary" icon={<PrinterOutlined />} onClick={handleExportPdf}>
-            Xuất PDF & Kết thúc khám
+            {appointment?.trang_thai === "da_hoan_thanh" ? "In hóa đơn" : "Xuất PDF & Kết thúc khám"}
           </Button>,
         ]}
       >

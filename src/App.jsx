@@ -29,6 +29,7 @@ import ReceptionistWorkSchedule from "./pages/NhanVienQuay/WorkSchedule/Receptio
 import ReceptionistProfile from "./pages/NhanVienQuay/Profile/ReceptionistProfile";
 import Login from "./pages/Login/LoginRegister";
 import Specialties from "./pages/Specialties/Specialties";
+import PublicServices from "./pages/Services/Services";
 import Doctors from "./pages/Doctors/Doctors";
 import Nutritionist from "./pages/Nutritionist/Nutritionist";
 import UpdateProfile from "./pages/UpdateProfile/UpdateProfile";
@@ -42,7 +43,6 @@ import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import Accounts from "./pages/Admin/Accounts/AdminAccounts";
 import Medicines from "./pages/Admin/Medicines/AdminMedicines";
-import Services from "./pages/Admin/Services/AdminServices";
 import AdminSpecialties from "./pages/Admin/Specialties/AdminSpecialties";
 import Reports from "./pages/Admin/Reports/AdminReports";
 import AdminAccounts from "./pages/Admin/Accounts/AdminAccounts";
@@ -64,6 +64,7 @@ function App() {
           <Route path="/news" element={<News />} />
           <Route path="/about" element={<About />} />
           <Route path="/specialties" element={<Specialties />} />
+          <Route path="/services" element={<PublicServices />} />
           <Route path="/doctors" element={<Doctors />} />
           <Route path="/nutritionist" element={<Nutritionist />} />
           <Route path="/updateprofile" element={<UpdateProfile />} />

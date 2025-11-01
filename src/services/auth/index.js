@@ -19,23 +19,28 @@ const authService = {
             throw new Error(err.message)
         }
     },
-    renewAccessToken: async (RESOURCES ,localRefreshToken) => {
-        // uncomment code ở dưới để gọi api backend
+    renewAccessToken: async (localRefreshToken) => {
+        try {
+            const response = await apiAuth.renewAccessToken(localRefreshToken);
+            
+            // Backend trả về: { success: true, data: { accessToken }, message: "..." }
+            if (!response.success || !response.data?.accessToken) {
+                throw new Error(response.message || 'Không thể làm mới token');
+            }
 
-        const { newAccessToken, userInfo, role ,success, newRefreshToken } = await apiAuth.renewAccessToken(RESOURCES,localRefreshToken)
-        if (!newAccessToken) {
-            throw new Error('Data was empty')
+            const { accessToken } = response.data;
+            
+            // Cập nhật access token mới vào localStorage
+            localStorage.setItem("accessToken", accessToken);
+            // Refresh token không đổi, không cần cập nhật
+            
+            return {
+                accessToken,
+                success: true
+            }
+        } catch (err) {
+            throw new Error(err.message || 'Lỗi khi làm mới token')
         }
-        localStorage.setItem("accessToken", newAccessToken);
-        localStorage.setItem("refreshToken", newRefreshToken);
-        return {
-            userInfo,
-            role,
-            success,
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken
-        }
-
     }
 }
 

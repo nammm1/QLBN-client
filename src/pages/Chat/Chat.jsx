@@ -259,7 +259,7 @@ const Chat = () => {
       }
     } catch (error) {
       console.error("Error auto-opening conversation:", error);
-      message.error(error.response?.data?.message || "Lỗi khi mở cuộc trò chuyện");
+      // Toast đã được hiển thị tự động bởi axios interceptor
       setSearchParams({});
     } finally {
       setLoading(false);
@@ -323,9 +323,7 @@ const Chat = () => {
       }
     } catch (error) {
       console.error("Error loading conversations:", error);
-      if (!silent) {
-        message.error("Lỗi khi tải danh sách cuộc trò chuyện");
-      }
+      // Toast đã được hiển thị tự động bởi axios interceptor (trừ khi silent)
     } finally {
       if (!silent) {
         setLoading(false);
@@ -447,7 +445,7 @@ const Chat = () => {
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      message.error("Lỗi khi gửi tin nhắn");
+      // Toast đã được hiển thị tự động bởi axios interceptor
     } finally {
       setSending(false);
     }
@@ -614,7 +612,7 @@ const Chat = () => {
       }
     } catch (error) {
       console.error("Error loading users:", error);
-      message.error("Lỗi khi tải danh sách người dùng");
+      // Toast đã được hiển thị tự động bởi axios interceptor
       setUsers([]);
     } finally {
       setLoadingUsers(false);
@@ -695,7 +693,7 @@ const Chat = () => {
       }
     } catch (error) {
       console.error("Error creating conversation:", error);
-      message.error(error.response?.data?.message || "Lỗi khi tạo cuộc trò chuyện");
+      // Toast đã được hiển thị tự động bởi axios interceptor
     } finally {
       setLoading(false);
     }
@@ -777,7 +775,7 @@ const Chat = () => {
       }
     } catch (error) {
       console.error("Error deleting message:", error);
-      message.error(error.response?.data?.message || "Lỗi khi xóa tin nhắn");
+      // Toast đã được hiển thị tự động bởi axios interceptor
       // Ẩn icon xóa khi có lỗi
       handleHideDeleteIcon(id_tin_nhan);
     }

@@ -94,6 +94,9 @@ const UpdateProfile = () => {
           ten_nguoi_lien_he_khan_cap: benhNhanData.ten_nguoi_lien_he_khan_cap ?? "",
           sdt_nguoi_lien_he_khan_cap: benhNhanData.sdt_nguoi_lien_he_khan_cap ?? "",
           ma_BHYT: benhNhanData.ma_BHYT ?? "",
+          thong_tin_bao_hiem: benhNhanData.thong_tin_bao_hiem ?? "",
+          tien_su_benh_ly: benhNhanData.tien_su_benh_ly ?? "",
+          tinh_trang_suc_khoe_hien_tai: benhNhanData.tinh_trang_suc_khoe_hien_tai ?? "",
         };
 
         setProfileData(merged);
@@ -153,8 +156,9 @@ const UpdateProfile = () => {
       }
     } catch (error) {
       console.error("Error uploading image:", error);
-      const errorMessage = error?.response?.data?.message || "Upload ảnh thất bại, vui lòng thử lại!";
-      toast.error(errorMessage);
+      // Toast đã được hiển thị tự động bởi axios interceptor với message từ API
+      // const errorMessage = error?.response?.data?.message || "Upload ảnh thất bại, vui lòng thử lại!";
+      // toast.error(errorMessage);
     } finally {
       setUploadingImage(false);
     }
@@ -200,6 +204,9 @@ const UpdateProfile = () => {
         ten_nguoi_lien_he_khan_cap: values.ten_nguoi_lien_he_khan_cap,
         sdt_nguoi_lien_he_khan_cap: values.sdt_nguoi_lien_he_khan_cap,
         ma_BHYT: values.ma_BHYT,
+        thong_tin_bao_hiem: values.thong_tin_bao_hiem,
+        tien_su_benh_ly: values.tien_su_benh_ly,
+        tinh_trang_suc_khoe_hien_tai: values.tinh_trang_suc_khoe_hien_tai,
       };
 
       // Filter out empty, undefined, and null values
@@ -250,8 +257,9 @@ const UpdateProfile = () => {
       }
     } catch (err) {
       console.error("Lỗi khi cập nhật:", err);
-      const errorMessage = err?.response?.data?.message || "Cập nhật thất bại, vui lòng thử lại!";
-      toast.error(errorMessage);
+      // Toast đã được hiển thị tự động bởi axios interceptor với message từ API
+      // const errorMessage = err?.response?.data?.message || "Cập nhật thất bại, vui lòng thử lại!";
+      // toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -277,8 +285,9 @@ const UpdateProfile = () => {
       passwordForm.resetFields();
     } catch (error) {
       console.error("Lỗi khi đổi mật khẩu:", error);
-      const errorMessage = error?.response?.data?.message || "Đổi mật khẩu thất bại!";
-      toast.error(errorMessage);
+      // Toast đã được hiển thị tự động bởi axios interceptor với message từ API
+      // const errorMessage = error?.response?.data?.message || "Đổi mật khẩu thất bại!";
+      // toast.error(errorMessage);
     }
   };
 
@@ -571,6 +580,42 @@ const UpdateProfile = () => {
                           <Input 
                             prefix={<PhoneOutlined />} 
                             placeholder="Nhập số điện thoại" 
+                            className="modern-input"
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24}>
+                        <Form.Item
+                          name="thong_tin_bao_hiem"
+                          label="Thông tin bảo hiểm"
+                        >
+                          <Input.TextArea
+                            rows={3}
+                            placeholder="Nhập thông tin bảo hiểm"
+                            className="modern-input"
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24}>
+                        <Form.Item
+                          name="tien_su_benh_ly"
+                          label="Tiền sử bệnh lý"
+                        >
+                          <Input.TextArea
+                            rows={4}
+                            placeholder="Nhập tiền sử bệnh lý, các bệnh đã mắc trước đây..."
+                            className="modern-input"
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24}>
+                        <Form.Item
+                          name="tinh_trang_suc_khoe_hien_tai"
+                          label="Tình trạng sức khỏe hiện tại"
+                        >
+                          <Input.TextArea
+                            rows={4}
+                            placeholder="Nhập tình trạng sức khỏe hiện tại..."
                             className="modern-input"
                           />
                         </Form.Item>

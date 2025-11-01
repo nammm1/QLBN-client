@@ -631,6 +631,37 @@
 }
 
 /* ========================================
+   DOCTOR SELECT BUTTON
+   ======================================== */
+.btn-select-doctor {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 15px;
+  color: #1f2937;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-select-doctor:hover:not(:disabled) {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 3px rgba(64, 169, 255, 0.1);
+}
+
+.btn-select-doctor:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ========================================
    SCROLLBAR CUSTOMIZATION
    ======================================== */
 .modal-container::-webkit-scrollbar {

@@ -14,6 +14,7 @@ import {
 import { Menu, Avatar, Typography, Tooltip, Badge } from "antd";
 import apiChat from "../../api/Chat";
 import apiCuocHenKham from "../../api/CuocHenKhamBenh";
+import medicalChatService from "../../api/MedicalChat";
 
 const { Title, Text } = Typography;
 
@@ -202,7 +203,12 @@ const ReceptionistSidebar = ({ collapsed = false }) => {
             
             if (item.key === "logout") {
               menuItem.onClick = () => {
+                // Clear all chat data before logging out
+                medicalChatService.clearAllChatData();
                 localStorage.removeItem("userInfo");
+                localStorage.removeItem("accessToken");
+                localStorage.removeItem("refreshToken");
+                localStorage.removeItem("isLogin");
                 window.location.href = "/login";
               };
             } else if (item.path) {

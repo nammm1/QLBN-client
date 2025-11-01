@@ -1,0 +1,278 @@
+/* Custom Toast Styles - Làm toast to hơn, đẹp hơn với animation và icon chuyển động */
+
+/* Container chính của message */
+.ant-message {
+  top: 24px !important;
+  z-index: 1010;
+}
+
+/* Toast item */
+.ant-message-notice {
+  margin-bottom: 16px;
+  padding: 0;
+}
+
+.ant-message-notice-content {
+  display: flex;
+  align-items: center;
+  padding: 18px 24px !important;
+  min-height: 64px !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(10px);
+  font-size: 15px !important;
+  font-weight: 500;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 480px !important;
+  animation: slideInFromTop 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animation khi toast xuất hiện */
+@keyframes slideInFromTop {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Animation khi toast biến mất */
+.ant-message-notice-leave {
+  animation: slideOutToTop 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideOutToTop {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+}
+
+/* Icon container - Làm icon to hơn */
+.ant-message-notice-content .anticon {
+  font-size: 24px !important;
+  width: 32px !important;
+  height: 32px !important;
+  margin-right: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0;
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+/* Animation cho icon - Pulse effect */
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Icon rotation animation cho một số icon */
+.ant-message-success .anticon-check-circle {
+  animation: iconPulse 2s ease-in-out infinite, iconSpin 3s linear infinite;
+}
+
+.ant-message-error .anticon-close-circle {
+  animation: iconShake 0.5s ease-in-out infinite;
+}
+
+.ant-message-warning .anticon-exclamation-circle {
+  animation: iconBounce 2s ease-in-out infinite;
+}
+
+.ant-message-info .anticon-info-circle {
+  animation: iconRotate 3s linear infinite;
+}
+
+@keyframes iconSpin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(90deg) scale(1.05);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.1);
+  }
+  75% {
+    transform: rotate(270deg) scale(1.05);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes iconShake {
+  0%, 100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateX(-3px) rotate(-5deg);
+  }
+  75% {
+    transform: translateX(3px) rotate(5deg);
+  }
+}
+
+@keyframes iconBounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.05);
+  }
+}
+
+@keyframes iconRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Text content */
+.ant-message-notice-content .ant-message-custom-content {
+  font-size: 15px !important;
+  line-height: 1.6 !important;
+  color: #333 !important;
+  flex: 1;
+}
+
+/* Success Toast */
+.ant-message-success .anticon-check-circle {
+  color: #52c41a !important;
+}
+
+.ant-message-success .ant-message-notice-content {
+  background: linear-gradient(135deg, #f6ffed 0%, #ffffff 100%) !important;
+  border-left: 4px solid #52c41a;
+  box-shadow: 0 8px 32px rgba(82, 196, 26, 0.15), 0 2px 8px rgba(82, 196, 26, 0.1) !important;
+}
+
+.ant-message-success .ant-message-custom-content {
+  color: #389e0d !important;
+}
+
+/* Error Toast */
+.ant-message-error .anticon-close-circle {
+  color: #ff4d4f !important;
+}
+
+.ant-message-error .ant-message-notice-content {
+  background: linear-gradient(135deg, #fff2f0 0%, #ffffff 100%) !important;
+  border-left: 4px solid #ff4d4f;
+  box-shadow: 0 8px 32px rgba(255, 77, 79, 0.15), 0 2px 8px rgba(255, 77, 79, 0.1) !important;
+}
+
+.ant-message-error .ant-message-custom-content {
+  color: #cf1322 !important;
+}
+
+/* Warning Toast */
+.ant-message-warning .anticon-exclamation-circle {
+  color: #faad14 !important;
+}
+
+.ant-message-warning .ant-message-notice-content {
+  background: linear-gradient(135deg, #fffbe6 0%, #ffffff 100%) !important;
+  border-left: 4px solid #faad14;
+  box-shadow: 0 8px 32px rgba(250, 173, 20, 0.15), 0 2px 8px rgba(250, 173, 20, 0.1) !important;
+}
+
+.ant-message-warning .ant-message-custom-content {
+  color: #d48806 !important;
+}
+
+/* Info Toast */
+.ant-message-info .anticon-info-circle {
+  color: #1890ff !important;
+}
+
+.ant-message-info .ant-message-notice-content {
+  background: linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%) !important;
+  border-left: 4px solid #1890ff;
+  box-shadow: 0 8px 32px rgba(24, 144, 255, 0.15), 0 2px 8px rgba(24, 144, 255, 0.1) !important;
+}
+
+.ant-message-info .ant-message-custom-content {
+  color: #0958d9 !important;
+}
+
+/* Hover effect */
+.ant-message-notice-content:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ant-message-notice-content {
+    padding: 16px 20px !important;
+    min-height: 56px !important;
+    font-size: 14px !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  .ant-message-notice-content .anticon {
+    font-size: 22px !important;
+    width: 28px !important;
+    height: 28px !important;
+    margin-right: 12px !important;
+  }
+
+  .ant-message-notice-content .ant-message-custom-content {
+    font-size: 14px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .ant-message {
+    top: 16px !important;
+    left: 16px !important;
+    right: 16px !important;
+  }
+
+  .ant-message-notice-content {
+    padding: 14px 18px !important;
+    min-height: 52px !important;
+    border-radius: 10px !important;
+  }
+
+  .ant-message-notice-content .anticon {
+    font-size: 20px !important;
+    width: 26px !important;
+    height: 26px !important;
+    margin-right: 10px !important;
+  }
+}
+
+/* Loading spinner animation nếu có */
+.ant-message-notice-content .ant-spin {
+  margin-right: 12px;
+}
+
+.ant-message-notice-content .ant-spin-dot {
+  animation: antSpinMove 1s infinite linear;
+}
+
+@keyframes antSpinMove {
+  to {
+    transform: rotate(360deg);
+  }
+}
+

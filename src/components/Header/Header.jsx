@@ -26,9 +26,14 @@ import {
   MenuOutlined,
   SearchOutlined,
   LogoutOutlined,
+  CustomerServiceOutlined,
 } from "@ant-design/icons";
 import BookingModal from "./BookingModal";
 import NutritionBookingModal from "./NutritionBookingModal";
+import LoginRequiredModal from "../LoginRequiredModal/LoginRequiredModal";
+import ProfileCompleteModal from "../ProfileCompleteModal/ProfileCompleteModal";
+import apiBenhNhan from "../../api/BenhNhan";
+import medicalChatService from "../../api/MedicalChat";
 import "./Header.css";
 
 const { Header: AntHeader } = Layout;
@@ -40,6 +45,9 @@ const Header = () => {
   const location = useLocation();
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showNutritionModal, setShowNutritionModal] = useState(false);
+  const [showLoginRequiredModal, setShowLoginRequiredModal] = useState(false);
+  const [showProfileCompleteModal, setShowProfileCompleteModal] = useState(false);
+  const [missingProfileFields, setMissingProfileFields] = useState([]);
   const [isLogin, setIsLogin] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [mobileMenuVisible, setMobileMenuVisible] = useState(false);
@@ -60,11 +68,118 @@ const Header = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Kiểm tra profile chỉ 1 lần sau khi đăng nhập (chỉ cho benh_nhan)
+  useEffect(() => {
+    if (isLogin && userInfo?.vai_tro === "benh_nhan") {
+      // Với benh_nhan, id_nguoi_dung chính là id_benh_nhan
+      const benhNhanId = userInfo.id_benh_nhan || userInfo.id_nguoi_dung;
+      if (benhNhanId) {
+        const checkNeededKey = `profile_check_needed_${benhNhanId}`;
+        const needsCheck = localStorage.getItem(checkNeededKey) === "true";
+        
+        console.log("Profile check - benhNhanId:", benhNhanId);
+        console.log("Profile check - needsCheck:", needsCheck);
+        console.log("Profile check - flag value:", localStorage.getItem(checkNeededKey));
+        
+        // Chỉ kiểm tra nếu có flag cần kiểm tra (đặt khi đăng nhập)
+        if (needsCheck) {
+          console.log("Profile check - Starting check...");
+          checkProfileComplete(userInfo);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLogin, userInfo?.id_nguoi_dung, userInfo?.id_benh_nhan]);
+
+  const checkProfileComplete = async (user) => {
+    // Chỉ kiểm tra nếu là bệnh nhân
+    if (!user || user.vai_tro !== "benh_nhan") {
+      return;
+    }
+
+    // Với benh_nhan, id_nguoi_dung chính là id_benh_nhan
+    const benhNhanId = user.id_benh_nhan || user.id_nguoi_dung;
+    if (!benhNhanId) {
+      return;
+    }
+
+    const checkNeededKey = `profile_check_needed_${benhNhanId}`;
+    
+    try {
+      const profileData = await apiBenhNhan.getById(benhNhanId);
+      
+      // Các trường cần kiểm tra
+      const requiredFields = [
+        'nghe_nghiep',
+        'thong_tin_bao_hiem',
+        'ten_nguoi_lien_he_khan_cap',
+        'sdt_nguoi_lien_he_khan_cap',
+        'tien_su_benh_ly',
+        'tinh_trang_suc_khoe_hien_tai',
+        'ma_BHYT'
+      ];
+
+      // Kiểm tra các trường thiếu
+      const missing = requiredFields.filter(field => {
+        const value = profileData[field];
+        // Kiểm tra nếu giá trị null, undefined, hoặc chuỗi rỗng
+        return !value || (typeof value === 'string' && value.trim() === '');
+      });
+
+      console.log("Profile check - Missing fields:", missing);
+      console.log("Profile check - Profile data:", profileData);
+
+      // Xóa flag sau khi đã kiểm tra xong (dù có thiếu hay không)
+      localStorage.removeItem(checkNeededKey);
+
+      if (missing.length > 0) {
+        setMissingProfileFields(missing);
+        setShowProfileCompleteModal(true);
+      }
+    } catch (error) {
+      console.error("Lỗi khi kiểm tra profile:", error);
+      // Xóa flag ngay cả khi có lỗi để tránh kiểm tra lại
+      localStorage.removeItem(checkNeededKey);
+    }
+  };
+
   const handleLoginClick = () => {
     navigate("/login");
   };
 
+  const checkLoginAndShowModal = (callback) => {
+    const loginStatus = localStorage.getItem("isLogin");
+    if (loginStatus !== "true") {
+      setShowLoginRequiredModal(true);
+      return;
+    }
+    callback();
+  };
+
+  const handleBookingClick = () => {
+    checkLoginAndShowModal(() => {
+      setShowBookingModal(true);
+    });
+  };
+
+  const handleNutritionBookingClick = () => {
+    checkLoginAndShowModal(() => {
+      setShowNutritionModal(true);
+    });
+  };
+
   const handleLogout = () => {
+    // Xóa flag profile check nếu là bệnh nhân
+    if (userInfo?.vai_tro === "benh_nhan") {
+      const benhNhanId = userInfo.id_benh_nhan || userInfo.id_nguoi_dung;
+      if (benhNhanId) {
+        localStorage.removeItem(`profile_check_needed_${benhNhanId}`);
+      }
+    }
+    
+    // Clear all chat data (medical chat + messaging chat)
+    medicalChatService.clearAllChatData();
+    
     localStorage.removeItem("isLogin");
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
@@ -92,6 +207,11 @@ const Header = () => {
       label: <Link to="/news">Tin tức</Link>,
     },
     {
+      key: "/services",
+      icon: <CustomerServiceOutlined />,
+      label: <Link to="/services">Dịch vụ</Link>,
+    },
+    {
       key: "/specialties",
       icon: <MedicineBoxOutlined />,
       label: <Link to="/specialties">Chuyên khoa</Link>,
@@ -114,13 +234,13 @@ const Header = () => {
         {
           key: "booking-exam",
           label: (
-            <span onClick={() => setShowBookingModal(true)}>Đặt lịch khám</span>
+            <span onClick={handleBookingClick}>Đặt lịch khám</span>
           ),
         },
         {
           key: "booking-nutrition",
           label: (
-            <span onClick={() => setShowNutritionModal(true)}>
+            <span onClick={handleNutritionBookingClick}>
               Đặt lịch tư vấn dinh dưỡng
             </span>
           ),
@@ -344,8 +464,10 @@ const Header = () => {
               block
               icon={<CalendarOutlined />}
               onClick={() => {
-                setShowBookingModal(true);
-                setMobileMenuVisible(false);
+                checkLoginAndShowModal(() => {
+                  setShowBookingModal(true);
+                  setMobileMenuVisible(false);
+                });
               }}
               style={{ marginBottom: 8 }}
             >
@@ -355,8 +477,10 @@ const Header = () => {
               block
               icon={<CalendarOutlined />}
               onClick={() => {
-                setShowNutritionModal(true);
-                setMobileMenuVisible(false);
+                checkLoginAndShowModal(() => {
+                  setShowNutritionModal(true);
+                  setMobileMenuVisible(false);
+                });
               }}
             >
               Đặt lịch tư vấn dinh dưỡng
@@ -434,6 +558,19 @@ const Header = () => {
       <NutritionBookingModal
         show={showNutritionModal}
         onClose={() => setShowNutritionModal(false)}
+      />
+      
+      {/* Login Required Modal */}
+      <LoginRequiredModal
+        open={showLoginRequiredModal}
+        onCancel={() => setShowLoginRequiredModal(false)}
+      />
+      
+      {/* Profile Complete Modal */}
+      <ProfileCompleteModal
+        open={showProfileCompleteModal}
+        onCancel={() => setShowProfileCompleteModal(false)}
+        missingFields={missingProfileFields}
       />
     </>
   );

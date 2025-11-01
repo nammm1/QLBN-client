@@ -42,6 +42,32 @@ const apiChuyenGiaDinhDuong = {
       throw err;
     }
   },
+
+  // Lấy chuyên gia theo chuyên ngành dinh dưỡng
+  getByChuyenNganh: async (id_chuyen_nganh) => {
+    try {
+      const res = await axios.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenGiaDinhDuong}/chuyen-nganh/${id_chuyen_nganh}`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error fetching chuyên gia by chuyên ngành:", err);
+      throw err;
+    }
+  },
+
+  // Lấy tất cả chuyên ngành dinh dưỡng
+  getAllChuyenNganh: async () => {
+    try {
+      const res = await axios.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenGiaDinhDuong}/chuyen-nganh`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error fetching all chuyên ngành dinh dưỡng:", err);
+      throw err;
+    }
+  },
 };
 
 export default apiChuyenGiaDinhDuong;

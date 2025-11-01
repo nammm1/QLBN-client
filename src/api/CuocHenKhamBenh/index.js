@@ -105,6 +105,19 @@ const apiCuocHenKhamBenh = {
     }
   },
 
+  // Đếm số lượng appointments đã đặt cho một khung giờ
+  countByTimeSlot: async (id_bac_si, id_khung_gio, ngay_kham) => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenKhamBenh}/count/time-slot?id_bac_si=${id_bac_si}&id_khung_gio=${id_khung_gio}&ngay_kham=${ngay_kham}`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error counting appointments by time slot:", err);
+      throw err;
+    }
+  },
+
   // Xóa cuộc hẹn
   delete: async (id_cuoc_hen) => {
     try {

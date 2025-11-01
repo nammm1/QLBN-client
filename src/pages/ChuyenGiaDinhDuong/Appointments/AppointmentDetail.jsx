@@ -149,7 +149,7 @@ const NutritionistAppointmentDetail = () => {
       }
     } catch (error) {
       console.error(error);
-      message.error("Có lỗi xảy ra khi tải dữ liệu");
+      // Toast đã được hiển thị tự động bởi axios interceptor
     } finally {
       setLoading(false);
     }
@@ -211,7 +211,7 @@ const NutritionistAppointmentDetail = () => {
       setChiDinhXetNghiem(chiDinhData || []);
     } catch (error) {
       console.error("Lỗi khi chỉ định xét nghiệm:", error);
-      message.error("Có lỗi xảy ra khi chỉ định xét nghiệm");
+      // Toast đã được hiển thị tự động bởi axios interceptor
     }
   };
 
@@ -242,7 +242,7 @@ const NutritionistAppointmentDetail = () => {
       setModalHoSoOpen(false);
     } catch (error) {
       console.error("Lỗi khi lưu hồ sơ:", error);
-      message.error("Có lỗi xảy ra khi lưu hồ sơ");
+      // Toast đã được hiển thị tự động bởi axios interceptor
     }
   };
 
@@ -267,7 +267,7 @@ const NutritionistAppointmentDetail = () => {
       setModalLichSuOpen(false);
     } catch (error) {
       console.error(error);
-      message.error("Có lỗi xảy ra khi lưu thông tin tư vấn");
+      // Toast đã được hiển thị tự động bởi axios interceptor
     }
   };
 
@@ -278,7 +278,7 @@ const NutritionistAppointmentDetail = () => {
       setModalDichVu(true);
     } catch (err) {
       console.error(err);
-      message.error("Có lỗi khi tải danh sách dịch vụ");
+      // Toast đã được hiển thị tự động bởi axios interceptor
     }
   };
 
@@ -289,7 +289,7 @@ const NutritionistAppointmentDetail = () => {
       setModalDonThuoc(true);
     } catch (err) {
       console.error(err);
-      message.error("Có lỗi khi tải danh sách thuốc");
+      // Toast đã được hiển thị tự động bởi axios interceptor
     }
   };
 
@@ -345,7 +345,7 @@ const NutritionistAppointmentDetail = () => {
       setViewDonThuoc(true);
     } catch (error) {
       console.error("Lỗi khi tải đơn thuốc:", error);
-      message.error("Không thể tải đơn thuốc");
+      // Toast đã được hiển thị tự động bởi axios interceptor
     }
   };
 
@@ -363,7 +363,7 @@ const NutritionistAppointmentDetail = () => {
       setViewDichVu(true);
     } catch (error) {
       console.error("Lỗi khi tải dịch vụ:", error);
-      message.error("Không thể tải danh sách dịch vụ");
+      // Toast đã được hiển thị tự động bởi axios interceptor
     }
   };
 
@@ -432,7 +432,7 @@ const NutritionistAppointmentDetail = () => {
 
     } catch (err) {
       console.error("Lỗi khi xuất PDF:", err);
-      message.error("Có lỗi xảy ra khi xuất hóa đơn: " + (err.response?.data?.message || err.message));
+      // Toast đã được hiển thị tự động bởi axios interceptor
     }
   };
 
@@ -441,7 +441,7 @@ const NutritionistAppointmentDetail = () => {
       setShowPreview(true);
     } catch (err) {
       console.error(err);
-      message.error("Có lỗi xảy ra khi xem trước hóa đơn");
+      // Toast đã được hiển thị tự động bởi axios interceptor
     }
   };
 
