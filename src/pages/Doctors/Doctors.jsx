@@ -76,9 +76,18 @@ const StaggerChildren = ({ children }) => {
   return (
     <motion.div
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, threshold: 0.1 }}
-      transition={{ staggerChildren: 0.15 }}
+      animate="visible"
+      variants={{
+        visible: {
+          opacity: 1,
+          transition: {
+            staggerChildren: 0.1
+          }
+        },
+        hidden: {
+          opacity: 0
+        }
+      }}
     >
       {children}
     </motion.div>
@@ -89,10 +98,20 @@ const SlideInItem = ({ children, index }) => {
   return (
     <motion.div
       variants={{
-        visible: { opacity: 1, x: 0 },
-        hidden: { opacity: 0, x: index % 2 === 0 ? -50 : 50 }
+        visible: { 
+          opacity: 1,
+          x: 0,
+          transition: {
+            type: "spring",
+            damping: 20,
+            stiffness: 100
+          }
+        },
+        hidden: { 
+          opacity: 0,
+          x: index % 2 === 0 ? -20 : 20
+        }
       }}
-      transition={{ duration: 0.6 }}
     >
       {children}
     </motion.div>
@@ -452,16 +471,18 @@ const Doctors = () => {
           </motion.div>
         ) : (
           <>
-            <StaggerChildren>
-              <Row gutter={[24, 24]} className="doctor-row">
-                {currentDoctors.map((doc, index) => (
-                  <Col xs={24} sm={12} lg={8} xl={6} key={doc.id_bac_si}>
-                    <SlideInItem index={index}>
-                      <motion.div 
-                        whileHover={{ y: -8 }} 
-                        transition={{ duration: 0.3 }}
-                        style={{ height: "100%" }}
-                      >
+            <AnimatePresence mode="wait">
+      <StaggerChildren key={`doctors-${searchTerm}-${selectedSpecialty}`}>
+        <Row gutter={[24, 24]} className="doctor-row">
+          {currentDoctors.map((doc, index) => (
+            <Col xs={24} sm={12} lg={8} xl={6} key={doc.id_bac_si}>
+              <SlideInItem index={index}>
+                <motion.div 
+                  whileHover={{ y: -8 }} 
+                  transition={{ duration: 0.3 }}
+                  style={{ height: "100%" }}
+                  layout
+                >
                         <Card
                           hoverable
                           onClick={() => handleCardClick(doc)}
@@ -592,12 +613,13 @@ const Doctors = () => {
                             </Space>
                           </div>
                         </Card>
-                      </motion.div>
-                    </SlideInItem>
-                  </Col>
-                ))}
-              </Row>
-            </StaggerChildren>
+                </motion.div>
+              </SlideInItem>
+            </Col>
+          ))}
+        </Row>
+      </StaggerChildren>
+    </AnimatePresence>
 
       {/* Pagination */}
       {totalPages > 1 && (

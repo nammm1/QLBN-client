@@ -36,7 +36,7 @@
 .modal-header-wrapper {
   background: linear-gradient(135deg, #096dd9 0%, #40a9ff 100%);
   padding: 24px 32px;
-  border-radius: 24px 24px 0 0;
+  /* border-radius: 24px 24px 0 0; */
   display: flex;
   justify-content: space-between;
   align-items: center;

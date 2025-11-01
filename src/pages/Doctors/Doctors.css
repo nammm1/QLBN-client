@@ -119,6 +119,7 @@
     font-size: 16px;
     transition: all 0.3s ease;
     background: white;
+    color: black;
   }
   
   .search-input:focus {
@@ -150,6 +151,7 @@
     background: white;
     cursor: pointer;
     transition: all 0.3s ease;
+    color: black;
   }
   
   .specialty-select:focus {
