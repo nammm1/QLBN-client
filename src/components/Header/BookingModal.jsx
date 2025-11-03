@@ -264,7 +264,7 @@ const BookingModal = ({ show, onClose }) => {
 
       toast.success("Đặt lịch thành công!");
       resetForm(); // Reset form sau khi đặt thành công
-      onClose();
+    onClose();
     } catch (err) {
       console.error(err);
       // Toast đã được hiển thị tự động bởi axios interceptor với message từ API
@@ -299,17 +299,17 @@ const BookingModal = ({ show, onClose }) => {
               ].map((opt) => {
                 const IconComponent = opt.icon;
                 return (
-                  <button
+                <button
                     key={opt.value}
-                    type="button"
+                  type="button"
                     className={`service-type-btn ${
                       serviceTypeBooking === opt.value ? "active" : ""
-                    }`}
+                  }`}
                     onClick={() => setServiceTypeBooking(opt.value)}
-                  >
+                >
                     <IconComponent size={18} />
                     <span>{opt.label}</span>
-                  </button>
+                </button>
                 );
               })}
             </div>
@@ -322,21 +322,21 @@ const BookingModal = ({ show, onClose }) => {
               Chọn chuyên khoa
             </label>
             <div className="input-wrapper">
-              <select
+            <select
                 className="form-select modern-select"
-                value={specialty}
-                onChange={(e) => {
-                  setSpecialty(e.target.value);
+              value={specialty}
+              onChange={(e) => {
+                setSpecialty(e.target.value);
                   setDoctor(null);
-                }}
-              >
+              }}
+            >
                 <option value="">-- Chọn chuyên khoa --</option>
-                {specialties.map((sp) => (
+              {specialties.map((sp) => (
                   <option key={sp.id_chuyen_khoa} value={sp.id_chuyen_khoa}>
                     {sp.ten_chuyen_khoa}
-                  </option>
-                ))}
-              </select>
+                </option>
+              ))}
+            </select>
             </div>
           </div>
 
@@ -430,10 +430,10 @@ const BookingModal = ({ show, onClose }) => {
                       onClick={(e) => {
                         e.stopPropagation();
                         setDoctor(null);
-                        setDate(null);
-                        setSession("");
-                        setTimeSlot("");
-                      }}
+                setDate(null);
+                setSession("");
+                setTimeSlot("");
+              }}
                       style={{
                         background: "rgba(255, 255, 255, 0.8)",
                         border: "none",
@@ -866,8 +866,8 @@ const BookingModal = ({ show, onClose }) => {
                       </div>
                     </div>
                   )}
-                </div>
-                
+          </div>
+
                 {/* Nút chọn bác sĩ */}
                 <div style={{ 
                   marginTop: "24px", 
@@ -986,21 +986,21 @@ const BookingModal = ({ show, onClose }) => {
               Chọn ngày khám
             </label>
             <div className="input-wrapper">
-              <DatePicker
-                selected={date}
-                onChange={(d) => {
-                  setDate(d);
-                  setSession("");
-                  setTimeSlot("");
-                }}
-                dateFormat="dd/MM/yyyy"
+            <DatePicker 
+              selected={date}
+              onChange={(d) => {
+                setDate(d);
+                setSession("");
+                setTimeSlot("");
+              }}
+              dateFormat="dd/MM/yyyy"
                 placeholderText="Chọn ngày khám"
-                minDate={new Date()}
-                filterDate={isAllowedDate}
-                disabled={!doctor}
+              minDate={new Date()}
+              filterDate={isAllowedDate}
+              disabled={!doctor}
                 className="modern-datepicker"
                 calendarClassName="modern-calendar"
-              />
+            />
             </div>
 
             {date && (
@@ -1027,9 +1027,9 @@ const BookingModal = ({ show, onClose }) => {
               <div className="time-slots">
                 {availableTimeSlots.length > 0 ? (
                   availableTimeSlots.map((slot) => (
-                    <button
+                  <button
                       key={slot.id_khung_gio}
-                      type="button"
+                    type="button"
                       className={`time-slot-btn ${
                         timeSlot === slot.id_khung_gio ? "active" : ""
                       }`}
@@ -1043,7 +1043,7 @@ const BookingModal = ({ show, onClose }) => {
                           ({slot.maxCount - slot.bookedCount} chỗ trống)
                         </span>
                       )}
-                    </button>
+                  </button>
                   ))
                 ) : (
                   <div style={{ 
@@ -1084,13 +1084,13 @@ const BookingModal = ({ show, onClose }) => {
               Triệu chứng (nếu có)
             </label>
             <div className="input-wrapper">
-              <textarea
+            <textarea
                 className="form-control modern-textarea"
-                rows="3"
+              rows="3"
                 value={trieuChung}
                 onChange={(e) => setTrieuChung(e.target.value)}
                 placeholder="Vui lòng mô tả các triệu chứng bạn đang gặp phải (nếu có)..."
-              ></textarea>
+            ></textarea>
             </div>
           </div>
 

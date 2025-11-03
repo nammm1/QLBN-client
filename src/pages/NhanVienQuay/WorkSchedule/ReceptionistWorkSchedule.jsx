@@ -48,22 +48,25 @@ const ReceptionistWorkSchedule = () => {
   const [viewMode, setViewMode] = useState("table");
   const [form] = Form.useForm();
 
-  const userId = localStorage.getItem("userId") || "NV_quay001";
+  const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+  const userId = userInfo?.user?.id_nguoi_dung || userInfo?.user?.id || localStorage.getItem("userId") || "NV_quay001";
 
   useEffect(() => {
     fetchSchedules();
     fetchLeaveRequests();
-  }, [selectedWeekStart]);
+  }, [selectedWeekStart, userId]);
 
   const fetchSchedules = async () => {
     setLoading(true);
     try {
       const weekStartStr = selectedWeekStart.format("YYYY-MM-DD");
-      const data = await apiLichLamViec.getByWeek(weekStartStr, userId);
-      setSchedules(data || []);
+      const res = await apiLichLamViec.getByWeek(weekStartStr, userId);
+      const data = res?.data || res || [];
+      setSchedules(Array.isArray(data) ? data : []);
     } catch (error) {
+      console.error("Lỗi khi lấy lịch làm việc:", error);
       message.error("Không thể tải lịch làm việc");
-      console.error(error);
+      setSchedules([]);
     } finally {
       setLoading(false);
     }
@@ -71,10 +74,13 @@ const ReceptionistWorkSchedule = () => {
 
   const fetchLeaveRequests = async () => {
     try {
-      const data = await apiXinNghiPhep.getByNhanVien(userId);
-      setLeaveRequests(data || []);
+      const res = await apiXinNghiPhep.getByNhanVien(userId);
+      const data = res?.data || res || [];
+      setLeaveRequests(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Không thể tải lịch sử nghỉ phép", error);
+      // Không hiển thị message error vì có thể API chưa hỗ trợ nhân viên quầy
+      setLeaveRequests([]);
     }
   };
 
@@ -117,8 +123,14 @@ const ReceptionistWorkSchedule = () => {
       sang: 0,
       chieu: 0,
       toi: 0,
-      total: schedules.length,
+      total: 0,
     };
+
+    if (!Array.isArray(schedules)) {
+      return stats;
+    }
+
+    stats.total = schedules.length;
 
     schedules.forEach((schedule) => {
       const shift = schedule.ca_lam_viec?.toLowerCase();

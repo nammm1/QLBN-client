@@ -26,7 +26,10 @@ const API_CONFIG = {
     LichSuTuVan: "lichSuTuVan",
     XinNghiPhep: "xin-nghi-phep",
     PhongKham: "phong-kham",
-    Chat: "chat"
+    Chat: "chat",
+    ThucDonChiTiet: "thuc-don-chi-tiet",
+    TheoDoiTienDo: "theo-doi-tien-do",
+    MonAnThamKhao: "mon-an-tham-khao"
     // QuanTriVien: "quan-tri-vien" // nếu bạn mở route này thì bật luôn
   },
 };

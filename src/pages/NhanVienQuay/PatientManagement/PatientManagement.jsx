@@ -12,10 +12,11 @@ import {
   Col,
   Select,
   DatePicker,
-  message,
+  App,
   Typography,
   Avatar,
   Tooltip,
+  Statistic,
 } from "antd";
 import {
   UserAddOutlined,
@@ -26,20 +27,27 @@ import {
   MailOutlined,
   IdcardOutlined,
   EnvironmentOutlined,
+  TeamOutlined,
+  UserOutlined,
+  CheckCircleOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import apiBenhNhan from "../../../api/BenhNhan";
 import apiNguoiDung from "../../../api/NguoiDung";
 import moment from "moment";
+import AutoBookingModal from "./AutoBookingModal";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const PatientManagement = () => {
+  const { message } = App.useApp();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [isAutoBookingModalVisible, setIsAutoBookingModalVisible] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [form] = Form.useForm();
 
@@ -79,11 +87,11 @@ const PatientManagement = () => {
 
       if (selectedPatient) {
         // Update
-        await apiNguoiDung.update(selectedPatient.id_benh_nhan, userData);
+        await apiNguoiDung.updateUser(selectedPatient.id_benh_nhan, userData);
         message.success("Cập nhật thông tin bệnh nhân thành công!");
       } else {
         // Create
-        await apiNguoiDung.create(userData);
+        await apiNguoiDung.createUser(userData);
         message.success("Đăng ký bệnh nhân mới thành công!");
       }
 
@@ -219,6 +227,12 @@ const PatientManagement = () => {
       patient.so_cccd?.includes(searchText)
   );
 
+  // Calculate statistics
+  const totalPatients = patients.length;
+  const activePatients = patients.filter(p => p.trang_thai_hoat_dong).length;
+  const malePatients = patients.filter(p => p.gioi_tinh === "Nam").length;
+  const femalePatients = patients.filter(p => p.gioi_tinh === "Nữ").length;
+
   return (
     <div>
       {/* Header */}
@@ -228,6 +242,50 @@ const PatientManagement = () => {
         </Title>
         <Text type="secondary">Đăng ký và quản lý thông tin bệnh nhân</Text>
       </div>
+
+      {/* Statistics */}
+      <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
+        <Col xs={12} sm={6}>
+          <Card style={{ borderRadius: "12px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
+            <Statistic
+              title={<span style={{ color: "#fff" }}>Tổng bệnh nhân</span>}
+              value={totalPatients}
+              prefix={<TeamOutlined />}
+              valueStyle={{ color: "#fff", fontSize: "24px" }}
+            />
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card style={{ borderRadius: "12px", background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)" }}>
+            <Statistic
+              title={<span style={{ color: "#fff" }}>Đang hoạt động</span>}
+              value={activePatients}
+              prefix={<CheckCircleOutlined />}
+              valueStyle={{ color: "#fff", fontSize: "24px" }}
+            />
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card style={{ borderRadius: "12px", background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)" }}>
+            <Statistic
+              title={<span style={{ color: "#fff" }}>Nam</span>}
+              value={malePatients}
+              prefix={<UserOutlined />}
+              valueStyle={{ color: "#fff", fontSize: "24px" }}
+            />
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card style={{ borderRadius: "12px", background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)" }}>
+            <Statistic
+              title={<span style={{ color: "#fff" }}>Nữ</span>}
+              value={femalePatients}
+              prefix={<UserOutlined />}
+              valueStyle={{ color: "#fff", fontSize: "24px" }}
+            />
+          </Card>
+        </Col>
+      </Row>
 
       {/* Actions */}
       <Card style={{ borderRadius: "12px", marginBottom: "24px" }}>
@@ -243,19 +301,34 @@ const PatientManagement = () => {
             />
           </Col>
           <Col>
-            <Button
-              type="primary"
-              icon={<UserAddOutlined />}
-              size="large"
-              onClick={handleCreatePatient}
-              style={{
-                background: "linear-gradient(135deg, #f39c12 0%, #e67e22 100%)",
-                border: "none",
-                borderRadius: "8px",
-              }}
-            >
-              Đăng ký bệnh nhân mới
-            </Button>
+            <Space>
+              <Button
+                type="primary"
+                icon={<CalendarOutlined />}
+                size="large"
+                onClick={() => setIsAutoBookingModalVisible(true)}
+                style={{
+                  background: "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
+                  border: "none",
+                  borderRadius: "8px",
+                }}
+              >
+                Đặt lịch hẹn
+              </Button>
+              <Button
+                type="primary"
+                icon={<UserAddOutlined />}
+                size="large"
+                onClick={handleCreatePatient}
+                style={{
+                  background: "linear-gradient(135deg, #f39c12 0%, #e67e22 100%)",
+                  border: "none",
+                  borderRadius: "8px",
+                }}
+              >
+                Đăng ký bệnh nhân mới
+              </Button>
+            </Space>
           </Col>
         </Row>
       </Card>
@@ -521,6 +594,15 @@ const PatientManagement = () => {
           </div>
         )}
       </Modal>
+
+      {/* Auto Booking Modal */}
+      <AutoBookingModal
+        visible={isAutoBookingModalVisible}
+        onCancel={() => setIsAutoBookingModalVisible(false)}
+        onSuccess={() => {
+          fetchPatients();
+        }}
+      />
     </div>
   );
 };

@@ -56,6 +56,7 @@ import "dayjs/locale/vi";
 import updateLocale from "dayjs/plugin/updateLocale";
 import isBetween from "dayjs/plugin/isBetween";
 import apiLichLamViec from "../../../api/LichLamViec";
+import apiCuocHenTuVan from "../../../api/CuocHenTuVan";
 import apiCuocHenKham from "../../../api/CuocHenKhamBenh";
 import apiXinNghiPhep from "../../../api/XinNghiPhep";
 

@@ -22,7 +22,7 @@ const processQueue = (error, token = null) => {
 };
 
 const axiosInstance = axios.create({
-    timeout: 5000,
+    timeout: 30000, // 30 giây - tăng timeout để xử lý các request gửi email có thể mất thời gian
 });
 
 axiosInstance.interceptors.request.use(function (config) {

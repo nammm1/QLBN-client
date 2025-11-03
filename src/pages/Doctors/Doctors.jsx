@@ -688,14 +688,14 @@ const Doctors = () => {
                 </motion.div>
               }
             >
-              {selectedDoctor && (
+      {selectedDoctor && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <div className="modal-content">
+            <div className="modal-content">
                     {/* Header Section */}
                     <div style={{ 
                       background: `linear-gradient(135deg, ${getSpecialtyColor(selectedDoctor.chuyen_mon)} 0%, ${getSpecialtyColor(selectedDoctor.chuyen_mon)}99 100%)`,
@@ -711,14 +711,14 @@ const Doctors = () => {
                           transition={{ duration: 0.5 }}
                         >
                           <Avatar
-                            src={selectedDoctor.anh_dai_dien}
+                  src={selectedDoctor.anh_dai_dien}
                             size={120}
                             icon={<UserOutlined />}
-                            style={{ 
+                  style={{
                               border: "4px solid rgba(255,255,255,0.3)",
                               boxShadow: "0 8px 24px rgba(0,0,0,0.2)"
-                            }}
-                          />
+                  }}
+                />
                         </motion.div>
                 <div>
                           <Title level={2} style={{ color: "white", margin: 0 }}>

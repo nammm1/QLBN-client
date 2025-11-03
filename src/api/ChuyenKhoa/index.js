@@ -29,13 +29,37 @@ const apiChuyenKhoa = {
     }
   },
 
-  // Tạo mới chuyên khoa
-  createChuyenKhoa: async (data) => {
+  // Tạo mới chuyên khoa (hỗ trợ upload file)
+  createChuyenKhoa: async (data, file = null) => {
     try {
-      const response = await axiosInstance.post(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenKhoa}`,
-        data
-      );
+      let response;
+      
+      if (file) {
+        // Nếu có file, gửi FormData
+        const formData = new FormData();
+        formData.append("image", file);
+        formData.append("ten_chuyen_khoa", data.ten_chuyen_khoa || "");
+        if (data.mo_ta) formData.append("mo_ta", data.mo_ta);
+        if (data.thiet_bi) formData.append("thiet_bi", data.thiet_bi);
+        if (data.thoi_gian_hoat_dong) formData.append("thoi_gian_hoat_dong", data.thoi_gian_hoat_dong);
+
+        response = await axiosInstance.post(
+          `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenKhoa}`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+      } else {
+        // Nếu không có file, gửi JSON như cũ
+        response = await axiosInstance.post(
+          `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenKhoa}`,
+          data
+        );
+      }
+      
       return response.data.data;
     } catch (error) {
       console.error("Error creating chuyen khoa:", error);
@@ -43,13 +67,37 @@ const apiChuyenKhoa = {
     }
   },
 
-  // Cập nhật chuyên khoa
-  updateChuyenKhoa: async (id_chuyen_khoa, data) => {
+  // Cập nhật chuyên khoa (hỗ trợ upload file)
+  updateChuyenKhoa: async (id_chuyen_khoa, data, file = null) => {
     try {
-      const response = await axiosInstance.put(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenKhoa}/${id_chuyen_khoa}`,
-        data
-      );
+      let response;
+      
+      if (file) {
+        // Nếu có file, gửi FormData
+        const formData = new FormData();
+        formData.append("image", file);
+        if (data.ten_chuyen_khoa) formData.append("ten_chuyen_khoa", data.ten_chuyen_khoa);
+        if (data.mo_ta !== undefined) formData.append("mo_ta", data.mo_ta);
+        if (data.thiet_bi !== undefined) formData.append("thiet_bi", data.thiet_bi);
+        if (data.thoi_gian_hoat_dong !== undefined) formData.append("thoi_gian_hoat_dong", data.thoi_gian_hoat_dong);
+
+        response = await axiosInstance.put(
+          `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenKhoa}/${id_chuyen_khoa}`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+      } else {
+        // Nếu không có file, gửi JSON như cũ
+        response = await axiosInstance.put(
+          `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChuyenKhoa}/${id_chuyen_khoa}`,
+          data
+        );
+      }
+      
       return response.data.data;
     } catch (error) {
       console.error("Error updating chuyen khoa:", error);

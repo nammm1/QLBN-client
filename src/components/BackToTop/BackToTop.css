@@ -1,0 +1,24 @@
+.back-to-top-button {
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(9, 109, 217, 0.4);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.back-to-top-button:hover {
+  transform: translateY(-4px) scale(1.1);
+  box-shadow: 0 6px 20px rgba(9, 109, 217, 0.6);
+}
+
+.back-to-top-button:active {
+  transform: translateY(-2px) scale(1.05);
+}
+
+@media (max-width: 768px) {
+  .back-to-top-button {
+    right: 16px !important;
+    bottom: 16px !important;
+    width: 44px !important;
+    height: 44px !important;
+  }
+}
+

@@ -1,0 +1,43 @@
+.admin-emails-container {
+  padding: 24px;
+  min-height: calc(100vh - 64px);
+  background: #f5f6fa;
+}
+
+.admin-emails-header {
+  margin-bottom: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.admin-emails-container .ant-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.admin-emails-container .ant-table {
+  background: white;
+}
+
+@media (max-width: 768px) {
+  .admin-emails-container {
+    padding: 16px;
+  }
+}
+
+/* Style cho ReactQuill trong Modal */
+.ant-modal .ql-container {
+  font-family: inherit;
+  font-size: 14px;
+  min-height: 200px;
+}
+
+.ant-modal .ql-editor {
+  min-height: 200px;
+}
+
+.ant-modal .ql-editor.ql-blank::before {
+  font-style: normal;
+  color: rgba(0, 0, 0, 0.25);
+}
+

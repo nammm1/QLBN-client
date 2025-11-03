@@ -19,7 +19,8 @@ import {
   UserOutlined,
   LogoutOutlined,
   MedicineBoxOutlined,
-  UserAddOutlined
+  UserAddOutlined,
+  MailOutlined
 } from "@ant-design/icons";
 import medicalChatService from "../../api/MedicalChat";
 
@@ -51,7 +52,7 @@ const AdminSidebar = () => {
     { 
       key: "/admin/services", 
       label: "Quản lý dịch vụ", 
-      icon: <MessageOutlined />,
+      icon: <MedicineBoxOutlined />,
       path: "/admin/services"
     },
     { 
@@ -61,14 +62,20 @@ const AdminSidebar = () => {
       path: "/admin/medicines"
     },
     { 
+      key: "/admin/emails", 
+      label: "Quản lý Email", 
+      icon: <MailOutlined />,
+      path: "/admin/emails"
+    },
+    { 
       key: "/admin/reports", 
-      label: "Báo cáo", 
+      label: "Báo cáo thống kê", 
       icon: <BarChartOutlined />,
       path: "/admin/reports"
     },
   ];
 
-  const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+  const userInfo = JSON.parse(localStorage.getItem("userInfo") || "null");
 
   return (
     <Sider
@@ -90,12 +97,12 @@ const AdminSidebar = () => {
         <Space direction="vertical" size="middle">
           <Avatar 
             size={64} 
-            icon={<MedicineBoxOutlined />}
+            icon={<UserOutlined />}
             style={{ 
               backgroundColor: '#fff',
               color: '#1890ff',
               border: '3px solid #fff',
-              boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
             }}
           />
           <div>
@@ -107,7 +114,7 @@ const AdminSidebar = () => {
                 display: 'block'
               }}
             >
-              {userInfo?.user?.ho_ten || 'Bác sĩ'}
+              {userInfo?.user?.ho_ten || 'Quản trị viên'}
             </Text>
             <Text 
               style={{ 
@@ -115,7 +122,7 @@ const AdminSidebar = () => {
                 fontSize: '12px' 
               }}
             >
-              Bác sĩ chuyên khoa
+              Quản trị viên hệ thống
             </Text>
           </div>
         </Space>

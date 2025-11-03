@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Tabs, Table, Typography, Button, Tag, Space, Card, Spin, Empty, Popconfirm, message } from "antd";
-import { CalendarOutlined, AppleOutlined, CloseCircleOutlined } from "@ant-design/icons";
+import { CalendarOutlined, AppleOutlined, CloseCircleOutlined, VideoCameraOutlined, HomeOutlined } from "@ant-design/icons";
 import "./appointments.css";
 import apiCuocHenKhamBenh from "../../api/CuocHenKhamBenh";
 import apiCuocHenTuVan from "../../api/CuocHenTuVan";
@@ -307,7 +307,22 @@ const Appointments = () => {
       title: "Loại hẹn",
       dataIndex: "loai_hen",
       key: "loai_hen",
-      render: (text) => <Tag color="cyan">{text}</Tag>,
+      render: (text) => {
+        if (text === "Online") {
+          return (
+            <Tag color="blue" icon={<VideoCameraOutlined />}>
+              Online
+            </Tag>
+          );
+        } else if (text === "Trực tiếp") {
+          return (
+            <Tag color="green" icon={<HomeOutlined />}>
+              Trực tiếp
+            </Tag>
+          );
+        }
+        return <Tag>{text || "—"}</Tag>;
+      },
     },
     {
       title: "Trạng thái",
@@ -366,7 +381,22 @@ const Appointments = () => {
       title: "Loại hẹn",
       dataIndex: "loai_hen",
       key: "loai_hen",
-      render: (text) => <Tag color="cyan">{text}</Tag>,
+      render: (text) => {
+        if (text === "Online") {
+          return (
+            <Tag color="blue" icon={<VideoCameraOutlined />}>
+              Online
+            </Tag>
+          );
+        } else if (text === "Trực tiếp") {
+          return (
+            <Tag color="green" icon={<HomeOutlined />}>
+              Trực tiếp
+            </Tag>
+          );
+        }
+        return <Tag>{text || "—"}</Tag>;
+      },
     },
     {
       title: "Trạng thái",
@@ -439,7 +469,7 @@ const Appointments = () => {
           {loadingTuVan ? (
             <div style={{ textAlign: "center", padding: "40px 0" }}>
               <Spin size="large" />
-            </div>
+        </div>
           ) : lichTuVan.length === 0 ? (
             <Empty description="Không có lịch tư vấn dinh dưỡng" />
           ) : (

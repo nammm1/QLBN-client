@@ -1,5 +1,5 @@
-import React from "react";
-import { Card, Row, Col, Statistic, Typography, Space, Avatar, Badge } from "antd";
+import React, { useState, useEffect } from "react";
+import { Card, Row, Col, Statistic, Typography, Space, Avatar, Badge, Spin, message } from "antd";
 import {
   TeamOutlined,
   CalendarOutlined,
@@ -7,11 +7,46 @@ import {
   ClockCircleOutlined,
   UserOutlined
 } from "@ant-design/icons";
+import DashboardAPI from "../../../api/Dashboard";
 
 const { Title, Text } = Typography;
 
 const StaffDashboard = () => {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalStaff: 0,
+    pendingSchedules: 0,
+    leaveRequests: 0,
+    completedThisWeek: 0
+  });
   const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await DashboardAPI.getStaffDashboard();
+      if (response.success && response.data) {
+        setStats(response.data.stats || stats);
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      message.error("Không thể tải dữ liệu dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '0' }}>
@@ -67,7 +102,7 @@ const StaffDashboard = () => {
           >
             <Statistic
               title={<Text style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500, fontSize: '14px' }}>Tổng nhân viên</Text>}
-              value={45}
+              value={stats.totalStaff}
               valueStyle={{ color: 'white', fontWeight: 700, fontSize: '32px' }}
               prefix={<TeamOutlined style={{ fontSize: '24px' }} />}
             />
@@ -85,7 +120,7 @@ const StaffDashboard = () => {
           >
             <Statistic
               title={<Text style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500, fontSize: '14px' }}>Lịch chờ phân công</Text>}
-              value={12}
+              value={stats.pendingSchedules}
               valueStyle={{ color: 'white', fontWeight: 700, fontSize: '32px' }}
               prefix={<CalendarOutlined style={{ fontSize: '24px' }} />}
             />
@@ -103,7 +138,7 @@ const StaffDashboard = () => {
           >
             <Statistic
               title={<Text style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500, fontSize: '14px' }}>Yêu cầu nghỉ phép</Text>}
-              value={3}
+              value={stats.leaveRequests}
               valueStyle={{ color: 'white', fontWeight: 700, fontSize: '32px' }}
               prefix={<ClockCircleOutlined style={{ fontSize: '24px' }} />}
             />
@@ -121,7 +156,7 @@ const StaffDashboard = () => {
           >
             <Statistic
               title={<Text style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500, fontSize: '14px' }}>Hoàn thành tuần này</Text>}
-              value={28}
+              value={stats.completedThisWeek}
               valueStyle={{ color: 'white', fontWeight: 700, fontSize: '32px' }}
               prefix={<CheckCircleOutlined style={{ fontSize: '24px' }} />}
             />

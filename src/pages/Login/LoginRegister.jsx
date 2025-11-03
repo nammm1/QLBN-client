@@ -158,7 +158,7 @@ const LoginRegister = () => {
 
           case "chuyen_gia_dinh_duong":
             toast.success("Chào mừng chuyên gia dinh dưỡng, đăng nhập thành công!");
-            navigate("/");
+            navigate("/nutritionist");
             break;
 
           default:
@@ -205,12 +205,8 @@ const LoginRegister = () => {
   };
 
   const handleBack = () => {
-    // Quay lại trang trước hoặc về trang chủ nếu không có
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate("/");
-    }
+    // Luôn chuyển về trang home
+    navigate("/");
   };
 
   return (

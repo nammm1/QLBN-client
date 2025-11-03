@@ -1,0 +1,28 @@
+.auto-booking-modal .ant-modal-body {
+  padding: 24px;
+}
+
+.time-slots-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.time-slot-card {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.time-slot-card:hover {
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.time-slot-card.selected {
+  background: #e6f7ff;
+  border-color: #1890ff !important;
+}
+
+.time-slot-card .ant-card-body {
+  padding: 12px 16px;
+}
+

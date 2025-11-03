@@ -258,7 +258,7 @@ const About = () => {
       }
     }, [inView, value]);
 
-    return (
+  return (
       <motion.div
         ref={ref}
         initial={{ opacity: 0, scale: 0.5 }}
@@ -419,7 +419,7 @@ const About = () => {
                     background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                     boxShadow: "0 20px 40px rgba(102, 126, 234, 0.3)",
                   }}
-                  bodyStyle={{ padding: 48 }}
+                  styles={{ body: { padding: 48 } }}
                 >
                   <Space direction="vertical" size="large" style={{ width: "100%" }}>
                     <motion.div 
@@ -450,7 +450,7 @@ const About = () => {
                     background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
                     boxShadow: "0 20px 40px rgba(240, 147, 251, 0.3)",
                   }}
-                  bodyStyle={{ padding: 48 }}
+                  styles={{ body: { padding: 48 } }}
                 >
                   <Space direction="vertical" size="large" style={{ width: "100%" }}>
                     <motion.div 
@@ -491,7 +491,7 @@ const About = () => {
             <div className="floating-shapes">
               <div className="shape shape-4"></div>
               <div className="shape shape-5"></div>
-            </div>
+      </div>
             <Title level={2} style={{ textAlign: "center", color: "white", marginBottom: 60, fontSize: "2.8rem" }}>
               Thành tựu nổi bật
             </Title>
@@ -533,7 +533,7 @@ const About = () => {
                           overflow: "hidden",
                           position: "relative"
                         }}
-                        bodyStyle={{ padding: 32 }}
+                        styles={{ body: { padding: 32 } }}
                       >
                         <div 
                           className="value-glow"
@@ -610,7 +610,7 @@ const About = () => {
                         position: "relative",
                         overflow: "hidden"
                       }}
-                      bodyStyle={{ padding: 40 }}
+                      styles={{ body: { padding: 40 } }}
                     >
                       <div className="timeline-glow"></div>
                       <Space size="large" align="start" style={{ width: "100%", position: "relative", zIndex: 2 }}>
@@ -681,7 +681,7 @@ const About = () => {
                           position: "relative",
                           overflow: "hidden"
                         }}
-                        bodyStyle={{ padding: 32, position: "relative", zIndex: 2 }}
+                        styles={{ body: { padding: 32, position: "relative", zIndex: 2 } }}
                       >
                         <div className="achievement-glow"></div>
                         <motion.div
@@ -721,7 +721,7 @@ const About = () => {
                 overflow: "hidden",
                 position: "relative"
               }}
-              bodyStyle={{ padding: 60, position: "relative", zIndex: 2 }}
+              styles={{ body: { padding: 60, position: "relative", zIndex: 2 } }}
             >
               <div className="contact-shapes">
                 <div className="contact-shape shape-1"></div>

@@ -380,7 +380,7 @@ const News = () => {
                     )}
                   </div>
                 }
-                bodyStyle={{ padding: 24 }}
+                styles={{ body: { padding: 24 } }}
                 onClick={() => handlePostClick(post)}
               >
                 <Title
@@ -539,7 +539,7 @@ const News = () => {
                         }}></div>
                       </div>
                     }
-                    bodyStyle={{ padding: 24 }}
+                    styles={{ body: { padding: 24 } }}
                     onClick={() => handlePostClick(post)}
                   >
                     <Tag color="red" style={{ 
@@ -599,7 +599,7 @@ const News = () => {
         footer={null}
         width={900}
         style={{ top: 20 }}
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 } }}
         closeIcon={<div style={{
           background: "white",
           borderRadius: "50%",
@@ -643,7 +643,7 @@ const News = () => {
                       <EyeOutlined /> {selectedPost.views.toLocaleString()} lượt xem
                     </Text>
                   </Space>
-                </div>
+              </div>
                 
                 <Title level={2} style={{ 
                   color: "#096dd9", 
@@ -680,7 +680,7 @@ const News = () => {
                       <Text type="secondary" style={{ fontSize: 12 }}>
                         Tác giả
                       </Text>
-                    </div>
+            </div>
                   </Space>
                   
                   <Space>
@@ -704,7 +704,7 @@ const News = () => {
                   ))}
                 </Space>
               </Space>
-            </div>
+      </div>
           </div>
         )}
       </Modal>

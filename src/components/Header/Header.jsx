@@ -27,6 +27,8 @@ import {
   SearchOutlined,
   LogoutOutlined,
   CustomerServiceOutlined,
+  SafetyOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import BookingModal from "./BookingModal";
 import NutritionBookingModal from "./NutritionBookingModal";
@@ -53,20 +55,53 @@ const Header = () => {
   const [mobileMenuVisible, setMobileMenuVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-  useEffect(() => {
+  // Hàm để refresh userInfo từ localStorage
+  const refreshUserInfo = () => {
     const loginStatus = localStorage.getItem("isLogin");
     if (loginStatus === "true") {
       setIsLogin(true);
       const savedUser = JSON.parse(localStorage.getItem("userInfo") || "{}");
       setUserInfo(savedUser?.user);
+    } else {
+      setIsLogin(false);
+      setUserInfo(null);
     }
+  };
+
+  useEffect(() => {
+    refreshUserInfo();
 
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
     };
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    
+    // Lắng nghe sự kiện storage để cập nhật khi userInfo thay đổi (từ tab khác)
+    const handleStorageChange = (e) => {
+      if (e.key === "userInfo" || e.key === "isLogin") {
+        refreshUserInfo();
+      }
+    };
+    
+    // Lắng nghe custom event để cập nhật khi userInfo thay đổi (trong cùng tab)
+    const handleUserInfoUpdated = () => {
+      refreshUserInfo();
+    };
+    
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("userInfoUpdated", handleUserInfoUpdated);
+    
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("userInfoUpdated", handleUserInfoUpdated);
+    };
   }, []);
+
+  // Refresh userInfo khi location thay đổi (để cập nhật sau khi upload ảnh)
+  useEffect(() => {
+    refreshUserInfo();
+  }, [location.pathname]);
 
   // Kiểm tra profile chỉ 1 lần sau khi đăng nhập (chỉ cho benh_nhan)
   useEffect(() => {
@@ -207,6 +242,21 @@ const Header = () => {
       label: <Link to="/news">Tin tức</Link>,
     },
     {
+      key: "/privacy",
+      icon: <SafetyOutlined />,
+      label: <Link to="/privacy">Bảo mật</Link>,
+    },
+    {
+      key: "/terms",
+      icon: <FileTextOutlined />,
+      label: <Link to="/terms">Điều khoản</Link>,
+    },
+    {
+      key: "/faq",
+      icon: <QuestionCircleOutlined />,
+      label: <Link to="/faq">FAQ</Link>,
+    },
+    {
       key: "/services",
       icon: <CustomerServiceOutlined />,
       label: <Link to="/services">Dịch vụ</Link>,
@@ -299,22 +349,22 @@ const Header = () => {
             height: "100%",
           }}
         >
-          {/* Logo */}
-          <Link
-            to="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
+            {/* Logo */}
+            <Link
+              to="/"
+              style={{
+                display: "flex",
+                alignItems: "center",
               textDecoration: "none",
               marginRight: 32,
               flexShrink: 0,
-            }}
-          >
+              }}
+            >
             <div className="logo-container">
               <span className="logo-text">HOSPITAL</span>
               <span className="logo-text-care">CARE</span>
             </div>
-          </Link>
+            </Link>
 
           {/* Desktop Menu */}
           <div style={{ flex: 1, display: "flex", alignItems: "center", minWidth: 0 }}>
@@ -343,8 +393,8 @@ const Header = () => {
                 style={{ width: 220 }}
                 prefix={<SearchOutlined style={{ color: "#8c8c8c" }} />}
                 className="modern-search"
-              />
-            </div>
+            />
+          </div>
 
             {/* User Actions */}
             {!isLogin ? (
@@ -384,10 +434,13 @@ const Header = () => {
                   className="user-dropdown"
                 >
                   <Avatar
+                    src={userInfo?.anh_dai_dien}
                     style={{
-                      background: "linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)",
+                      background: userInfo?.anh_dai_dien 
+                        ? "transparent" 
+                        : "linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)",
                     }}
-                    icon={<UserOutlined />}
+                    icon={!userInfo?.anh_dai_dien ? <UserOutlined /> : undefined}
                   />
                   <Text strong>{userInfo?.ho_ten || "Người dùng"}</Text>
                 </Space>
@@ -403,7 +456,7 @@ const Header = () => {
               style={{ fontSize: 20 }}
             />
           </Space>
-        </div>
+          </div>
       </AntHeader>
 
       {/* Mobile Drawer */}
@@ -426,8 +479,8 @@ const Header = () => {
               }}
             >
               HOSPITAL CARE
-            </div>
-          </div>
+        </div>
+      </div>
         }
         placement="right"
         onClose={() => setMobileMenuVisible(false)}
@@ -471,7 +524,7 @@ const Header = () => {
               }}
               style={{ marginBottom: 8 }}
             >
-              Đặt lịch khám
+                    Đặt lịch khám
             </Button>
             <Button
               block
@@ -482,8 +535,8 @@ const Header = () => {
                   setMobileMenuVisible(false);
                 });
               }}
-            >
-              Đặt lịch tư vấn dinh dưỡng
+                  >
+                    Đặt lịch tư vấn dinh dưỡng
             </Button>
           </div>
 
@@ -494,10 +547,13 @@ const Header = () => {
               <div style={{ padding: "8px 0" }}>
                 <Space>
                   <Avatar
+                    src={userInfo?.anh_dai_dien}
                     style={{
-                      background: "linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)",
+                      background: userInfo?.anh_dai_dien 
+                        ? "transparent" 
+                        : "linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)",
                     }}
-                    icon={<UserOutlined />}
+                    icon={!userInfo?.anh_dai_dien ? <UserOutlined /> : undefined}
                   />
                   <Text strong>{userInfo?.ho_ten || "Người dùng"}</Text>
                 </Space>

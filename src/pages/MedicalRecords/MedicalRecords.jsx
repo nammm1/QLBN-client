@@ -257,7 +257,7 @@ const MedicalRecords = () => {
 
         {/* Lịch sử khám bệnh */}
         <Card
-          style={{
+                  style={{
             borderRadius: 12,
             border: "1px solid #e6f7ff",
             boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
@@ -299,7 +299,7 @@ const MedicalRecords = () => {
         footer={null}
         width={900}
       >
-        {selectedMedical && (
+      {selectedMedical && (
           <div style={{ padding: "20px 0" }}>
             <Row gutter={[24, 24]}>
               <Col xs={24} md={12}>
@@ -372,10 +372,10 @@ const MedicalRecords = () => {
                   <Button
                     size="small"
                     type="link"
-                    onClick={() => setShowPrescription(!showPrescription)}
+                  onClick={() => setShowPrescription(!showPrescription)}
                     style={{ color: "#096dd9" }}
-                  >
-                    {showPrescription ? "Ẩn đơn thuốc" : "Hiện đơn thuốc"}
+                >
+                  {showPrescription ? "Ẩn đơn thuốc" : "Hiện đơn thuốc"}
                   </Button>
                 </Space>
               }
@@ -384,7 +384,7 @@ const MedicalRecords = () => {
               {prescriptionLoading ? (
                 <div style={{ textAlign: "center", padding: "20px 0" }}>
                   <Spin />
-                </div>
+              </div>
               ) : showPrescription && (
                 <Space direction="vertical" size="middle" style={{ width: "100%" }}>
                   {selectedMedical.don_thuoc && selectedMedical.don_thuoc.length > 0 ? (
@@ -412,8 +412,8 @@ const MedicalRecords = () => {
                 </Space>
               )}
             </Card>
-          </div>
-        )}
+        </div>
+      )}
       </Modal>
     </div>
   );

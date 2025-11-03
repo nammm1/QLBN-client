@@ -1,25 +1,21 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 import AdminSidebar from "../components/Sidebar/AdminSidebar";
+import { Layout } from "antd";
+import "./AdminLayout.css";
+
+const { Content } = Layout;
 
 const AdminLayout = () => {
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div className="admin-layout-container">
       {/* Sidebar cố định */}
       <AdminSidebar />
 
       {/* Nội dung chính */}
-      <div
-        style={{
-          flexGrow: 1,
-          marginLeft: 280,
-          padding: "24px",
-          backgroundColor: "#f5f6fa",
-          minHeight: "100vh",
-        }}
-      >
+      <Content className="admin-content">
         <Outlet />
-      </div>
+      </Content>
     </div>
   );
 };

@@ -41,6 +41,29 @@ const AdminSpecialties = () => {
   const [loading, setLoading] = useState(false);
   const pageSize = 10;
 
+  // Hàm xử lý file upload - chỉ cho phép 1 file
+  const normFile = (e) => {
+    if (Array.isArray(e)) {
+      return e;
+    }
+    return e?.fileList;
+  };
+
+  // Validate và chuẩn bị file
+  const beforeUpload = (file) => {
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) {
+      message.error('Chỉ chấp nhận file hình ảnh!');
+      return Upload.LIST_IGNORE;
+    }
+    const isLt5M = file.size / 1024 / 1024 < 5;
+    if (!isLt5M) {
+      message.error('Hình ảnh phải nhỏ hơn 5MB!');
+      return Upload.LIST_IGNORE;
+    }
+    return false; // Không tự động upload, để submit form xử lý
+  };
+
   // --- Lấy danh sách chuyên khoa ---
   const fetchSpecialties = async () => {
     try {
@@ -79,14 +102,19 @@ const AdminSpecialties = () => {
   const handleAddSpecialty = async (values) => {
     try {
       setLoading(true);
+      
+      // Lấy file từ form nếu có
+      const fileList = values.hinh_anh || [];
+      const file = fileList.length > 0 ? fileList[0].originFileObj : null;
+
       const data = {
         ten_chuyen_khoa: values.ten_chuyen_khoa,
         mo_ta: values.mo_ta,
         thiet_bi: values.thiet_bi,
         thoi_gian_hoat_dong: values.thoi_gian_hoat_dong,
-        hinh_anh: values.hinh_anh,
       };
-      await apiChuyenKhoa.createChuyenKhoa(data);
+
+      await apiChuyenKhoa.createChuyenKhoa(data, file);
       message.success("Thêm chuyên khoa thành công!");
       setIsModalOpen(false);
       form.resetFields();
@@ -102,12 +130,25 @@ const AdminSpecialties = () => {
   // --- Sửa chuyên khoa ---
   const handleEditClick = (record) => {
     setEditingSpecialty(record);
+    
+    // Chuẩn bị fileList cho ảnh hiện tại nếu có
+    const initialFileList = record.hinh_anh
+      ? [
+          {
+            uid: '-1',
+            name: 'image.png',
+            status: 'done',
+            url: record.hinh_anh,
+          },
+        ]
+      : [];
+
     editForm.setFieldsValue({
       ten_chuyen_khoa: record.ten_chuyen_khoa,
       mo_ta: record.mo_ta,
       thiet_bi: record.thiet_bi,
       thoi_gian_hoat_dong: record.thoi_gian_hoat_dong,
-      hinh_anh: record.hinh_anh,
+      hinh_anh: initialFileList,
     });
     setIsEditModalOpen(true);
   };
@@ -115,7 +156,19 @@ const AdminSpecialties = () => {
   const handleUpdateSpecialty = async (values) => {
     try {
       setLoading(true);
-      await apiChuyenKhoa.updateChuyenKhoa(editingSpecialty.id_chuyen_khoa, values);
+      
+      // Lấy file mới từ form nếu có
+      const fileList = values.hinh_anh || [];
+      const newFile = fileList.find(f => f.originFileObj)?.originFileObj || null;
+
+      const data = {
+        ten_chuyen_khoa: values.ten_chuyen_khoa,
+        mo_ta: values.mo_ta,
+        thiet_bi: values.thiet_bi,
+        thoi_gian_hoat_dong: values.thoi_gian_hoat_dong,
+      };
+
+      await apiChuyenKhoa.updateChuyenKhoa(editingSpecialty.id_chuyen_khoa, data, newFile);
       message.success("Cập nhật chuyên khoa thành công!");
       setIsEditModalOpen(false);
       fetchSpecialties();
@@ -270,12 +323,15 @@ const AdminSpecialties = () => {
         <Modal
           title="➕ Thêm chuyên khoa mới"
           open={isModalOpen}
-          onCancel={() => setIsModalOpen(false)}
           onOk={() => form.submit()}
           okText="Lưu"
           cancelText="Hủy"
           confirmLoading={loading}
           width={600}
+          onCancel={() => {
+            setIsModalOpen(false);
+            form.resetFields();
+          }}
         >
           <Form layout="vertical" form={form} onFinish={handleAddSpecialty}>
             <Form.Item
@@ -298,8 +354,24 @@ const AdminSpecialties = () => {
               <Input placeholder="VD: 7h00 - 17h00" />
             </Form.Item>
 
-            <Form.Item label="Hình ảnh (URL)" name="hinh_anh">
-              <Input placeholder="https://example.com/image.jpg" />
+            <Form.Item
+              label="Hình ảnh"
+              name="hinh_anh"
+              valuePropName="fileList"
+              getValueFromEvent={normFile}
+            >
+              <Upload
+                name="image"
+                listType="picture-card"
+                maxCount={1}
+                beforeUpload={beforeUpload}
+                accept="image/*"
+              >
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8 }}>Chọn ảnh</div>
+                </div>
+              </Upload>
             </Form.Item>
           </Form>
         </Modal>
@@ -308,7 +380,10 @@ const AdminSpecialties = () => {
         <Modal
           title="✏️ Sửa thông tin chuyên khoa"
           open={isEditModalOpen}
-          onCancel={() => setIsEditModalOpen(false)}
+          onCancel={() => {
+            setIsEditModalOpen(false);
+            editForm.resetFields();
+          }}
           onOk={() => editForm.submit()}
           okText="Cập nhật"
           cancelText="Hủy"
@@ -332,8 +407,24 @@ const AdminSpecialties = () => {
             <Form.Item label="Thời gian hoạt động" name="thoi_gian_hoat_dong">
               <Input />
             </Form.Item>
-            <Form.Item label="Hình ảnh (URL)" name="hinh_anh">
-              <Input />
+            <Form.Item
+              label="Hình ảnh"
+              name="hinh_anh"
+              valuePropName="fileList"
+              getValueFromEvent={normFile}
+            >
+              <Upload
+                name="image"
+                listType="picture-card"
+                maxCount={1}
+                beforeUpload={beforeUpload}
+                accept="image/*"
+              >
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8 }}>Chọn ảnh</div>
+                </div>
+              </Upload>
             </Form.Item>
           </Form>
         </Modal>

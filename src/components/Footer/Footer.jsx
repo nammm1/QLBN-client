@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Row, Col, Typography, Space, Divider, Input, Button, Card, Badge, Tag } from "antd";
+import { Row, Col, Typography, Space, Divider, Input, Button, Card, Badge, Tag, message } from "antd";
 import {
   HomeOutlined,
   InfoCircleOutlined,
@@ -28,6 +28,8 @@ import {
   StarOutlined,
 } from "@ant-design/icons";
 import { Stethoscope, Award, Shield, Clock, Users } from "lucide-react";
+import apiYeuCauEmail from "../../api/YeuCauEmail";
+import { showToastSuccess, showToastError } from "../../utils/toast";
 import "./Footer.css";
 
 const { Title, Text } = Typography;
@@ -35,12 +37,80 @@ const { Title, Text } = Typography;
 function Footer() {
   const currentYear = new Date().getFullYear();
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubscribe = () => {
-    if (email) {
-      // Handle subscription logic here
-      console.log("Subscribing:", email);
-      setEmail("");
+  // Validate email format
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleSubscribe = async () => {
+    console.log("========================================");
+    console.log("🚀 [FOOTER] NEW CODE VERSION - handleSubscribe called!");
+    console.log("📝 [Footer] handleSubscribe called with email:", email);
+    console.log("========================================");
+    
+    // Validate email không rỗng
+    if (!email || !email.trim()) {
+      console.log("⚠️ [Footer] Email is empty");
+      showToastError("Vui lòng nhập email của bạn");
+      return;
+    }
+
+    // Validate email format
+    if (!validateEmail(email.trim())) {
+      console.log("⚠️ [Footer] Email format is invalid");
+      showToastError("Email không hợp lệ. Vui lòng nhập đúng định dạng email");
+      return;
+    }
+
+    console.log("✅ [Footer] Validation passed, calling API...");
+    setLoading(true);
+    try {
+      const requestData = {
+        email: email.trim(),
+        loai_yeu_cau: "dang_ky_nhan_tin_tuc",
+      };
+      console.log("📤 [Footer] Request data:", requestData);
+      
+      // Gọi API đăng ký nhận tin
+      const response = await apiYeuCauEmail.create(requestData);
+      console.log("📥 [Footer] API response received:", response);
+
+      if (response.success) {
+        console.log("✅ [Footer] Subscription successful!");
+        showToastSuccess(
+          response.message || "Đăng ký thành công! Chúng tôi đã gửi email xác nhận đến bạn."
+        );
+        setEmail(""); // Clear input sau khi đăng ký thành công
+      } else {
+        console.log("⚠️ [Footer] Subscription failed:", response.message);
+        showToastError(response.message || "Đăng ký thất bại. Vui lòng thử lại sau.");
+      }
+    } catch (error) {
+      console.error("❌ [Footer] Error subscribing newsletter:", error);
+      console.error("❌ [Footer] Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      // Xử lý lỗi từ API response
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Đăng ký thất bại. Vui lòng thử lại sau.";
+      showToastError(errorMessage);
+    } finally {
+      setLoading(false);
+      console.log("🏁 [Footer] handleSubscribe finished");
+    }
+  };
+
+  // Handle Enter key press
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !loading) {
+      handleSubscribe();
     }
   };
 
@@ -74,14 +144,17 @@ function Footer() {
                     placeholder="Nhập email của bạn"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onPressEnter={handleKeyPress}
                     prefix={<MailOutlined style={{ color: "#40a9ff" }} />}
                     className="newsletter-input"
+                    disabled={loading}
                   />
                   <Button
                     type="primary"
                     size="large"
                     icon={<SendOutlined />}
                     onClick={handleSubscribe}
+                    loading={loading}
                     className="newsletter-button"
                   >
                     Đăng ký
@@ -161,7 +234,7 @@ function Footer() {
                 <Tag icon={<TrophyOutlined />} color="gold" className="cert-tag">
                   TOP 10
                 </Tag>
-              </div>
+          </div>
 
               <Space className="social-links">
                 <a
@@ -330,7 +403,7 @@ function Footer() {
                     </span>
                   </div>
                 </div>
-              </div>
+          </div>
 
               {/* Quick Action Buttons */}
               <div className="quick-actions">
@@ -349,7 +422,7 @@ function Footer() {
                 >
                   Tư vấn online
                 </Button>
-              </div>
+          </div>
             </Col>
           </Row>
         </div>

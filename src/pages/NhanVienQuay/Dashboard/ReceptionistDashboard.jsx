@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Row, Col, Statistic, Timeline, Table, Tag, Avatar, Typography, Badge } from "antd";
+import { Card, Row, Col, Statistic, Timeline, Table, Tag, Avatar, Typography, Badge, Spin, message } from "antd";
 import {
   UserAddOutlined,
   CalendarOutlined,
@@ -10,73 +10,89 @@ import {
   CloseCircleOutlined,
   RiseOutlined,
 } from "@ant-design/icons";
+import DashboardAPI from "../../../api/Dashboard";
+import moment from "moment";
 
 const { Title, Text } = Typography;
 
 const ReceptionistDashboard = () => {
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    patientsToday: 42,
-    appointmentsToday: 28,
-    pendingAppointments: 8,
-    revenue: 15750000,
+    patientsToday: 0,
+    appointmentsToday: 0,
+    pendingAppointments: 0,
+    revenue: 0,
   });
 
-  const [todayActivities, setTodayActivities] = useState([
-    {
-      time: "08:30",
-      type: "check-in",
-      content: "Tiếp nhận BN Nguyễn Văn A - Khám tim mạch",
-      status: "completed",
-    },
-    {
-      time: "09:15",
-      type: "appointment",
-      content: "Xác nhận lịch hẹn cho BN Trần Thị B - Khám nội tiết",
-      status: "completed",
-    },
-    {
-      time: "10:00",
-      type: "payment",
-      content: "Thu phí khám cho BN Lê Văn C - 350,000 VNĐ",
-      status: "completed",
-    },
-    {
-      time: "11:20",
-      type: "check-in",
-      content: "Tiếp nhận BN Phạm Thị D - Khám da liễu",
-      status: "in-progress",
-    },
-  ]);
+  const [todayActivities, setTodayActivities] = useState([]);
 
-  const [upcomingAppointments, setUpcomingAppointments] = useState([
-    {
-      key: "1",
-      time: "14:00",
-      patient: "Hoàng Văn E",
-      phone: "0912345678",
-      specialty: "Tim mạch",
-      doctor: "BS. Nguyễn A",
-      status: "confirmed",
-    },
-    {
-      key: "2",
-      time: "14:30",
-      patient: "Ngô Thị F",
-      phone: "0923456789",
-      specialty: "Nội tiết",
-      doctor: "BS. Trần B",
-      status: "pending",
-    },
-    {
-      key: "3",
-      time: "15:00",
-      patient: "Vũ Văn G",
-      phone: "0934567890",
-      specialty: "Da liễu",
-      doctor: "BS. Lê C",
-      status: "confirmed",
-    },
-  ]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState([]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await DashboardAPI.getReceptionistDashboard();
+      if (response.success && response.data) {
+        setStats(response.data.stats || stats);
+        setTodayActivities(response.data.todayActivities || []);
+        setUpcomingAppointments(response.data.upcomingAppointments || []);
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      message.error("Không thể tải dữ liệu dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (dateTime) => {
+    if (!dateTime) return "";
+    return moment(dateTime).format("HH:mm");
+  };
+
+  const formatDate = (dateTime) => {
+    if (!dateTime) return "";
+    return moment(dateTime).format("DD/MM/YYYY");
+  };
+
+  const getStatusFromApi = (trangThai) => {
+    const statusMap = {
+      da_xac_nhan: "confirmed",
+      cho_xac_nhan: "pending",
+      da_huy: "cancelled",
+      hoan_thanh: "confirmed",
+      completed: "confirmed",
+      pending: "pending",
+      confirmed: "confirmed",
+      cancelled: "cancelled"
+    };
+    return statusMap[trangThai] || "pending";
+  };
+
+  // Format upcoming appointments from API
+  const formattedUpcomingAppointments = upcomingAppointments.map((apt, index) => ({
+    key: apt.id_cuoc_hen || index.toString(),
+    time: formatTime(apt.ngay_kham || apt.ngay_hen),
+    patient: apt.nguoi_dung?.ho_ten || apt.benh_nhan?.ten || "N/A",
+    phone: apt.nguoi_dung?.so_dien_thoai || apt.benh_nhan?.so_dien_thoai || "N/A",
+    specialty: apt.chuyen_khoa?.ten_chuyen_khoa || apt.chuyen_khoa || "N/A",
+    doctor: apt.bac_si ? `BS. ${apt.bac_si.ho_ten || apt.bac_si.ten || "N/A"}` : "N/A",
+    status: getStatusFromApi(apt.trang_thai),
+    raw: apt
+  }));
+
+  // Format activities from API
+  const formattedActivities = todayActivities.map((activity, index) => ({
+    time: activity.time || moment().format("HH:mm"),
+    type: activity.type || "check-in",
+    content: activity.content || activity.action || "",
+    status: activity.status || "completed",
+    index
+  }));
 
   const columns = [
     {
@@ -146,6 +162,14 @@ const ReceptionistDashboard = () => {
         return <ClockCircleOutlined />;
     }
   };
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -246,7 +270,7 @@ const ReceptionistDashboard = () => {
             bodyStyle={{ maxHeight: "400px", overflowY: "auto" }}
           >
             <Timeline>
-              {todayActivities.map((activity, index) => (
+              {formattedActivities.map((activity, index) => (
                 <Timeline.Item
                   key={index}
                   dot={getActivityIcon(activity.type)}
@@ -283,7 +307,7 @@ const ReceptionistDashboard = () => {
           >
             <Table
               columns={columns}
-              dataSource={upcomingAppointments}
+              dataSource={formattedUpcomingAppointments}
               pagination={false}
               size="middle"
             />

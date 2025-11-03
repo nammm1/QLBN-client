@@ -25,7 +25,9 @@ import {
   PhoneOutlined,
   IdcardOutlined,
   ClockCircleOutlined,
-  CalendarOutlined
+  CalendarOutlined,
+  VideoCameraOutlined,
+  HomeOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import "../Appointments/NutritionistAppointments.css";
@@ -244,6 +246,28 @@ const NutritionistAppointments = () => {
         </Space>
       ),
       width: 150,
+    },
+    {
+      title: "LOẠI HẸN",
+      dataIndex: "loai_hen",
+      key: "loai_hen",
+      render: (loai_hen) => {
+        if (loai_hen === 'online') {
+          return (
+            <Tag color="blue" icon={<VideoCameraOutlined />}>
+              Online
+            </Tag>
+          );
+        } else if (loai_hen === 'truc_tiep') {
+          return (
+            <Tag color="green" icon={<HomeOutlined />}>
+              Trực tiếp
+            </Tag>
+          );
+        }
+        return <Tag>{loai_hen || "—"}</Tag>;
+      },
+      width: 120,
     },
     {
       title: "LOẠI DINH DƯỠNG",

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { App as AntdApp } from 'antd';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import Home from "./pages/Home/Home";
@@ -8,6 +9,7 @@ import Layout from "./layouts";
 import DoctorLayout from "./layouts/DoctorLayout";
 import StaffLayout from "./layouts/StaffLayout";
 import ReceptionistLayout from "./layouts/ReceptionistLayout";
+import NutritionistLayout from "./layouts/NutritionistLayout";
 import DoctorDashboard from "./pages/Doctors/DoctorDashboard";
 import DoctorProfile from "./pages/BacSi/Profile/DoctorProfile";
 import DoctorAppointments from "./pages/BacSi/Appointments/DoctorAppointments";
@@ -41,22 +43,32 @@ import DoctorMedicalRecords from "./pages/DoctorMedicalRecords/DoctorMedicalReco
 import NutritionRecords from "./pages/NutritionRecords/NutritionRecords";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
-import Accounts from "./pages/Admin/Accounts/AdminAccounts";
-import Medicines from "./pages/Admin/Medicines/AdminMedicines";
 import AdminSpecialties from "./pages/Admin/Specialties/AdminSpecialties";
-import Reports from "./pages/Admin/Reports/AdminReports";
 import AdminAccounts from "./pages/Admin/Accounts/AdminAccounts";
 import AdminAccountDetail from "./pages/Admin/Accounts/AdminAccountDetail";
 import AdminMedicines from "./pages/Admin/Medicines/AdminMedicines";
 import AdminServices from "./pages/Admin/Services/AdminServices";
 import AdminReports from "./pages/Admin/Reports/AdminReports";
+import AdminEmails from "./pages/Admin/Emails/AdminEmails";
 import Chat from "./pages/Chat/Chat";
+import PatientChat from "./pages/PatientChat/PatientChat";
+import PatientNotifications from "./pages/PatientNotifications/PatientNotifications";
+import NutritionistDashboard from "./pages/ChuyenGiaDinhDuong/Dashboard/NutritionistDashboard";
+import NutritionistAppointments from "./pages/ChuyenGiaDinhDuong/Appointments/NutritionistAppointments";
+import NutritionistAppointmentDetail from "./pages/ChuyenGiaDinhDuong/Appointments/AppointmentDetail";
+import NutritionistRecords from "./pages/ChuyenGiaDinhDuong/Records/NutritionistRecords";
+import NutritionistRecordDetail from "./pages/ChuyenGiaDinhDuong/Records/NutritionistRecordDetail";
+import NutritionistWorkSchedule from "./pages/ChuyenGiaDinhDuong/WorkSchedule/NutritionistWorkSchedule";
+import PrivacyPolicy from "./pages/PrivacyPolicy/PrivacyPolicy";
+import TermsOfUse from "./pages/TermsOfUse/TermsOfUse";
+import FAQ from "./pages/FAQ/FAQ";
 // import Register from "./Pages/Register/Register";
 
 function App() {
   return (
-    <Router>
-      <Routes>
+    <AntdApp>
+      <Router>
+        <Routes>
         <Route path="/" element={<Layout />}>
           {/* Trang mặc định */}
           <Route index element={<Home />} />
@@ -72,8 +84,13 @@ function App() {
           <Route path="/medical-records" element={<MedicalRecords />} />
           <Route path="/nutrition-records" element={<NutritionRecords />} />
           <Route path="/appointments" element={<Appointments />} />
+          <Route path="/chat" element={<PatientChat />} />
+          <Route path="/notifications" element={<PatientNotifications />} />
           <Route path="/doctor-function" element={<DoctorFunction />} />
           <Route path="/doctor-medical-records" element={<DoctorMedicalRecords />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfUse />} />
+          <Route path="/faq" element={<FAQ />} />
         </Route>
 
         <Route path="/doctor" element={<DoctorLayout />}>
@@ -95,6 +112,7 @@ function App() {
           <Route path="medicines" element={<AdminMedicines />} />
           <Route path="services" element={<AdminServices />} />
           <Route path="specialties" element={<AdminSpecialties />} />
+          <Route path="emails" element={<AdminEmails />} />
           <Route path="reports" element={<AdminReports />} />
         </Route>
 
@@ -117,11 +135,22 @@ function App() {
           <Route path="profile" element={<ReceptionistProfile />} />
         </Route>
 
+        <Route path="/nutritionist" element={<NutritionistLayout />}>
+          <Route index element={<NutritionistDashboard />} />
+          <Route path="appointments" element={<NutritionistAppointments />} />
+          <Route path="appointment/:id_cuoc_hen" element={<NutritionistAppointmentDetail />} />
+          <Route path="records" element={<NutritionistRecords />} />
+          <Route path="record/:id_ho_so" element={<NutritionistRecordDetail />} />
+          <Route path="work-schedule" element={<NutritionistWorkSchedule />} />
+          <Route path="chat" element={<Chat />} />
+        </Route>
+
         <Route>
           <Route path="/login" element={<Login />} />
         </Route>
       </Routes>
-    </Router>
+      </Router>
+    </AntdApp>
   );
 }
 

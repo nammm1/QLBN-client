@@ -62,6 +62,7 @@ import apiKetQuaXetNghiem from "../../../api/KetQuaXetNghiem";
 import { calculateAge } from "../../../utils/calculateAge";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { QRCodeSVG } from "qrcode.react";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -85,6 +86,7 @@ const DoctorAppointmentDetail = () => {
   const [ghiChuDonThuoc, setGhiChuDonThuoc] = useState("");
   const [dsDichVu, setDsDichVu] = useState([]);
   const [dichVuTamThoi, setDichVuTamThoi] = useState([]);
+  const [hoaDon, setHoaDon] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Thêm state cho xét nghiệm
@@ -216,7 +218,8 @@ const DoctorAppointmentDetail = () => {
           try {
             const HoaDon = await apiHoaDon.getByCuocHenKham(appt.id_cuoc_hen);
             if (HoaDon) {
-              const ChiTietHoaDonData = await apiChiTietHoaDon.getByHoaDon(HoaDon.id_hoa_don);
+              setHoaDon(HoaDon.data || HoaDon);
+              const ChiTietHoaDonData = await apiChiTietHoaDon.getByHoaDon(HoaDon.data?.id_hoa_don || HoaDon.id_hoa_don);
               if (ChiTietHoaDonData && ChiTietHoaDonData.data) {
                 setDichVuTamThoi(ChiTietHoaDonData.data || []);
               }
@@ -524,11 +527,12 @@ const DoctorAppointmentDetail = () => {
             (sum, dv) => sum + (dv.so_luong || 0) * (dv.don_gia || 0),
             0
           );
-          await apiHoaDon.create({
+          const hoaDonCreated = await apiHoaDon.create({
             id_cuoc_hen_kham: id_cuoc_hen,
             tong_tien,
             chi_tiet: dichVuHopLe,
           });
+          setHoaDon(hoaDonCreated.data || hoaDonCreated);
         }
       }
 
@@ -1805,11 +1809,26 @@ const DoctorAppointmentDetail = () => {
       >
         <div id="invoicePreview" style={{ padding: 20, background: 'white', border: '1px solid #f0f0f0' }}>
           {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: 30, borderBottom: '2px solid #1890ff', paddingBottom: 20 }}>
+          <div style={{ textAlign: 'center', marginBottom: 30, borderBottom: '2px solid #1890ff', paddingBottom: 20, position: 'relative' }}>
             <Title level={2} style={{ color: '#1890ff', margin: 0 }}>PHÒNG KHÁM MEDPRO</Title>
             <Text style={{ fontSize: 16, color: '#666' }}>Địa chỉ: 123 Đường ABC, Quận XYZ, TP.HCM</Text>
             <br />
             <Text style={{ fontSize: 16, color: '#666' }}>Điện thoại: 028 1234 5678</Text>
+            
+            {/* QR Code */}
+            {hoaDon?.id_hoa_don && (
+              <div style={{ position: 'absolute', top: 0, right: 0, textAlign: 'center' }}>
+                <QRCodeSVG 
+                  value={hoaDon.id_hoa_don.toString()}
+                  size={120}
+                  level="H"
+                  includeMargin={true}
+                />
+                <div style={{ fontSize: '10px', marginTop: '4px', color: '#666' }}>
+                  Mã: {hoaDon.id_hoa_don}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Thông tin bệnh nhân */}

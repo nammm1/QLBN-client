@@ -184,10 +184,19 @@ const Chat = () => {
     return () => clearInterval(interval);
   }, [selectedConversation]);
 
-  // Tự động mở cuộc trò chuyện khi có user param trong URL
+  // Tự động mở cuộc trò chuyện khi có user hoặc id_cuoc_tro_chuyen param trong URL
   useEffect(() => {
     const userIdFromUrl = searchParams.get("user");
-    if (userIdFromUrl && !autoOpeningConversation && !loading) {
+    const conversationIdFromUrl = searchParams.get("id_cuoc_tro_chuyen");
+    
+    if (conversationIdFromUrl && !autoOpeningConversation && !loading) {
+      // Đợi conversations được load xong
+      const timer = setTimeout(() => {
+        handleAutoOpenConversationById(conversationIdFromUrl);
+      }, 100);
+
+      return () => clearTimeout(timer);
+    } else if (userIdFromUrl && !autoOpeningConversation && !loading) {
       // Đợi conversations được load xong (có thể là mảng rỗng nếu chưa có conversation nào)
       // Điều kiện conversations.length >= 0 luôn đúng, nhưng ta cần đảm bảo đã load xong
       const timer = setTimeout(() => {
@@ -196,7 +205,48 @@ const Chat = () => {
 
       return () => clearTimeout(timer);
     }
-  }, [searchParams.get("user")]); // Chỉ chạy khi user param thay đổi
+  }, [searchParams.get("user"), searchParams.get("id_cuoc_tro_chuyen")]); // Chạy khi user hoặc conversation param thay đổi
+
+  // Hàm tự động mở cuộc trò chuyện theo ID conversation
+  const handleAutoOpenConversationById = async (id_cuoc_tro_chuyen) => {
+    try {
+      setAutoOpeningConversation(true);
+      
+      // Tìm conversation trong danh sách hiện có
+      const existingConv = conversations.find(
+        (conv) => conv.id_cuoc_tro_chuyen === id_cuoc_tro_chuyen
+      );
+
+      if (existingConv) {
+        // Nếu đã có, chọn conversation này
+        setSelectedConversation(existingConv);
+        loadMessages(existingConv.id_cuoc_tro_chuyen);
+        // Xóa param từ URL
+        setSearchParams({});
+      } else {
+        // Nếu chưa có trong danh sách, reload conversations và tìm lại
+        await loadConversations();
+        const timer = setTimeout(() => {
+          const foundConv = conversations.find(
+            (conv) => conv.id_cuoc_tro_chuyen === id_cuoc_tro_chuyen
+          );
+          if (foundConv) {
+            setSelectedConversation(foundConv);
+            loadMessages(foundConv.id_cuoc_tro_chuyen);
+          } else {
+            message.warning("Không tìm thấy cuộc trò chuyện");
+          }
+          setSearchParams({});
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    } catch (error) {
+      console.error("Error opening conversation:", error);
+      message.error("Không thể mở cuộc trò chuyện");
+    } finally {
+      setAutoOpeningConversation(false);
+    }
+  };
 
   // Hàm tự động mở cuộc trò chuyện với người dùng từ URL
   const handleAutoOpenConversation = async (id_nguoi_nhan) => {

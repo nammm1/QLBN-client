@@ -1,0 +1,29 @@
+.admin-account-detail-container {
+  max-width: 100%;
+  min-height: 87vh;
+  margin: 0;
+  padding: 0;
+}
+
+.shadow-card {
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: none;
+}
+
+.detail-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.detail-card .ant-descriptions-item-label {
+  font-weight: 600;
+  background-color: #fafafa;
+}
+
+@media (max-width: 768px) {
+  .admin-account-detail-container {
+    padding: 0 8px;
+  }
+}
+

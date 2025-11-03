@@ -1,0 +1,38 @@
+.admin-reports-container {
+  max-width: 100%;
+  min-height: 87vh;
+  margin: 0;
+  padding: 0;
+}
+
+.shadow-card {
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: none;
+}
+
+.stat-card {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.report-table {
+  margin-top: 16px;
+}
+
+.report-table .ant-table-tbody > tr:hover > td {
+  background-color: #f5f6fa;
+}
+
+@media (max-width: 768px) {
+  .admin-reports-container {
+    padding: 0 8px;
+  }
+}
+

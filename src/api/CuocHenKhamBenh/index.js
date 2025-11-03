@@ -130,6 +130,19 @@ const apiCuocHenKhamBenh = {
       throw err;
     }
   },
+
+  // Lấy tất cả cuộc hẹn khám bệnh
+  getAll: async () => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenKhamBenh}/`
+      );
+      return res.data.data || [];
+    } catch (err) {
+      console.error("Error fetching all cuoc hen kham:", err);
+      throw err;
+    }
+  },
 };
 
 export default apiCuocHenKhamBenh;

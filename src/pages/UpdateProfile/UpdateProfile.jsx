@@ -150,6 +150,22 @@ const UpdateProfile = () => {
       const response = await apiUpload.uploadUserImage(fileObj);
       if (response.success && response.data?.imageUrl) {
         setImage(response.data.imageUrl);
+        
+        // Cập nhật localStorage ngay sau khi upload thành công
+        if (userInfo?.user) {
+          const updatedUserInfo = {
+            ...userInfo,
+            user: {
+              ...userInfo.user,
+              anh_dai_dien: response.data.imageUrl,
+            }
+          };
+          localStorage.setItem("userInfo", JSON.stringify(updatedUserInfo));
+          
+          // Dispatch custom event để Header có thể cập nhật
+          window.dispatchEvent(new CustomEvent("userInfoUpdated"));
+        }
+        
         toast.success("Upload ảnh thành công!");
       } else {
         toast.error("Upload ảnh thất bại!");
@@ -254,6 +270,9 @@ const UpdateProfile = () => {
           }
         };
         localStorage.setItem("userInfo", JSON.stringify(updatedUserInfo));
+        
+        // Dispatch custom event để Header có thể cập nhật
+        window.dispatchEvent(new CustomEvent("userInfoUpdated"));
       }
     } catch (err) {
       console.error("Lỗi khi cập nhật:", err);
@@ -297,7 +316,7 @@ const UpdateProfile = () => {
   ];
 
   if (fetching) {
-    return (
+  return (
       <div className="modern-profile-container">
         <div className="modern-loading-wrapper">
           <div className="modern-spinner">
@@ -334,8 +353,8 @@ const UpdateProfile = () => {
                 Đổi mật khẩu
               </Button>
             </div>
-          </div>
         </div>
+      </div>
 
         <div className="modern-profile-content">
           {/* Sidebar Profile */}
@@ -393,7 +412,7 @@ const UpdateProfile = () => {
                 </div>
               ))}
             </div>
-          </div>
+            </div>
 
           {/* Main Content */}
           <div className="modern-profile-main">
@@ -413,8 +432,8 @@ const UpdateProfile = () => {
                       <Title level={4} className="modern-section-title">
                         Thông tin cá nhân
                       </Title>
-                    </div>
-                    
+            </div>
+
                     <Row gutter={[24, 16]}>
                       <Col xs={24} md={12}>
                         <Form.Item
@@ -470,7 +489,7 @@ const UpdateProfile = () => {
                       </Col>
                       <Col xs={24} md={12}>
                         <Form.Item
-                          name="email"
+                name="email"
                           label="Email"
                           rules={[
                             { type: "email", message: "Email không hợp lệ!" },
@@ -486,7 +505,7 @@ const UpdateProfile = () => {
                       </Col>
                       <Col xs={24} md={12}>
                         <Form.Item
-                          name="so_dien_thoai"
+                name="so_dien_thoai"
                           label="Số điện thoại"
                         >
                           <Input 
@@ -522,7 +541,7 @@ const UpdateProfile = () => {
                         </Form.Item>
                       </Col>
                     </Row>
-                  </div>
+            </div>
                 )}
 
                 {/* Medical Information Tab */}
@@ -533,8 +552,8 @@ const UpdateProfile = () => {
                       <Title level={4} className="modern-section-title">
                         Thông tin y tế
                       </Title>
-                    </div>
-                    
+            </div>
+
                     <Row gutter={[24, 16]}>
                       <Col xs={24} md={12}>
                         <Form.Item
@@ -621,7 +640,7 @@ const UpdateProfile = () => {
                         </Form.Item>
                       </Col>
                     </Row>
-                  </div>
+            </div>
                 )}
 
                 {/* Save Button */}
@@ -640,15 +659,15 @@ const UpdateProfile = () => {
               </Form>
             </Card>
           </div>
-        </div>
-      </div>
+            </div>
+          </div>
 
       {/* Password Modal */}
       <Modal
         title={
           <div className="modern-modal-title">
             <LockOutlined /> Đổi mật khẩu
-          </div>
+      </div>
         }
         open={passwordModal}
         onCancel={() => {

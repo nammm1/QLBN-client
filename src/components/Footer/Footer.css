@@ -781,9 +781,9 @@
 @media (max-width: 992px) {
   .footer-container {
     padding: 50px 20px 24px;
-  }
+}
 
-  .footer-content {
+.footer-content {
     margin-bottom: 32px;
   }
 
@@ -866,8 +866,8 @@
   }
 
   .newsletter-section {
-    padding: 20px;
-  }
+  padding: 20px;
+}
 
   .newsletter-icon {
     width: 50px;

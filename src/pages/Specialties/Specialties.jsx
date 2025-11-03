@@ -126,7 +126,7 @@ const Specialties = () => {
       try {
         const data = await apiChuyenKhoa.getAllChuyenKhoa();
         console.log(data);
-        setSpecialties(data);
+        setSpecialties(data); 
       } catch (error) {
         console.error("Lỗi khi lấy danh sách chuyên khoa:", error);
       } finally {
@@ -296,9 +296,9 @@ const Specialties = () => {
                                     }}
                                   >
                                     {s.hinh_anh ? (
-                                      <img
-                                        src={s.hinh_anh}
-                                        alt={s.ten_chuyen_khoa}
+        <img
+          src={s.hinh_anh}
+          alt={s.ten_chuyen_khoa}
                                         style={{
                                           width: 70,
                                           height: 70,
@@ -313,9 +313,9 @@ const Specialties = () => {
                                         }} 
                                       />
                                     )}
-                                  </div>
+      </div>
                                 </motion.div>
-                              </div>
+    </div>
                               
                               <div className="specialty-card-title-wrapper">
                                 <Title 
@@ -332,7 +332,7 @@ const Specialties = () => {
                                 >
                                   {s.ten_chuyen_khoa}
                                 </Title>
-                              </div>
+</div>
 
                               <div className="specialty-card-button-wrapper">
                                 <Tag 
@@ -357,7 +357,7 @@ const Specialties = () => {
               </Row>
             </StaggerChildren>
 
-            {/* Pagination */}
+        {/* Pagination */}
             {totalPages > 1 && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
@@ -432,7 +432,7 @@ const Specialties = () => {
                           }}
                         />
                       )}
-                    </div>
+        </div>
                     <Title 
                       level={2} 
                       style={{ 
@@ -444,7 +444,7 @@ const Specialties = () => {
                     >
                       {selectedSpecialty.ten_chuyen_khoa}
                     </Title>
-                  </div>
+      </div>
 
                   <Divider style={{ borderColor: "#f0f0f0" }} />
 
@@ -472,7 +472,7 @@ const Specialties = () => {
                     >
                       {selectedSpecialty.mo_ta || "Chuyên khoa này cung cấp các dịch vụ y tế chuyên sâu với đội ngũ bác sĩ giàu kinh nghiệm và trang thiết bị hiện đại."}
                     </Paragraph>
-                  </div>
+              </div>
 
                   {/* Cơ sở vật chất */}
                   {selectedSpecialty.thiet_bi && (
@@ -528,8 +528,8 @@ const Specialties = () => {
                       >
                         {selectedSpecialty.thoi_gian_hoat_dong}
                       </Tag>
-                    </div>
-                  )}
+        </div>
+      )}
                 </motion.div>
               )}
             </Modal>

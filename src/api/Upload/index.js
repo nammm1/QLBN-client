@@ -24,6 +24,31 @@ const apiUpload = {
     }
   },
 
+  // Upload ảnh chuyên khoa
+  uploadChuyenKhoaImage: async (file, id_chuyen_khoa = null) => {
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      if (id_chuyen_khoa) {
+        formData.append("id_chuyen_khoa", id_chuyen_khoa);
+      }
+
+      const res = await axiosInstance.post(
+        `${API_CONFIG.BASE_URL}upload/chuyenkhoa`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return res.data;
+    } catch (err) {
+      console.error("Error uploading chuyen khoa image:", err);
+      throw err;
+    }
+  },
+
   // Upload ảnh tổng quát
   uploadImage: async (file, folder = null) => {
     try {

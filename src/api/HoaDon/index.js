@@ -61,7 +61,7 @@ const apiHoaDon = {
       const res = await axiosInstance.get(
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.HoaDon}/tu-van/${id_cuoc_hen}`
       );
-      return res.data;
+      return res.data.data;
     } catch (err) {
       console.error("Error fetching hóa đơn by cuộc hẹn tư vấn:", err);
       throw err;
@@ -78,6 +78,20 @@ const apiHoaDon = {
       return res.data;
     } catch (err) {
       console.error("Error updating thanh toán hóa đơn:", err);
+      throw err;
+    }
+  },
+
+  // Tìm kiếm hóa đơn nâng cao
+  search: async (params = {}) => {
+    try {
+      const queryParams = new URLSearchParams(params);
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.HoaDon}/search?${queryParams.toString()}`
+      );
+      return res.data;
+    } catch (err) {
+      console.error("Error searching hóa đơn:", err);
       throw err;
     }
   },

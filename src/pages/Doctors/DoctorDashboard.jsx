@@ -13,7 +13,9 @@ import {
   Alert,
   Button,
   Space,
-  Typography
+  Typography,
+  Spin,
+  message
 } from "antd";
 import { 
   UserOutlined, 
@@ -31,51 +33,87 @@ import {
   NotificationOutlined
 } from "@ant-design/icons";
 import "bootstrap/dist/css/bootstrap.min.css";
+import DashboardAPI from "../../api/Dashboard";
+import moment from "moment";
 
 const { Title, Text } = Typography;
 
 const DoctorDashboard = () => {
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    patientsToday: 12,
-    appointments: 8,
-    pendingRecords: 5,
-    newReports: 3
+    patientsToday: 0,
+    appointments: 0,
+    pendingRecords: 0,
+    newReports: 0
   });
+  const [upcomingAppointments, setUpcomingAppointments] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
 
-  const upcomingAppointments = [
-    { 
-      id: 1, 
-      patientName: "Nguyễn Văn A", 
-      time: "09:00", 
-      type: "Khám định kỳ", 
-      status: "confirmed",
-      avatar: "A"
-    },
-    { 
-      id: 2, 
-      patientName: "Trần Thị B", 
-      time: "10:30", 
-      type: "Tái khám", 
-      status: "confirmed",
-      avatar: "B"
-    },
-    { 
-      id: 3, 
-      patientName: "Lê Văn C", 
-      time: "14:00", 
-      type: "Khám mới", 
-      status: "pending",
-      avatar: "C"
-    },
-    { 
-      id: 4, 
-      patientName: "Phạm Thị D", 
-      time: "15:30", 
-      type: "Khám định kỳ", 
-      status: "confirmed",
-      avatar: "D"
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await DashboardAPI.getDoctorDashboard();
+      if (response.success && response.data) {
+        setStats(response.data.stats || stats);
+        setUpcomingAppointments(response.data.upcomingAppointments || []);
+        setRecentActivities(response.data.recentActivities || []);
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      message.error("Không thể tải dữ liệu dashboard");
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const formatAppointmentTime = (dateTime) => {
+    if (!dateTime) return "";
+    return moment(dateTime).format("HH:mm");
+  };
+
+  const formatAppointmentDate = (dateTime) => {
+    if (!dateTime) return "";
+    return moment(dateTime).format("DD/MM/YYYY");
+  };
+
+  const getAppointmentType = (loaiHen) => {
+    const types = {
+      kham_dinh_ky: "Khám định kỳ",
+      tai_kham: "Tái khám",
+      kham_moi: "Khám mới",
+    };
+    return types[loaiHen] || loaiHen || "Khám";
+  };
+
+  const getStatusFromApi = (trangThai) => {
+    const statusMap = {
+      da_xac_nhan: "confirmed",
+      cho_xac_nhan: "pending",
+      da_huy: "cancelled",
+      hoan_thanh: "confirmed",
+      completed: "confirmed",
+      pending: "pending",
+      confirmed: "confirmed",
+      cancelled: "cancelled"
+    };
+    return statusMap[trangThai] || "pending";
+  };
+
+  // Format upcoming appointments from API
+  const formattedUpcomingAppointments = upcomingAppointments.map((apt, index) => ({
+    id: apt.id_cuoc_hen || index,
+    patientName: apt.nguoi_dung?.ho_ten || apt.benh_nhan?.ten || "N/A",
+    time: formatAppointmentTime(apt.ngay_kham || apt.ngay_hen),
+    date: formatAppointmentDate(apt.ngay_kham || apt.ngay_hen),
+    type: getAppointmentType(apt.loai_hen),
+    status: getStatusFromApi(apt.trang_thai),
+    avatar: (apt.nguoi_dung?.ho_ten || "N")[0].toUpperCase(),
+    raw: apt
+  }));
 
   const notifications = [
     {
@@ -112,12 +150,10 @@ const DoctorDashboard = () => {
     }
   ];
 
-  const recentActivities = [
-    { time: "08:30", action: "Hoàn thành khám cho bệnh nhân Trần Văn E" },
-    { time: "10:15", action: "Duyệt hồ sơ bệnh án số HS-2024-045" },
-    { time: "11:30", action: "Gửi kết quả xét nghiệm cho bệnh nhân Nguyễn Thị F" },
-    { time: "13:45", action: "Cập nhật phác đồ điều trị mới" },
-  ];
+  const formattedRecentActivities = recentActivities.map((activity) => ({
+    time: activity.time || "",
+    action: activity.action || ""
+  }));
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -185,6 +221,14 @@ const DoctorDashboard = () => {
       prefix: <BellOutlined />
     }
   ];
+
+  if (loading) {
+    return (
+      <div className="container-fluid p-4 bg-light min-vh-100 d-flex justify-content-center align-items-center">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <div className="container-fluid p-4 bg-light min-vh-100">
@@ -266,7 +310,7 @@ const DoctorDashboard = () => {
                 extra={<Button type="link">Xem tất cả</Button>}
               >
                 <List
-                  dataSource={upcomingAppointments}
+                  dataSource={formattedUpcomingAppointments}
                   renderItem={item => (
                     <List.Item>
                       <List.Item.Meta
@@ -286,7 +330,7 @@ const DoctorDashboard = () => {
                         description={
                           <Space direction="vertical" size={0}>
                             <Text type="secondary">
-                              <ClockCircleOutlined /> {item.time}
+                              <ClockCircleOutlined /> {item.date} - {item.time}
                             </Text>
                             <Text type="secondary">{item.type}</Text>
                           </Space>
@@ -313,7 +357,7 @@ const DoctorDashboard = () => {
                 className="shadow-sm h-100"
               >
                 <Timeline
-                  items={recentActivities.map((activity, index) => ({
+                  items={formattedRecentActivities.map((activity, index) => ({
                     key: index,
                     dot: <ClockCircleOutlined style={{ fontSize: '12px' }} />,
                     children: (

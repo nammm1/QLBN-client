@@ -66,7 +66,7 @@ const Home = () => {
     satisfaction: 0,
   });
 
-  // Intersection Observer for scroll animations
+  // Intersection Observer for scroll animations - optimized
   useEffect(() => {
     const observerOptions = {
       threshold: 0.1,
@@ -76,10 +76,17 @@ const Home = () => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          setIsVisible((prev) => ({
-            ...prev,
-            [entry.target.id]: true,
-          }));
+          const targetId = entry.target.id;
+          setIsVisible((prev) => {
+            // Only update if not already visible to prevent unnecessary re-renders
+            if (prev[targetId]) return prev;
+            return {
+              ...prev,
+              [targetId]: true,
+            };
+          });
+          // Unobserve after visible to improve performance
+          observer.unobserve(entry.target);
         }
       });
     }, observerOptions);
@@ -88,55 +95,74 @@ const Home = () => {
     sections.forEach((section) => observer.observe(section));
 
     return () => {
-      sections.forEach((section) => observer.disconnect());
+      observer.disconnect();
     };
   }, []);
 
-  // Animated counters
+  // Animated counters - optimized with requestAnimationFrame
   useEffect(() => {
-    if (isVisible.achievements) {
-      const duration = 2000;
-      const steps = 60;
-      const increment = duration / steps;
+    if (!isVisible.achievements) return;
 
-      const animate = (start, end, key) => {
-        let current = start;
-        const step = (end - start) / steps;
-        const timer = setInterval(() => {
-          current += step;
-          if (current >= end) {
-            current = end;
-            clearInterval(timer);
-          }
-          setCounters((prev) => ({ ...prev, [key]: Math.floor(current) }));
-        }, increment);
-      };
+    let animationFrameId;
+    const startTime = Date.now();
+    const duration = 2000;
 
-      animate(0, 50000, "patients");
-      animate(0, 200, "doctors");
-      animate(0, 15, "years");
-      animate(0, 98, "satisfaction");
-    }
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+
+      setCounters({
+        patients: Math.floor(50000 * easeOutQuart),
+        doctors: Math.floor(200 * easeOutQuart),
+        years: Math.floor(15 * easeOutQuart),
+        satisfaction: Math.floor(98 * easeOutQuart),
+      });
+
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(animate);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   }, [isVisible.achievements]);
 
+  // Glide carousel initialization - optimized
   useEffect(() => {
+    // Delay initialization slightly to improve initial page load
+    const initTimer = setTimeout(() => {
+      if (!glideRef.current) {
     glideRef.current = new Glide(".partners-glide", {
       type: "carousel",
-      perView: 3,
-      gap: 30,
-      autoplay: 2000,
-      hoverpause: true,
-      animationDuration: 400,
+          perView: 3,
+          gap: 30,
+          autoplay: 2000,
+          hoverpause: true,
+          animationDuration: 400,
       animationTimingFunc: "cubic-bezier(0.165, 0.84, 0.44, 1)",
       breakpoints: {
-        992: { perView: 2 },
-        576: { perView: 1 },
-      },
-    });
+            992: { perView: 2 },
+            576: { perView: 1 },
+          },
+        });
+        glideRef.current.mount();
+      }
+    }, 100);
 
-    glideRef.current.mount();
     return () => {
-      if (glideRef.current) glideRef.current.destroy();
+      clearTimeout(initTimer);
+      if (glideRef.current) {
+        glideRef.current.destroy();
+        glideRef.current = null;
+      }
     };
   }, []);
 
@@ -325,12 +351,12 @@ const Home = () => {
                       Tìm hiểu thêm
                     </Button>
                   </Space>
-                </div>
-              </div>
-            </div>
+      </div>
+    </div>
+  </div>
           ))}
         </Carousel>
-      </div>
+</div>
 
       {/* Why Choose Us */}
       <div className="section-white animate-on-scroll" id="why-choose" style={{ background: "#fff", padding: "80px 0" }}>
@@ -340,7 +366,7 @@ const Home = () => {
             className={`section-title ${isVisible["why-choose"] ? "animate-fade-in-up" : ""}`}
             style={{ textAlign: "center", color: "#096dd9", marginBottom: 16, fontSize: "2.5rem" }}
           >
-            Vì sao nên chọn bệnh viện chúng tôi?
+          Vì sao nên chọn bệnh viện chúng tôi?
           </Title>
           <Paragraph 
             className={`section-subtitle ${isVisible["why-choose"] ? "animate-fade-in-up-delay" : ""}`}
@@ -358,6 +384,8 @@ const Home = () => {
                   src={doctorImg}
                   alt="Doctor"
                   className="doctor-image"
+                  loading="lazy"
+                  decoding="async"
                   style={{
                     width: "100%",
                     maxWidth: "500px",
@@ -400,7 +428,7 @@ const Home = () => {
             </Col>
           </Row>
         </div>
-      </div>
+          </div>
 
       {/* Achievements */}
       <div
@@ -459,13 +487,13 @@ const Home = () => {
                       value={value}
                       valueStyle={{ color: "white", fontSize: "3rem", fontWeight: "bold" }}
                     />
-                  </div>
+                      </div>
                 </Col>
               );
             })}
           </Row>
-        </div>
-      </div>
+                    </div>
+                  </div>
 
       {/* Services */}
       <div className="section-white animate-on-scroll" id="services" style={{ background: "#f0f2f5", padding: "80px 0" }}>
@@ -502,7 +530,7 @@ const Home = () => {
                 >
                   <div className="service-icon-wrapper" style={{ fontSize: "3rem", color: service.color, marginBottom: 20 }}>
                     {service.icon}
-                  </div>
+                </div>
                   <Title level={4} style={{ color: "#096dd9", marginBottom: 12 }}>
                     {service.title}
                   </Title>
@@ -584,15 +612,15 @@ const Home = () => {
                         <Text type="secondary" style={{ fontSize: 13 }}>
                           {testimonial.role}
                         </Text>
-                      </div>
+            </div>
                     </Space>
                   </Space>
                 </Card>
               </Col>
             ))}
           </Row>
-        </div>
-      </div>
+            </div>
+            </div>
 
       {/* Milestones */}
       <div className="section-white animate-on-scroll" id="milestones" style={{ background: "#f0f2f5", padding: "80px 0" }}>
@@ -639,9 +667,9 @@ const Home = () => {
                 ),
               }))}
             />
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Partners */}
       <div className="section-white animate-on-scroll" id="partners" style={{ background: "white", padding: "80px 0" }}>
@@ -666,7 +694,17 @@ const Home = () => {
                 {partners.map((src, idx) => (
                   <li className="glide__slide" key={idx}>
                     <figure className="item hospital_slide">
-                      <img loading="lazy" src={src} alt={`partner${idx + 1}`} style={{ borderRadius: 8 }} />
+                      <img 
+                        loading="lazy" 
+                        decoding="async"
+                        src={src} 
+                        alt={`partner${idx + 1}`} 
+                        style={{ borderRadius: 8 }}
+                        onLoad={(e) => {
+                          // Mark image as loaded for better performance tracking
+                          e.target.style.opacity = '1';
+                        }}
+                      />
                     </figure>
                   </li>
                 ))}

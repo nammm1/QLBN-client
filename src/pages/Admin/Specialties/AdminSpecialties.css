@@ -1,0 +1,41 @@
+.admin-specialties-container {
+  max-width: 100%;
+  min-height: 87vh;
+  margin: 0;
+  padding: 0;
+}
+
+.shadow-card {
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: none;
+}
+
+.header-section {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.page-title {
+  color: #1890ff;
+  margin-bottom: 8px !important;
+}
+
+.filter-card {
+  margin-bottom: 24px;
+  border-radius: 8px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+}
+
+.table-card {
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+}
+
+@media (max-width: 768px) {
+  .admin-specialties-container {
+    padding: 0 8px;
+  }
+}
+

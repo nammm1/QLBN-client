@@ -430,11 +430,11 @@ const Nutritionist = () => {
                                   <Text strong style={{ fontSize: 16, color: getNutritionistColor() }}>
                                     {nutri.clients?.toLocaleString() || "500+"}
                                   </Text>
-                                  <div>
+              <div>
                                     <Text type="secondary" style={{ fontSize: 12 }}>Khách hàng</Text>
-                                  </div>
-                                </div>
-      </div>
+              </div>
+            </div>
+          </div>
                             </Space>
                           </div>
                         </Card>
@@ -622,7 +622,7 @@ const Nutritionist = () => {
                           transition={{ duration: 0.3 }}
                         >
                           <StarFilled style={{ fontSize: 32, color: "#52c41a", marginBottom: 12 }} />
-                          <div>
+                <div>
                             <Text strong style={{ fontSize: 24, color: "#52c41a", display: "block" }}>
                               {selectedNutritionist.rating?.toFixed(1) || "N/A"}
                             </Text>
@@ -739,8 +739,8 @@ const Nutritionist = () => {
                             <Text style={{ fontSize: 16, color: "#333", fontWeight: 500 }}>
                               {selectedNutritionist.chuc_vu || "Chưa cập nhật"}
                             </Text>
-                          </div>
-                        </div>
+                </div>
+              </div>
                       </Card>
                     </Col>
                     {selectedNutritionist.email && (

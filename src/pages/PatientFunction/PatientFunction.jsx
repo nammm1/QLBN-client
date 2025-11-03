@@ -13,6 +13,8 @@ import {
   SettingOutlined,
   FormOutlined,
   ClockCircleOutlined,
+  MessageOutlined,
+  BellOutlined,
 } from "@ant-design/icons";
 import BookingModal from "../../components/Header/BookingModal";
 import NutritionBookingModal from "../../components/Header/NutritionBookingModal";
@@ -103,6 +105,26 @@ const PatientFunction = () => {
       comingSoon: true,
     },
     {
+      key: "chat",
+      title: "Tin nhắn",
+      icon: <MessageOutlined />,
+      description: "Xem và trả lời tin nhắn từ bác sĩ, chuyên gia dinh dưỡng hoặc nhân viên",
+      path: "/chat",
+      color: "#1890ff",
+      gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      iconBg: "rgba(24, 144, 255, 0.1)",
+    },
+    {
+      key: "notifications",
+      title: "Thông báo",
+      icon: <BellOutlined />,
+      description: "Xem tất cả thông báo từ hệ thống",
+      path: "/notifications",
+      color: "#fa8c16",
+      gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+      iconBg: "rgba(250, 140, 22, 0.1)",
+    },
+    {
       key: "profile",
       title: "Hồ sơ cá nhân",
       icon: <UserOutlined />,
@@ -133,6 +155,8 @@ const PatientFunction = () => {
       "book-nutrition",
       "test-results",
       "billing",
+      "chat",
+      "notifications",
       "profile"
     ];
 
@@ -192,13 +216,15 @@ const PatientFunction = () => {
                   position: "relative",
                   background: "#ffffff",
                 }}
-                bodyStyle={{
-                  padding: "32px 24px",
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  textAlign: "center",
+                styles={{
+                  body: {
+                    padding: "32px 24px",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    textAlign: "center",
+                  },
                 }}
               >
                 {/* Badge */}
