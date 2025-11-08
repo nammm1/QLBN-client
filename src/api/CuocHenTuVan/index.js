@@ -121,6 +121,37 @@ const apiCuocHenTuVan = {
       throw err;
     }
   },
+
+  // Lấy tất cả cuộc hẹn tư vấn
+  getAll: async () => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenTuVan}/`
+      );
+      return res.data.data || [];
+    } catch (err) {
+      console.error("Error fetching all cuoc hen tu van:", err);
+      throw err;
+    }
+  },
+
+  // Cập nhật cuộc hẹn tư vấn (alias cho updateTrangThai để tương thích)
+  update: async (id_cuoc_hen, data) => {
+    try {
+      if (data.trang_thai) {
+        const res = await axiosInstance.put(
+          `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenTuVan}/${id_cuoc_hen}/trang-thai`,
+          { trang_thai: data.trang_thai }
+        );
+        return res.data.data;
+      }
+      // Nếu có các trường khác, có thể mở rộng sau
+      throw new Error("Chỉ hỗ trợ cập nhật trạng thái");
+    } catch (err) {
+      console.error("Error updating cuoc hen tu van:", err);
+      throw err;
+    }
+  },
 };
 
 export default apiCuocHenTuVan;

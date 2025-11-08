@@ -841,6 +841,17 @@ const DoctorAppointmentDetail = () => {
                           {ketQuaXetNghiem[item.id_chi_dinh] ? (
                             <Space>
                               <Tag color="green">Đã có kết quả</Tag>
+                              {ketQuaXetNghiem[item.id_chi_dinh].trang_thai_ket_qua && (
+                                <Tag color={
+                                  ketQuaXetNghiem[item.id_chi_dinh].trang_thai_ket_qua === 'binh_thuong' ? 'green' :
+                                  ketQuaXetNghiem[item.id_chi_dinh].trang_thai_ket_qua === 'bat_thuong' ? 'red' :
+                                  'orange'
+                                }>
+                                  {ketQuaXetNghiem[item.id_chi_dinh].trang_thai_ket_qua === 'binh_thuong' ? 'Bình thường' :
+                                   ketQuaXetNghiem[item.id_chi_dinh].trang_thai_ket_qua === 'bat_thuong' ? 'Bất thường' :
+                                   'Cần xem lại'}
+                                </Tag>
+                              )}
                               <Button 
                                 size="small" 
                                 icon={<EyeOutlined />}
@@ -1759,24 +1770,63 @@ const DoctorAppointmentDetail = () => {
             </Card>
 
             {ketQuaXetNghiem[selectedChiDinh.id_chi_dinh] ? (
-              <Card title="Kết quả" size="small">
-                <Descriptions column={1} size="small">
+              <Card title="Kết quả xét nghiệm" size="small">
+                <Descriptions column={1} size="small" bordered>
+                  <Descriptions.Item label="Trạng thái kết quả">
+                    {ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].trang_thai_ket_qua ? (
+                      <Tag color={
+                        ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].trang_thai_ket_qua === 'binh_thuong' ? 'green' :
+                        ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].trang_thai_ket_qua === 'bat_thuong' ? 'red' :
+                        'orange'
+                      }>
+                        {ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].trang_thai_ket_qua === 'binh_thuong' ? 'Bình thường' :
+                         ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].trang_thai_ket_qua === 'bat_thuong' ? 'Bất thường' :
+                         'Cần xem lại'}
+                      </Tag>
+                    ) : (
+                      <Tag>Chưa xác định</Tag>
+                    )}
+                  </Descriptions.Item>
                   <Descriptions.Item label="Kết quả văn bản">
                     <div style={{ 
                       padding: '12px', 
                       background: '#f5f5f5', 
                       borderRadius: '6px',
-                      whiteSpace: 'pre-wrap'
+                      whiteSpace: 'pre-wrap',
+                      maxHeight: '300px',
+                      overflowY: 'auto'
                     }}>
                       {ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].ket_qua_van_ban}
                     </div>
                   </Descriptions.Item>
+                  {ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].ghi_chu_ket_qua && (
+                    <Descriptions.Item label="Ghi chú">
+                      <Text type="secondary" style={{ fontStyle: 'italic' }}>
+                        {ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].ghi_chu_ket_qua}
+                      </Text>
+                    </Descriptions.Item>
+                  )}
+                  {ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].nhan_vien_xet_nghiem && (
+                    <Descriptions.Item label="Nhân viên xét nghiệm">
+                      <Space>
+                        <UserOutlined />
+                        <Text>{ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].nhan_vien_xet_nghiem.ho_ten || 'N/A'}</Text>
+                      </Space>
+                    </Descriptions.Item>
+                  )}
                   <Descriptions.Item label="Thời gian kết luận">
-                    {new Date(ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].thoi_gian_ket_luan).toLocaleString('vi-VN')}
+                    <Space>
+                      <ClockCircleOutlined />
+                      <Text>{new Date(ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].thoi_gian_ket_luan).toLocaleString('vi-VN')}</Text>
+                    </Space>
                   </Descriptions.Item>
                   {ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].duong_dan_file_ket_qua && (
                     <Descriptions.Item label="File đính kèm">
-                      <Button type="link" onClick={() => window.open(ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].duong_dan_file_ket_qua, '_blank')}>
+                      <Button 
+                        type="link" 
+                        icon={<FileTextOutlined />}
+                        onClick={() => window.open(ketQuaXetNghiem[selectedChiDinh.id_chi_dinh].duong_dan_file_ket_qua, '_blank')}
+                      >
                         Xem file kết quả
                       </Button>
                     </Descriptions.Item>

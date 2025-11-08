@@ -188,29 +188,53 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-  .header-search {
+@media (max-width: 1024px) {
+  .header-menu {
     display: none !important;
   }
 
   .mobile-menu-btn {
     display: block !important;
   }
+}
 
-  .header-menu {
+@media (max-width: 1200px) {
+  .header-search {
     display: none !important;
   }
+}
 
+@media (max-width: 768px) {
   .logo-container {
-    padding: 8px 14px;
+    padding: 6px 12px;
   }
 
   .logo-text {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .logo-text-care {
+    font-size: 11px;
+  }
+
+  .modern-header {
+    padding: 0 12px !important;
+    height: 64px !important;
+    line-height: 64px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-container {
+    padding: 5px 10px;
+  }
+
+  .logo-text {
     font-size: 12px;
+  }
+
+  .logo-text-care {
+    font-size: 10px;
   }
 }
 
@@ -392,4 +416,21 @@
 .ant-menu-inline {
   border: none !important;
   border-right: none !important;
+}
+
+/* Remove text-decoration (underline) from all links in menu */
+.header-menu a,
+.header-menu .ant-menu-item a,
+.header-menu .ant-menu-submenu a,
+.header-menu .ant-menu-item-selected a,
+.header-menu .ant-menu-item:hover a,
+.header-menu .ant-menu-submenu:hover a {
+  text-decoration: none !important;
+}
+
+.header-menu .ant-menu-item a:link,
+.header-menu .ant-menu-item a:visited,
+.header-menu .ant-menu-item a:hover,
+.header-menu .ant-menu-item a:active {
+  text-decoration: none !important;
 }

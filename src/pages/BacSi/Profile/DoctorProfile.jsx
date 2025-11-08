@@ -596,6 +596,28 @@ const DoctorProfile = () => {
 
   return (
     <div className="doctor-profile-container">
+      <style>
+        {`
+          .ant-input-disabled,
+          .ant-input[disabled] {
+            color: #000 !important;
+            -webkit-text-fill-color: #000 !important;
+          }
+          .ant-input-disabled::placeholder,
+          .ant-input[disabled]::placeholder {
+            color: rgba(0, 0, 0, 0.25) !important;
+          }
+          .ant-select-disabled .ant-select-selector,
+          .ant-select.ant-select-disabled .ant-select-selector {
+            color: #000 !important;
+          }
+          .ant-input[disabled],
+          textarea.ant-input[disabled] {
+            color: #000 !important;
+            -webkit-text-fill-color: #000 !important;
+          }
+        `}
+      </style>
       <div className="profile-header">
         <div className="header-background"></div>
         <div className="header-content">

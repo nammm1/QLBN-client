@@ -93,7 +93,7 @@ const NutritionistRecords = () => {
       key: "id_ho_so",
       width: 100,
       render: (id) => (
-        <Badge count={id} showZero={false} style={{ backgroundColor: '#52c41a' }} />
+        <Badge count={id} showZero={false} style={{ backgroundColor: '#096dd9' }} />
       ),
     },
     {
@@ -102,7 +102,7 @@ const NutritionistRecords = () => {
       key: "ho_ten",
       render: (name, record) => (
         <Space>
-          <Avatar size="small" icon={<UserOutlined />} style={{ backgroundColor: '#87d068' }} />
+          <Avatar size="small" icon={<UserOutlined />} style={{ backgroundColor: '#096dd9' }} />
           <Text strong>{name || record.benhNhan?.ho_ten}</Text>
         </Space>
       ),
@@ -113,7 +113,7 @@ const NutritionistRecords = () => {
       key: "so_dien_thoai",
       render: (phone, record) => (
         <Space>
-          <PhoneOutlined style={{ color: '#52c41a' }} />
+          <PhoneOutlined style={{ color: '#096dd9' }} />
           <Text>{phone || record.benhNhan?.so_dien_thoai}</Text>
         </Space>
       ),
@@ -164,28 +164,55 @@ const NutritionistRecords = () => {
   ];
 
   return (
-    <div className="doctor-appointments-container">
-      <Card className="shadow-card">
+    <div className="doctor-appointments-container" style={{
+      padding: '24px',
+      background: 'linear-gradient(135deg, #e6f7ff 0%, #f0f9ff 100%)',
+      minHeight: '100vh'
+    }}>
+      <Card className="shadow-card" style={{
+        boxShadow: '0 4px 16px rgba(9, 109, 217, 0.1)',
+        borderRadius: '16px',
+        border: '1px solid rgba(9, 109, 217, 0.1)'
+      }}>
         {/* Header */}
         <div className="header-section">
-          <Title level={3} className="page-title">
+          <Title level={3} className="page-title" style={{
+            background: 'linear-gradient(135deg, #096dd9 0%, #0050b3 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            fontWeight: 700
+          }}>
             📋 Hồ sơ dinh dưỡng
           </Title>
-          <Text type="secondary">
+          <Text type="secondary" style={{ fontSize: '15px' }}>
             Quản lý và theo dõi hồ sơ dinh dưỡng của bệnh nhân
           </Text>
         </div>
 
         {/* Filter Bar */}
-        <Card size="small" className="filter-card">
+        <Card size="small" className="filter-card" style={{
+          background: 'linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%)',
+          border: '1px solid rgba(9, 109, 217, 0.15)',
+          borderRadius: '12px'
+        }}>
           <Row gutter={[16, 16]} align="middle">
             <Col xs={24} sm={12} md={8}>
               <Input
                 placeholder="Tìm theo tên bệnh nhân..."
-                prefix={<SearchOutlined />}
+                prefix={<SearchOutlined style={{ color: '#096dd9' }} />}
                 value={searchName}
                 onChange={(e) => setSearchName(e.target.value)}
                 size="large"
+                style={{ borderColor: '#d9d9d9' }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#096dd9';
+                  e.target.style.boxShadow = '0 0 0 2px rgba(9, 109, 217, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#d9d9d9';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </Col>
             <Col xs={24} sm={12} md={16}>
@@ -215,9 +242,9 @@ const NutritionistRecords = () => {
                 transition: 'all 0.2s'
               },
               onMouseEnter: (e) => {
-                e.currentTarget.style.backgroundColor = '#f0f7ff';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                e.currentTarget.style.backgroundColor = '#e6f7ff';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(9, 109, 217, 0.15)';
               },
               onMouseLeave: (e) => {
                 e.currentTarget.style.backgroundColor = '';
@@ -246,6 +273,12 @@ const NutritionistRecords = () => {
                 type={page === currentPage ? "primary" : "default"}
                 onClick={() => setCurrentPage(page)}
                 className="pagination-btn"
+                style={page === currentPage ? {
+                  background: 'linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)',
+                  border: 'none'
+                } : {
+                  borderColor: '#d9d9d9'
+                }}
               >
                 {page}
               </Button>

@@ -8,7 +8,7 @@ import {
   Col,
   Typography,
   Avatar,
-  message,
+  App,
   Space,
   Divider,
   Tag,
@@ -33,6 +33,7 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const ReceptionistProfile = () => {
+  const { message } = App.useApp();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -47,7 +48,7 @@ const ReceptionistProfile = () => {
   const fetchProfile = async () => {
     setLoading(true);
     try {
-      const data = await apiNguoiDung.getById(userId);
+      const data = await apiNguoiDung.getUserById(userId);
       setProfile(data);
       form.setFieldsValue({
         ...data,
@@ -69,7 +70,7 @@ const ReceptionistProfile = () => {
         ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format("YYYY-MM-DD") : null,
       };
 
-      await apiNguoiDung.update(userId, updateData);
+      await apiNguoiDung.updateUser(userId, updateData);
       message.success("Cập nhật thông tin thành công!");
       setIsEditing(false);
       fetchProfile();
@@ -99,6 +100,27 @@ const ReceptionistProfile = () => {
 
   return (
     <div>
+      <style>
+        {`
+          .ant-input-disabled,
+          .ant-input[disabled] {
+            color: #000 !important;
+            -webkit-text-fill-color: #000 !important;
+          }
+          .ant-input-disabled::placeholder,
+          .ant-input[disabled]::placeholder {
+            color: rgba(0, 0, 0, 0.25) !important;
+          }
+          .ant-picker-disabled,
+          .ant-picker[disabled] {
+            color: #000 !important;
+          }
+          .ant-select-disabled .ant-select-selector,
+          .ant-select.ant-select-disabled .ant-select-selector {
+            color: #000 !important;
+          }
+        `}
+      </style>
       {/* Header */}
       <div style={{ marginBottom: "24px" }}>
         <Title level={2} style={{ margin: 0, color: "#2c3e50" }}>

@@ -1,0 +1,22 @@
+.invoices-page {
+  padding: 24px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.invoices-page .ant-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.invoices-page .ant-table {
+  background: #fff;
+}
+
+.invoices-page .ant-tabs-tab {
+  font-weight: 500;
+}
+
+.invoices-page .ant-tabs-tab-active {
+  font-weight: 600;
+}
+

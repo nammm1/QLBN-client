@@ -139,7 +139,6 @@ const StaffWorkSchedule = () => {
       const data = res?.data || [];
       setSchedule(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.log("Lỗi khi lấy lịch làm việc:", error);
       setSchedule([]);
     } finally {
       setLoading(false);
@@ -151,7 +150,7 @@ const StaffWorkSchedule = () => {
       const res = await apiXinNghiPhep.getByNhanVien(userInfo.user.id_nguoi_dung);
       setNghiPhepData(res?.data || []);
     } catch (error) {
-      console.log("Lỗi khi lấy đơn xin nghỉ phép:", error);
+      // Error fetching leave requests
     }
   };
 

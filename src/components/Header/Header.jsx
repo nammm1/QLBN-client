@@ -11,6 +11,8 @@ import {
   Drawer,
   Typography,
   Divider,
+  message,
+  Spin,
 } from "antd";
 import {
   HomeOutlined,
@@ -29,12 +31,19 @@ import {
   CustomerServiceOutlined,
   SafetyOutlined,
   QuestionCircleOutlined,
+  MessageOutlined,
+  BellOutlined,
 } from "@ant-design/icons";
 import BookingModal from "./BookingModal";
 import NutritionBookingModal from "./NutritionBookingModal";
 import LoginRequiredModal from "../LoginRequiredModal/LoginRequiredModal";
 import ProfileCompleteModal from "../ProfileCompleteModal/ProfileCompleteModal";
+import SearchDropdown from "./SearchDropdown";
 import apiBenhNhan from "../../api/BenhNhan";
+import apiBacSi from "../../api/BacSi";
+import apiChuyenGiaDinhDuong from "../../api/ChuyenGiaDinhDuong";
+import apiChuyenKhoa from "../../api/ChuyenKhoa";
+import apiDichVu from "../../api/DichVu";
 import medicalChatService from "../../api/MedicalChat";
 import "./Header.css";
 
@@ -53,7 +62,19 @@ const Header = () => {
   const [isLogin, setIsLogin] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [mobileMenuVisible, setMobileMenuVisible] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [searchValue, setSearchValue] = useState("");
+  const [searchResults, setSearchResults] = useState({
+    bac_si: [],
+    chuyen_gia: [],
+    chuyen_khoa: [],
+    dich_vu: [],
+  });
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [userDropdownVisible, setUserDropdownVisible] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   // Hàm để refresh userInfo từ localStorage
   const refreshUserInfo = () => {
@@ -72,7 +93,9 @@ const Header = () => {
     refreshUserInfo();
 
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
+      const width = window.innerWidth;
+      setWindowWidth(width);
+      setIsMobile(width <= 1024);
     };
     window.addEventListener("resize", handleResize);
     
@@ -112,13 +135,8 @@ const Header = () => {
         const checkNeededKey = `profile_check_needed_${benhNhanId}`;
         const needsCheck = localStorage.getItem(checkNeededKey) === "true";
         
-        console.log("Profile check - benhNhanId:", benhNhanId);
-        console.log("Profile check - needsCheck:", needsCheck);
-        console.log("Profile check - flag value:", localStorage.getItem(checkNeededKey));
-        
         // Chỉ kiểm tra nếu có flag cần kiểm tra (đặt khi đăng nhập)
         if (needsCheck) {
-          console.log("Profile check - Starting check...");
           checkProfileComplete(userInfo);
         }
       }
@@ -161,9 +179,6 @@ const Header = () => {
         return !value || (typeof value === 'string' && value.trim() === '');
       });
 
-      console.log("Profile check - Missing fields:", missing);
-      console.log("Profile check - Profile data:", profileData);
-
       // Xóa flag sau khi đã kiểm tra xong (dù có thiếu hay không)
       localStorage.removeItem(checkNeededKey);
 
@@ -203,26 +218,49 @@ const Header = () => {
     });
   };
 
-  const handleLogout = () => {
-    // Xóa flag profile check nếu là bệnh nhân
-    if (userInfo?.vai_tro === "benh_nhan") {
-      const benhNhanId = userInfo.id_benh_nhan || userInfo.id_nguoi_dung;
-      if (benhNhanId) {
-        localStorage.removeItem(`profile_check_needed_${benhNhanId}`);
-      }
-    }
-    
-    // Clear all chat data (medical chat + messaging chat)
-    medicalChatService.clearAllChatData();
-    
-    localStorage.removeItem("isLogin");
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("userInfo");
-    setIsLogin(false);
-    setUserInfo(null);
-    navigate("/");
+  const handleLogout = async () => {
+    // Đóng dropdown menu trước
+    setUserDropdownVisible(false);
     setMobileMenuVisible(false);
+    
+    // Bật loading
+    setLogoutLoading(true);
+    
+    try {
+      // Xóa flag profile check nếu là bệnh nhân
+      if (userInfo?.vai_tro === "benh_nhan") {
+        const benhNhanId = userInfo.id_benh_nhan || userInfo.id_nguoi_dung;
+        if (benhNhanId) {
+          localStorage.removeItem(`profile_check_needed_${benhNhanId}`);
+        }
+      }
+      
+      // Clear all chat data (medical chat + messaging chat)
+      medicalChatService.clearAllChatData();
+      
+      // Clear localStorage
+      localStorage.removeItem("isLogin");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("userInfo");
+      
+      // Update state
+      setIsLogin(false);
+      setUserInfo(null);
+      
+      // Hiển thị thông báo đăng xuất thành công
+      message.success("Đăng xuất thành công. Hẹn gặp lại! 👋", 2);
+      
+      // Đợi một chút để message hiển thị và loading đẹp hơn
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Reload lại trang để đảm bảo tất cả state được reset
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Logout error:", error);
+      setLogoutLoading(false);
+      message.error("Có lỗi xảy ra khi đăng xuất");
+    }
   };
 
   const menuItems = [
@@ -272,9 +310,9 @@ const Header = () => {
       label: <Link to="/doctors">Bác sĩ</Link>,
     },
     {
-      key: "/nutritionist",
+      key: "/nutritionists",
       icon: <AppleOutlined />,
-      label: <Link to="/nutritionist">Chuyên gia dinh dưỡng</Link>,
+      label: <Link to="/nutritionists">Chuyên gia dinh dưỡng</Link>,
     },
     {
       key: "booking",
@@ -315,6 +353,24 @@ const Header = () => {
       ),
     },
     {
+      key: "chat",
+      icon: <MessageOutlined />,
+      label: (
+        <Link to="/chat" onClick={() => setMobileMenuVisible(false)}>
+          Tin nhắn
+        </Link>
+      ),
+    },
+    {
+      key: "notifications",
+      icon: <BellOutlined />,
+      label: (
+        <Link to="/notifications" onClick={() => setMobileMenuVisible(false)}>
+          Thông báo
+        </Link>
+      ),
+    },
+    {
       key: "logout",
       icon: <LogoutOutlined />,
       label: <span onClick={handleLogout}>Đăng xuất</span>,
@@ -324,6 +380,127 @@ const Header = () => {
 
   const currentPath = location.pathname;
 
+  // Debounce search function
+  const searchTimeoutRef = React.useRef(null);
+
+  const handleSearchChange = (value) => {
+    setSearchValue(value);
+    
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!value.trim()) {
+      setSearchResults({
+        bac_si: [],
+        chuyen_gia: [],
+        chuyen_khoa: [],
+        dich_vu: [],
+      });
+      setShowSearchDropdown(false);
+      return;
+    }
+
+    setShowSearchDropdown(true);
+    setSearchLoading(true);
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const [bacSiRes, chuyenGiaRes, chuyenKhoaRes, dichVuRes] =
+          await Promise.allSettled([
+            apiBacSi.getAll({ search: value }),
+            apiChuyenGiaDinhDuong.getAll({ search: value }),
+            apiChuyenKhoa.getAll(),
+            apiDichVu.getAll(),
+          ]);
+
+        const bacSi =
+          bacSiRes.status === "fulfilled" ? bacSiRes.value || [] : [];
+        const chuyenGia =
+          chuyenGiaRes.status === "fulfilled" ? chuyenGiaRes.value || [] : [];
+        const chuyenKhoa =
+          chuyenKhoaRes.status === "fulfilled" ? chuyenKhoaRes.value || [] : [];
+        const dichVu =
+          dichVuRes.status === "fulfilled" ? dichVuRes.value?.data || [] : [];
+
+        // Filter client-side cho chuyên khoa và dịch vụ
+        const filteredChuyenKhoa = chuyenKhoa.filter(
+          (item) =>
+            item.ten_chuyen_khoa
+              ?.toLowerCase()
+              .includes(value.toLowerCase()) ||
+            item.mo_ta?.toLowerCase().includes(value.toLowerCase())
+        );
+
+        const filteredDichVu = Array.isArray(dichVu)
+          ? dichVu.filter(
+              (item) =>
+                item.ten_dich_vu
+                  ?.toLowerCase()
+                  .includes(value.toLowerCase()) ||
+                item.mo_ta?.toLowerCase().includes(value.toLowerCase())
+            )
+          : [];
+
+        // Filter client-side cho chuyên gia nếu API không hỗ trợ search
+        const filteredChuyenGia = Array.isArray(chuyenGia)
+          ? chuyenGia.filter(
+              (item) =>
+                item.ho_ten?.toLowerCase().includes(value.toLowerCase()) ||
+                item.chuyen_nganh_dinh_duong
+                  ?.toLowerCase()
+                  .includes(value.toLowerCase())
+            )
+          : [];
+
+        setSearchResults({
+          bac_si: Array.isArray(bacSi) ? bacSi.slice(0, 3) : [],
+          chuyen_gia: filteredChuyenGia.slice(0, 3),
+          chuyen_khoa: filteredChuyenKhoa.slice(0, 3),
+          dich_vu: filteredDichVu.slice(0, 3),
+        });
+      } catch (error) {
+        console.error("Error searching:", error);
+        setSearchResults({
+          bac_si: [],
+          chuyen_gia: [],
+          chuyen_khoa: [],
+          dich_vu: [],
+        });
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+  };
+
+  const handleSearchSubmit = (value) => {
+    if (value.trim()) {
+      setShowSearchDropdown(false);
+      navigate(`/search?q=${encodeURIComponent(value.trim())}`);
+    }
+  };
+
+  const handleSearchFocus = () => {
+    if (searchValue.trim()) {
+      setShowSearchDropdown(true);
+    }
+  };
+
+  const handleSearchBlur = () => {
+    // Delay để cho phép click vào dropdown
+    setTimeout(() => {
+      setShowSearchDropdown(false);
+    }, 200);
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <>
       <AntHeader
@@ -332,11 +509,11 @@ const Header = () => {
           position: "sticky",
           top: 0,
           zIndex: 1000,
-          padding: "0 24px",
+          padding: windowWidth <= 768 ? "0 12px" : "0 24px",
           background: "#fff",
           boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-          height: 72,
-          lineHeight: "72px",
+          height: windowWidth <= 768 ? 64 : 72,
+          lineHeight: windowWidth <= 768 ? "64px" : "72px",
         }}
       >
         <div
@@ -355,9 +532,9 @@ const Header = () => {
               style={{
                 display: "flex",
                 alignItems: "center",
-              textDecoration: "none",
-              marginRight: 32,
-              flexShrink: 0,
+                textDecoration: "none",
+                marginRight: windowWidth <= 768 ? 12 : 32,
+                flexShrink: 0,
               }}
             >
             <div className="logo-container">
@@ -367,7 +544,14 @@ const Header = () => {
             </Link>
 
           {/* Desktop Menu */}
-          <div style={{ flex: 1, display: "flex", alignItems: "center", minWidth: 0 }}>
+          <div 
+            style={{ 
+              flex: 1, 
+              display: isMobile ? "none" : "flex", 
+              alignItems: "center", 
+              minWidth: 0 
+            }}
+          >
             <Menu
               mode="horizontal"
               selectedKeys={[currentPath]}
@@ -384,67 +568,112 @@ const Header = () => {
           </div>
 
           {/* Right Side Actions */}
-          <Space size="small" style={{ marginLeft: 16, flexShrink: 0 }}>
+          <Space 
+            size="small" 
+            style={{ 
+              marginLeft: windowWidth <= 768 ? 8 : 16, 
+              flexShrink: 0 
+            }}
+          >
             {/* Search */}
-            <div className="header-search" style={{ display: isMobile ? "none" : "block",display: "flex", alignItems: "center", height: "100%" }}>
+            <div 
+              className="header-search" 
+              style={{ 
+                display: isMobile ? "none" : "flex",
+                position: "relative",
+                alignItems: "center", 
+                height: "100%" 
+              }}
+            >
               <SearchInput
                 placeholder="Tìm kiếm..."
                 allowClear
-                style={{ width: 220 }}
+                value={searchValue}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onSearch={handleSearchSubmit}
+                onFocus={handleSearchFocus}
+                onBlur={handleSearchBlur}
+                style={{ width: windowWidth <= 1200 ? 180 : 220 }}
                 prefix={<SearchOutlined style={{ color: "#8c8c8c" }} />}
                 className="modern-search"
-            />
-          </div>
+              />
+              <SearchDropdown
+                results={searchResults}
+                loading={searchLoading}
+                visible={showSearchDropdown}
+                onItemClick={() => setShowSearchDropdown(false)}
+              />
+            </div>
 
             {/* User Actions */}
-            {!isLogin ? (
-              <Space>
-                <Button
-                  icon={<UserAddOutlined />}
-                  onClick={handleLoginClick}
-                  style={{ borderColor: "#096dd9", color: "#096dd9" }}
-                >
-                  Đăng ký
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<LoginOutlined />}
-                  onClick={handleLoginClick}
-                  style={{
-                    background: "linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)",
-                    border: "none",
-                  }}
-                >
-                  Đăng nhập
-                </Button>
-              </Space>
-            ) : (
-              <Dropdown
-                menu={{ items: userMenuItems }}
-                placement="bottomRight"
-                trigger={["click"]}
-              >
-                <Space
-                  style={{
-                    cursor: "pointer",
-                    padding: "4px 12px",
-                    borderRadius: 8,
-                    transition: "all 0.3s",
-                  }}
-                  className="user-dropdown"
-                >
-                  <Avatar
-                    src={userInfo?.anh_dai_dien}
-                    style={{
-                      background: userInfo?.anh_dai_dien 
-                        ? "transparent" 
-                        : "linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)",
-                    }}
-                    icon={!userInfo?.anh_dai_dien ? <UserOutlined /> : undefined}
-                  />
-                  <Text strong>{userInfo?.ho_ten || "Người dùng"}</Text>
-                </Space>
-              </Dropdown>
+            {!isMobile && (
+              <>
+                {!isLogin ? (
+                  <Space size="small">
+                    <Button
+                      icon={<UserAddOutlined />}
+                      onClick={handleLoginClick}
+                      style={{ 
+                        borderColor: "#096dd9", 
+                        color: "#096dd9",
+                        fontSize: windowWidth <= 1200 ? 12 : 14,
+                        padding: windowWidth <= 1200 ? "4px 8px" : "4px 15px",
+                        height: windowWidth <= 1200 ? 32 : 36
+                      }}
+                    >
+                      {windowWidth <= 1200 ? "ĐK" : "Đăng ký"}
+                    </Button>
+                    <Button
+                      type="primary"
+                      icon={<LoginOutlined />}
+                      onClick={handleLoginClick}
+                      style={{
+                        background: "linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)",
+                        border: "none",
+                        fontSize: windowWidth <= 1200 ? 12 : 14,
+                        padding: windowWidth <= 1200 ? "4px 8px" : "4px 15px",
+                        height: windowWidth <= 1200 ? 32 : 36
+                      }}
+                    >
+                      {windowWidth <= 1200 ? "ĐN" : "Đăng nhập"}
+                    </Button>
+                  </Space>
+                ) : (
+                  <Dropdown
+                    menu={{ items: userMenuItems }}
+                    placement="bottomRight"
+                    trigger={["click"]}
+                    open={userDropdownVisible}
+                    onOpenChange={setUserDropdownVisible}
+                  >
+                    <Space
+                      style={{
+                        cursor: "pointer",
+                        padding: windowWidth <= 1200 ? "4px 8px" : "4px 12px",
+                        borderRadius: 8,
+                        transition: "all 0.3s",
+                      }}
+                      className="user-dropdown"
+                    >
+                      <Avatar
+                        size={windowWidth <= 1200 ? "small" : "default"}
+                        src={userInfo?.anh_dai_dien}
+                        style={{
+                          background: userInfo?.anh_dai_dien 
+                            ? "transparent" 
+                            : "linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)",
+                        }}
+                        icon={!userInfo?.anh_dai_dien ? <UserOutlined /> : undefined}
+                      />
+                      {windowWidth > 1200 && (
+                        <Text strong style={{ fontSize: 14 }}>
+                          {userInfo?.ho_ten || "Người dùng"}
+                        </Text>
+                      )}
+                    </Space>
+                  </Dropdown>
+                )}
+              </>
             )}
 
             {/* Mobile Menu Button */}
@@ -453,7 +682,10 @@ const Header = () => {
               icon={<MenuOutlined />}
               onClick={() => setMobileMenuVisible(true)}
               className="mobile-menu-btn"
-              style={{ fontSize: 20 }}
+              style={{ 
+                fontSize: windowWidth <= 768 ? 18 : 20,
+                display: isMobile ? "block" : "none"
+              }}
             />
           </Space>
           </div>
@@ -472,27 +704,37 @@ const Header = () => {
             <div
               style={{
                 background: "linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)",
-                padding: "8px 16px",
+                padding: windowWidth <= 480 ? "6px 12px" : "8px 16px",
                 borderRadius: 8,
                 color: "white",
                 fontWeight: "bold",
+                fontSize: windowWidth <= 480 ? 14 : 16,
               }}
             >
               HOSPITAL CARE
-        </div>
-      </div>
+            </div>
+          </div>
         }
         placement="right"
         onClose={() => setMobileMenuVisible(false)}
         open={mobileMenuVisible}
-        width={280}
+        width={windowWidth <= 480 ? 280 : 320}
+        styles={{
+          body: {
+            padding: windowWidth <= 480 ? "16px" : "24px",
+          }
+        }}
       >
         <Space direction="vertical" size="large" style={{ width: "100%" }}>
           <SearchInput
             placeholder="Tìm kiếm..."
             allowClear
+            value={searchValue}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onSearch={handleSearchSubmit}
             style={{ width: "100%" }}
             prefix={<SearchOutlined />}
+            size={windowWidth <= 480 ? "middle" : "large"}
           />
 
           <Divider style={{ margin: "8px 0" }} />
@@ -505,10 +747,18 @@ const Header = () => {
               .map((item) => ({
                 ...item,
                 label: (
-                  <span onClick={() => setMobileMenuVisible(false)}>{item.label}</span>
+                  <span 
+                    onClick={() => setMobileMenuVisible(false)}
+                    style={{ fontSize: windowWidth <= 480 ? 14 : 15 }}
+                  >
+                    {item.label}
+                  </span>
                 ),
               }))}
-            style={{ border: "none" }}
+            style={{ 
+              border: "none",
+              fontSize: windowWidth <= 480 ? 14 : 15
+            }}
           />
           
           {/* Mobile Booking Options */}
@@ -522,9 +772,13 @@ const Header = () => {
                   setMobileMenuVisible(false);
                 });
               }}
-              style={{ marginBottom: 8 }}
+              style={{ 
+                marginBottom: 8,
+                height: windowWidth <= 480 ? 40 : 44,
+                fontSize: windowWidth <= 480 ? 14 : 15
+              }}
             >
-                    Đặt lịch khám
+              Đặt lịch khám
             </Button>
             <Button
               block
@@ -535,8 +789,12 @@ const Header = () => {
                   setMobileMenuVisible(false);
                 });
               }}
-                  >
-                    Đặt lịch tư vấn dinh dưỡng
+              style={{ 
+                height: windowWidth <= 480 ? 40 : 44,
+                fontSize: windowWidth <= 480 ? 14 : 15
+              }}
+            >
+              Đặt lịch tư vấn dinh dưỡng
             </Button>
           </div>
 
@@ -547,6 +805,7 @@ const Header = () => {
               <div style={{ padding: "8px 0" }}>
                 <Space>
                   <Avatar
+                    size={windowWidth <= 480 ? "default" : "large"}
                     src={userInfo?.anh_dai_dien}
                     style={{
                       background: userInfo?.anh_dai_dien 
@@ -555,7 +814,9 @@ const Header = () => {
                     }}
                     icon={!userInfo?.anh_dai_dien ? <UserOutlined /> : undefined}
                   />
-                  <Text strong>{userInfo?.ho_ten || "Người dùng"}</Text>
+                  <Text strong style={{ fontSize: windowWidth <= 480 ? 14 : 15 }}>
+                    {userInfo?.ho_ten || "Người dùng"}
+                  </Text>
                 </Space>
               </div>
               <Button
@@ -565,6 +826,10 @@ const Header = () => {
                   navigate("/updateprofile");
                   setMobileMenuVisible(false);
                 }}
+                style={{
+                  height: windowWidth <= 480 ? 40 : 44,
+                  fontSize: windowWidth <= 480 ? 14 : 15
+                }}
               >
                 Thông tin cá nhân
               </Button>
@@ -573,6 +838,10 @@ const Header = () => {
                 danger
                 icon={<LogoutOutlined />}
                 onClick={handleLogout}
+                style={{
+                  height: windowWidth <= 480 ? 40 : 44,
+                  fontSize: windowWidth <= 480 ? 14 : 15
+                }}
               >
                 Đăng xuất
               </Button>
@@ -585,6 +854,10 @@ const Header = () => {
                 onClick={() => {
                   handleLoginClick();
                   setMobileMenuVisible(false);
+                }}
+                style={{
+                  height: windowWidth <= 480 ? 40 : 44,
+                  fontSize: windowWidth <= 480 ? 14 : 15
                 }}
               >
                 Đăng ký
@@ -600,6 +873,8 @@ const Header = () => {
                 style={{
                   background: "linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)",
                   border: "none",
+                  height: windowWidth <= 480 ? 40 : 44,
+                  fontSize: windowWidth <= 480 ? 14 : 15
                 }}
               >
                 Đăng nhập
@@ -628,6 +903,38 @@ const Header = () => {
         onCancel={() => setShowProfileCompleteModal(false)}
         missingFields={missingProfileFields}
       />
+      
+      {/* Logout Loading Overlay */}
+      {logoutLoading && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          <Spin size="large" />
+          <div
+            style={{
+              marginTop: 24,
+              fontSize: 16,
+              color: "#1890ff",
+              fontWeight: 500,
+            }}
+          >
+            Đang đăng xuất...
+          </div>
+        </div>
+      )}
     </>
   );
 };

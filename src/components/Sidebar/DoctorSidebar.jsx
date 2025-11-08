@@ -17,7 +17,6 @@ import {
   FolderOpenOutlined,
   MessageOutlined,
   ScheduleOutlined,
-  BarChartOutlined,
   UserOutlined,
   LogoutOutlined,
   MedicineBoxOutlined,
@@ -72,12 +71,6 @@ const DoctorSidebar = ({ collapsed = false }) => {
       label: "Lịch làm việc", 
       icon: <ScheduleOutlined />,
       path: "/doctor/work-schedule"
-    },
-    { 
-      key: "/doctor/reports", 
-      label: "Báo cáo & Thống kê", 
-      icon: <BarChartOutlined />,
-      path: "/doctor/reports"
     },
   ], [chatBadge, appointmentsBadge]);
 

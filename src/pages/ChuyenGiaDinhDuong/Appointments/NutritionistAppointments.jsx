@@ -173,7 +173,11 @@ const NutritionistAppointments = () => {
           <Button 
             type="primary" 
             htmlType="submit"
-            style={{ flex: 1 }}
+            style={{ 
+              flex: 1,
+              background: 'linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)',
+              border: 'none'
+            }}
           >
             Áp dụng
           </Button>
@@ -321,7 +325,7 @@ const NutritionistAppointments = () => {
           <Title level={3} className="page-title">
             🥗 Lịch hẹn tư vấn dinh dưỡng
           </Title>
-          <Text type="secondary">
+          <Text type="secondary" style={{ fontSize: '15px' }}>
             Quản lý và theo dõi các cuộc hẹn tư vấn dinh dưỡng
           </Text>
         </div>
@@ -335,7 +339,19 @@ const NutritionistAppointments = () => {
                 value={searchName}
                 onChange={e => setSearchName(e.target.value)}
                 size="large"
-                style={{ maxWidth: 400, marginRight: 8 }}
+                style={{ 
+                  maxWidth: 400, 
+                  marginRight: 8,
+                  borderColor: '#d9d9d9'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#096dd9';
+                  e.target.style.boxShadow = '0 0 0 2px rgba(9, 109, 217, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#d9d9d9';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
 
               {/* Filter Button */}
@@ -349,6 +365,10 @@ const NutritionistAppointments = () => {
                   <Button 
                     icon={<FilterOutlined />}
                     size="large"
+                    style={{
+                      borderColor: '#096dd9',
+                      color: '#096dd9'
+                    }}
                   >
                     Bộ lọc
                   </Button>
@@ -382,12 +402,14 @@ const NutritionistAppointments = () => {
                 transition: 'all 0.2s'
               },
               onMouseEnter: (e) => {
-                e.currentTarget.style.backgroundColor = '#f0f7ff';
-                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.backgroundColor = '#e6f7ff';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(9, 109, 217, 0.15)';
               },
               onMouseLeave: (e) => {
                 e.currentTarget.style.backgroundColor = '';
                 e.currentTarget.style.transform = '';
+                e.currentTarget.style.boxShadow = '';
               },
             })}
             scroll={{ x: 1200 }}
@@ -411,6 +433,12 @@ const NutritionistAppointments = () => {
                 type={page === currentPage ? "primary" : "default"}
                 onClick={() => setCurrentPage(page)}
                 className="pagination-btn"
+                style={page === currentPage ? {
+                  background: 'linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)',
+                  border: 'none'
+                } : {
+                  borderColor: '#d9d9d9'
+                }}
               >
                 {page}
               </Button>

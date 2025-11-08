@@ -129,7 +129,7 @@ const NutritionistRecordDetail = () => {
             </Button>
             <Divider type="vertical" style={{ height: 24 }} />
             <div>
-              <Title level={3} style={{ margin: 0, color: '#52c41a' }}>
+              <Title level={3} style={{ margin: 0, color: '#096dd9' }}>
                 🥗 Hồ sơ dinh dưỡng
               </Title>
               <Text type="secondary">Chi tiết thông tin hồ sơ và lịch sử tư vấn dinh dưỡng</Text>
@@ -146,7 +146,7 @@ const NutritionistRecordDetail = () => {
                 Chat với bệnh nhân
               </Button>
             )}
-            <Badge count={`Mã HS: ${hoSo.id_ho_so}`} style={{ backgroundColor: '#52c41a' }} />
+            <Badge count={`Mã HS: ${hoSo.id_ho_so}`} style={{ backgroundColor: '#096dd9' }} />
           </Space>
         </div>
       </Card>
@@ -157,7 +157,7 @@ const NutritionistRecordDetail = () => {
           <Card 
             title={
               <Space>
-                <FileTextOutlined style={{ color: '#52c41a' }} />
+                <FileTextOutlined style={{ color: '#096dd9' }} />
                 <span>Thông tin hồ sơ dinh dưỡng</span>
               </Space>
             }
@@ -292,7 +292,7 @@ const NutritionistRecordDetail = () => {
               <Space>
                 <ClockCircleOutlined style={{ color: '#faad14' }} />
                 <span>Lịch sử cuộc hẹn tư vấn dinh dưỡng</span>
-                <Badge count={cuocHenList.length} showZero style={{ backgroundColor: '#52c41a' }} />
+                <Badge count={cuocHenList.length} showZero style={{ backgroundColor: '#096dd9' }} />
               </Space>
             }
             className="shadow-sm"

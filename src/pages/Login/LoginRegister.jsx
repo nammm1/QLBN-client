@@ -5,13 +5,14 @@ import axios from "axios";
 import { Button } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import styles from "./LoginRegister.module.css";
-import { FaUser, FaEye, FaEyeSlash, FaPhone } from "react-icons/fa";
+import { FaUser, FaEye, FaEyeSlash } from "react-icons/fa";
 import { IoMailSharp } from "react-icons/io5";
 import { PiGenderIntersexBold } from "react-icons/pi";
 import apiAuth from '../../api/auth/index';
 import { login } from "../../store/slice/auth";
 import toast from "../../utils/toast";
-import medicalChatService from "../../api/MedicalChat"; 
+import medicalChatService from "../../api/MedicalChat";
+import { checkAgeForAccountCreation } from "../../utils/checkAgeForAccountCreation"; 
 
 const LoginRegister = () => {
   const navigate = useNavigate();
@@ -30,13 +31,13 @@ const LoginRegister = () => {
   const [registerData, setRegisterData] = useState({
     ho_ten: "",
     email: "",
-    so_dien_thoai: "",
     ten_dang_nhap: "",
     mat_khau: "",
     ngay_sinh: "",
     gioi_tinh: "",
   });
 
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -80,7 +81,6 @@ const LoginRegister = () => {
       setRegisterData({
         ho_ten: "",
         email: "",
-        so_dien_thoai: "",
         ten_dang_nhap: "",
         mat_khau: "",
         ngay_sinh: "",
@@ -88,6 +88,7 @@ const LoginRegister = () => {
       });
       setShowRegisterPassword(false);
       setShowConfirmPassword(false);
+      setConfirmPassword("");
     }
   }, [isRegister]);
 
@@ -114,7 +115,6 @@ const LoginRegister = () => {
         localStorage.setItem("refreshToken", refreshToken);
         localStorage.setItem("isLogin", "true");
         localStorage.setItem("userInfo", JSON.stringify({ user }));
-        console.log(user);
         dispatch(login({
           userInfo: user,
           accessToken,
@@ -134,9 +134,6 @@ const LoginRegister = () => {
             if (benhNhanId) {
               const checkKey = `profile_check_needed_${benhNhanId}`;
               localStorage.setItem(checkKey, "true");
-              console.log("Login - Set profile check flag:", checkKey);
-            } else {
-              console.warn("Login - Cannot set profile check flag: no benhNhanId", user);
             }
             navigate("/");
             break;
@@ -159,6 +156,11 @@ const LoginRegister = () => {
           case "chuyen_gia_dinh_duong":
             toast.success("Chào mừng chuyên gia dinh dưỡng, đăng nhập thành công!");
             navigate("/nutritionist");
+            break;
+
+          case "nhan_vien_xet_nghiem":
+            toast.success("Chào mừng nhân viên xét nghiệm, đăng nhập thành công!");
+            navigate("/lab-staff");
             break;
 
           default:
@@ -185,9 +187,39 @@ const LoginRegister = () => {
       return;
     }
     
+    // Validate mật khẩu và xác nhận mật khẩu
+    if (!registerData.mat_khau) {
+      toast.error("Vui lòng nhập mật khẩu!");
+      return;
+    }
+    
+    if (registerData.mat_khau.length < 6) {
+      toast.error("Mật khẩu phải có ít nhất 6 ký tự!");
+      return;
+    }
+    
+    if (!confirmPassword) {
+      toast.error("Vui lòng xác nhận mật khẩu!");
+      return;
+    }
+    
+    if (registerData.mat_khau !== confirmPassword) {
+      toast.error("Mật khẩu và xác nhận mật khẩu không khớp!");
+      return;
+    }
+    
+    // Kiểm tra tuổi (phải >= 6 tuổi mới được tạo tài khoản)
+    if (registerData.ngay_sinh) {
+      const ageCheck = checkAgeForAccountCreation(registerData.ngay_sinh);
+      if (!ageCheck.isValid) {
+        console.log(`[REGISTER] Người dùng không đủ tuổi: ${ageCheck.message}`);
+        toast.error(ageCheck.message);
+        return;
+      }
+    }
+    
     try {
       const res = await axios.post("http://localhost:5005/nguoi-dung/register", registerData);
-      console.log("Register success:", res.data);
       if (res.data?.success === false) {
         // Nếu success: false, hiển thị toast lỗi
         const errorMessage = res.data.message || "Đăng ký thất bại!";
@@ -346,7 +378,6 @@ const LoginRegister = () => {
               </div>
             </div>
 
-
             <div className={styles["input-box"]}>
               <input
                 type="email"
@@ -357,18 +388,6 @@ const LoginRegister = () => {
                 required
               />
               <IoMailSharp className={styles.icon} />
-            </div>
-
-            <div className={styles["input-box"]}>
-              <input
-                type="tel"
-                name="so_dien_thoai"
-                placeholder="Số điện thoại"
-                value={registerData.so_dien_thoai}
-                onChange={handleRegisterChange}
-                required
-              />
-              <FaPhone className={styles.icon} />
             </div>
 
             <div className={styles["input-box"]}>
@@ -401,6 +420,30 @@ const LoginRegister = () => {
               ) : (
                 <FaEyeSlash 
                   onClick={() => setShowRegisterPassword(true)} 
+                  className={styles.icon} 
+                  style={{ cursor: 'pointer' }}
+                />
+              )}
+            </div>
+
+            <div className={styles["input-box"]}>
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                placeholder="Xác nhận mật khẩu"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+              {showConfirmPassword ? (
+                <FaEye 
+                  onClick={() => setShowConfirmPassword(false)} 
+                  className={styles.icon} 
+                  style={{ cursor: 'pointer' }}
+                />
+              ) : (
+                <FaEyeSlash 
+                  onClick={() => setShowConfirmPassword(true)} 
                   className={styles.icon} 
                   style={{ cursor: 'pointer' }}
                 />

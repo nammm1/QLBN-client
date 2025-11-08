@@ -20,7 +20,10 @@ import {
   LogoutOutlined,
   MedicineBoxOutlined,
   UserAddOutlined,
-  MailOutlined
+  MailOutlined,
+  HomeOutlined,
+  AppstoreOutlined,
+  FileTextOutlined
 } from "@ant-design/icons";
 import medicalChatService from "../../api/MedicalChat";
 
@@ -50,6 +53,18 @@ const AdminSidebar = () => {
       path: "/admin/specialties"
     },
     { 
+      key: "/admin/phong-kham", 
+      label: "Quản lý Phòng khám", 
+      icon: <HomeOutlined />,
+      path: "/admin/phong-kham"
+    },
+    { 
+      key: "/admin/chuyen-nganh-dinh-duong", 
+      label: "Quản lý Chuyên ngành Dinh dưỡng", 
+      icon: <AppstoreOutlined />,
+      path: "/admin/chuyen-nganh-dinh-duong"
+    },
+    { 
       key: "/admin/services", 
       label: "Quản lý dịch vụ", 
       icon: <MedicineBoxOutlined />,
@@ -66,6 +81,12 @@ const AdminSidebar = () => {
       label: "Quản lý Email", 
       icon: <MailOutlined />,
       path: "/admin/emails"
+    },
+    { 
+      key: "/admin/hoa-don", 
+      label: "Quản lý Hóa đơn", 
+      icon: <FileTextOutlined />,
+      path: "/admin/hoa-don"
     },
     { 
       key: "/admin/reports", 

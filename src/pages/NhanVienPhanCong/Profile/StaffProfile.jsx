@@ -64,6 +64,19 @@ const StaffProfile = () => {
 
   return (
     <div style={{ padding: '0' }}>
+      <style>
+        {`
+          .ant-input-disabled,
+          .ant-input[disabled] {
+            color: #000 !important;
+            -webkit-text-fill-color: #000 !important;
+          }
+          .ant-input-disabled::placeholder,
+          .ant-input[disabled]::placeholder {
+            color: rgba(0, 0, 0, 0.25) !important;
+          }
+        `}
+      </style>
       {/* Header */}
       <Card 
         style={{ 
@@ -73,7 +86,7 @@ const StaffProfile = () => {
           background: 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)',
           border: 'none'
         }}
-        bodyStyle={{ padding: '32px' }}
+        styles={{ body: { padding: '32px' } }}
       >
         <Row align="middle" gutter={24}>
           <Col>
@@ -203,6 +216,7 @@ const StaffProfile = () => {
                   prefix={<UserOutlined />} 
                   placeholder="Nhập họ và tên"
                   size="large"
+                  styles={{ input: { color: !editMode ? '#000' : undefined } }}
                 />
               </Form.Item>
             </Col>
@@ -216,6 +230,7 @@ const StaffProfile = () => {
                   prefix={<PhoneOutlined />} 
                   placeholder="Nhập số điện thoại"
                   size="large"
+                  styles={{ input: { color: !editMode ? '#000' : undefined } }}
                 />
               </Form.Item>
             </Col>
@@ -235,6 +250,7 @@ const StaffProfile = () => {
                   prefix={<MailOutlined />} 
                   placeholder="Nhập email"
                   size="large"
+                  styles={{ input: { color: !editMode ? '#000' : undefined } }}
                 />
               </Form.Item>
             </Col>
@@ -246,6 +262,7 @@ const StaffProfile = () => {
                 <Input 
                   type="date"
                   size="large"
+                  styles={{ input: { color: !editMode ? '#000' : undefined } }}
                 />
               </Form.Item>
             </Col>
@@ -259,6 +276,7 @@ const StaffProfile = () => {
               prefix={<HomeOutlined />} 
               placeholder="Nhập địa chỉ"
               size="large"
+              styles={{ input: { color: !editMode ? '#000' : undefined } }}
             />
           </Form.Item>
 
@@ -277,6 +295,7 @@ const StaffProfile = () => {
                 <Input 
                   disabled
                   size="large"
+                  styles={{ input: { color: '#000' } }}
                 />
               </Form.Item>
             </Col>
@@ -288,6 +307,7 @@ const StaffProfile = () => {
                   value="Nhân viên phân công"
                   disabled
                   size="large"
+                  styles={{ input: { color: '#000' } }}
                 />
               </Form.Item>
             </Col>

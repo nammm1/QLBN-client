@@ -158,7 +158,6 @@ const NutritionistWorkSchedule = () => {
       const data = res?.data || [];
       setSchedule(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.log("Lỗi khi lấy lịch làm việc:", error);
       setSchedule([]);
     } finally {
       setLoading(false);
@@ -174,7 +173,7 @@ const NutritionistWorkSchedule = () => {
         [`${dateStr}_${ca}`]: res || []
       }));
     } catch (error) {
-      console.log("Lỗi khi lấy cuộc hẹn:", error);
+      // Error fetching appointments
     }
   };
 
@@ -183,7 +182,7 @@ const NutritionistWorkSchedule = () => {
       const res = await apiXinNghiPhep.getByBacSi(userInfo.user.id_nguoi_dung);
       setNghiPhepData(res?.data || []);
     } catch (error) {
-      console.log("Lỗi khi lấy đơn xin nghỉ phép:", error);
+      // Error fetching leave requests
     }
   };
 
@@ -282,14 +281,14 @@ const NutritionistWorkSchedule = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      border: `2px solid ${hasNghiPhep ? token.colorWarning : matched.length ? token.colorSuccess : token.colorBorderSecondary}`,
+      border: `2px solid ${hasNghiPhep ? token.colorWarning : matched.length ? '#096dd9' : token.colorBorderSecondary}`,
       borderRadius: "12px",
       cursor: "pointer",
       position: "relative",
       background: hasNghiPhep ? 
         `linear-gradient(135deg, ${token.colorWarningBg}, #fff7e6)` : 
         matched.length ? 
-        `linear-gradient(135deg, ${token.colorSuccessBg}, #f6ffed)` : 
+        `linear-gradient(135deg, #e6f7ff, #e6f7ff)` : 
         `linear-gradient(135deg, ${token.colorFillAlter}, #fafafa)`,
       padding: compact ? "8px" : "16px",
       transition: 'all 0.3s ease',
@@ -333,7 +332,7 @@ const NutritionistWorkSchedule = () => {
               <Badge 
                 count={slotAppointments.length}
                 style={{ 
-                  backgroundColor: token.colorSuccess,
+                  backgroundColor: '#096dd9',
                   fontSize: '9px',
                   height: '16px',
                   minWidth: '16px',
@@ -360,7 +359,7 @@ const NutritionistWorkSchedule = () => {
                 </div>
               </Badge>
               <Text strong style={{ 
-                color: token.colorSuccess, 
+                color: '#096dd9', 
                 fontSize: "9px",
                 display: 'block',
                 lineHeight: '1.2'
@@ -473,7 +472,7 @@ const NutritionistWorkSchedule = () => {
               <Badge 
                 count={slotAppointments.length}
                 style={{ 
-                  backgroundColor: token.colorSuccess,
+                  backgroundColor: '#096dd9',
                   boxShadow: `0 0 0 2px ${token.colorBgContainer}`
                 }}
                 size="small"
@@ -497,7 +496,7 @@ const NutritionistWorkSchedule = () => {
               </Badge>
               <div style={{ marginTop: "8px" }}>
                 <Text strong style={{ 
-                  color: token.colorSuccess, 
+                  color: '#096dd9', 
                   fontSize: "12px",
                   display: 'block'
                 }}>
@@ -600,7 +599,7 @@ const NutritionistWorkSchedule = () => {
                           position: 'absolute',
                           top: 8,
                           right: 8,
-                          background: token.colorSuccess,
+                          background: '#096dd9',
                           color: 'white',
                           borderRadius: '10px',
                           padding: '2px 6px',
@@ -677,11 +676,11 @@ const NutritionistWorkSchedule = () => {
                               alignItems: 'center',
                               marginTop: '4px',
                               padding: '2px 6px',
-                              background: token.colorSuccessBg,
+                              background: '#e6f7ff',
                               borderRadius: '6px',
-                              border: `1px solid ${token.colorSuccessBorder}`
+                              border: `1px solid #b7eb8f`
                             }}>
-                              <Text style={{ fontSize: '9px', color: token.colorSuccess }}>
+                              <Text style={{ fontSize: '9px', color: '#096dd9' }}>
                                 {slotAppointments.length} cuộc hẹn
                               </Text>
                               <Progress 
@@ -1108,7 +1107,7 @@ const NutritionistWorkSchedule = () => {
               <div style={{ 
                 width: "16px", 
                 height: "16px", 
-                background: 'linear-gradient(135deg, #52c41a, #73d13d)',
+                background: 'linear-gradient(135deg, #096dd9, #40a9ff)',
                 borderRadius: "4px" 
               }} />
               <Text type="secondary">Có lịch làm việc</Text>

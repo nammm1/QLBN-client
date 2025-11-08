@@ -5,17 +5,12 @@ const apiYeuCauEmail = {
   // Đăng ký nhận tin tức (công khai)
   create: async (data) => {
     try {
-      console.log("🚀 [API] Calling create yeu cau email with data:", data);
-      console.log("🚀 [API] URL:", `${API_CONFIG.BASE_URL}yeu-cau-email`);
       const res = await axiosInstance.post(
         `${API_CONFIG.BASE_URL}yeu-cau-email`,
         data
       );
-      console.log("✅ [API] Response:", res.data);
       return res.data;
     } catch (err) {
-      console.error("❌ [API] Error creating yeu cau email:", err);
-      console.error("❌ [API] Error response:", err.response?.data);
       throw err;
     }
   },
@@ -82,16 +77,12 @@ const apiYeuCauEmail = {
   // Gửi email đơn lẻ
   sendEmail: async (data) => {
     try {
-      console.log("🚀 [API] Sending email with data:", data);
       const res = await axiosInstance.post(
         `${API_CONFIG.BASE_URL}yeu-cau-email/send-email`,
         data
       );
-      console.log("✅ [API] Email sent successfully:", res.data);
       return res.data;
     } catch (err) {
-      console.error("❌ [API] Error sending email:", err);
-      console.error("❌ [API] Error response:", err.response?.data);
       throw err;
     }
   },

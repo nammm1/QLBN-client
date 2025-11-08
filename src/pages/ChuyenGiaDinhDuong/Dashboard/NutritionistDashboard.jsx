@@ -192,7 +192,7 @@ const NutritionistDashboard = () => {
       title: 'Bệnh nhân hôm nay',
       value: stats.patientsToday,
       icon: <TeamOutlined />,
-      color: '#52c41a',
+      color: '#096dd9',
       progress: 75,
       suffix: '/ 16',
       prefix: <ArrowRightOutlined />
@@ -201,7 +201,7 @@ const NutritionistDashboard = () => {
       title: 'Lịch tư vấn',
       value: stats.appointments,
       icon: <ScheduleOutlined />,
-      color: '#52c41a',
+      color: '#096dd9',
       progress: 60,
       suffix: '/ 12',
       prefix: <CalendarOutlined />
@@ -235,13 +235,23 @@ const NutritionistDashboard = () => {
   }
 
   return (
-    <div className="container-fluid p-4 bg-light min-vh-100">
+    <div className="container-fluid p-4 min-vh-100" style={{ 
+      background: 'linear-gradient(135deg, #e6f7ff 0%, #f0f9ff 50%, #fff7e6 100%)',
+      minHeight: '100vh'
+    }}>
       {/* Header */}
       <div className="mb-4">
-        <Title level={2} className="mb-2" style={{ color: '#52c41a' }}>
+        <Title level={2} className="mb-2" style={{ 
+          background: 'linear-gradient(135deg, #096dd9 0%, #0050b3 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          fontWeight: 700,
+          fontSize: '32px'
+        }}>
           🍎 Trang tổng quan chuyên gia dinh dưỡng
         </Title>
-        <Text type="secondary">
+        <Text type="secondary" style={{ fontSize: '15px' }}>
           Chào mừng trở lại! Dưới đây là tổng quan hoạt động tư vấn dinh dưỡng của bạn hôm nay.
         </Text>
       </div>
@@ -253,24 +263,47 @@ const NutritionistDashboard = () => {
             <Card 
               className="shadow-sm border-0 h-100"
               styles={{ body: { padding: '20px' } }}
+              style={{
+                background: stat.color === '#096dd9' 
+                  ? 'linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%)'
+                  : 'linear-gradient(135deg, #ffffff 0%, #fafafa 100%)',
+                border: `1px solid ${stat.color === '#096dd9' ? 'rgba(9, 109, 217, 0.2)' : 'rgba(0, 0, 0, 0.06)'}`,
+                transition: 'all 0.3s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = `0 8px 24px ${stat.color === '#096dd9' ? 'rgba(9, 109, 217, 0.2)' : 'rgba(0, 0, 0, 0.12)'}`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+              }}
             >
               <div className="d-flex justify-content-between align-items-start mb-3">
                 <div>
-                  <Text type="secondary" className="d-block mb-1">
+                  <Text type="secondary" className="d-block mb-1" style={{ fontSize: '13px', fontWeight: 500 }}>
                     {stat.title}
                   </Text>
-                  <Title level={2} className="mb-0" style={{ color: stat.color }}>
+                  <Title level={2} className="mb-0" style={{ 
+                    color: stat.color,
+                    fontWeight: 700,
+                    fontSize: '32px'
+                  }}>
                     {stat.value}
                   </Title>
                 </div>
                 <div 
                   className="d-flex align-items-center justify-content-center rounded-circle"
                   style={{ 
-                    width: '48px', 
-                    height: '48px', 
-                    backgroundColor: `${stat.color}15`,
-                    fontSize: '20px',
-                    color: stat.color
+                    width: '56px', 
+                    height: '56px', 
+                    background: stat.color === '#096dd9'
+                      ? 'linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)'
+                      : `linear-gradient(135deg, ${stat.color} 0%, ${stat.color}dd 100%)`,
+                    fontSize: '24px',
+                    color: '#ffffff',
+                    boxShadow: `0 4px 12px ${stat.color}40`
                   }}
                 >
                   {stat.icon}
@@ -279,14 +312,17 @@ const NutritionistDashboard = () => {
               <Progress 
                 percent={stat.progress} 
                 showInfo={false}
-                strokeColor={stat.color}
+                strokeColor={stat.color === '#096dd9' 
+                  ? { '0%': '#096dd9', '100%': '#40a9ff' }
+                  : stat.color}
                 size="small"
+                style={{ height: '6px', borderRadius: '3px' }}
               />
               <div className="d-flex justify-content-between align-items-center mt-2">
-                <Text type="secondary" style={{ fontSize: '12px' }}>
+                <Text type="secondary" style={{ fontSize: '12px', fontWeight: 500 }}>
                   {stat.suffix}
                 </Text>
-                <Text type="secondary" style={{ fontSize: '12px' }}>
+                <Text type="secondary" style={{ fontSize: '12px', fontWeight: 500 }}>
                   {stat.progress}% hoàn thành
                 </Text>
               </div>
@@ -305,15 +341,23 @@ const NutritionistDashboard = () => {
               <Card 
                 title={
                   <Space>
-                    <AppleOutlined style={{ color: '#52c41a' }} />
-                    <span>Lịch tư vấn sắp tới</span>
-                    <Badge count={upcomingAppointments.length} showZero />
+                    <AppleOutlined style={{ color: '#096dd9', fontSize: '18px' }} />
+                    <span style={{ fontWeight: 600 }}>Lịch tư vấn sắp tới</span>
+                    <Badge count={upcomingAppointments.length} showZero style={{ backgroundColor: '#096dd9' }} />
                   </Space>
                 }
                 className="shadow-sm h-100"
+                style={{
+                  background: 'linear-gradient(135deg, #ffffff 0%, #e6f7ff 100%)',
+                  border: '1px solid rgba(9, 109, 217, 0.15)'
+                }}
                 extra={
-                  <Button type="link" onClick={() => navigate('/nutritionist/appointments')}>
-                    Xem tất cả
+                  <Button 
+                    type="link" 
+                    onClick={() => navigate('/nutritionist/appointments')}
+                    style={{ color: '#096dd9', fontWeight: 500 }}
+                  >
+                    Xem tất cả →
                   </Button>
                 }
               >
@@ -323,7 +367,10 @@ const NutritionistDashboard = () => {
                     <List.Item>
                       <List.Item.Meta
                         avatar={
-                          <Avatar style={{ backgroundColor: '#52c41a' }}>
+                          <Avatar style={{ 
+                            background: 'linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)',
+                            boxShadow: '0 2px 8px rgba(9, 109, 217, 0.3)'
+                          }}>
                             {item.avatar}
                           </Avatar>
                         }
@@ -348,6 +395,11 @@ const NutritionistDashboard = () => {
                         type="primary" 
                         size="small"
                         onClick={() => navigate(`/nutritionist/appointment/${item.id}`)}
+                        style={{
+                          background: 'linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)',
+                          border: 'none',
+                          fontWeight: 500
+                        }}
                       >
                         Chi tiết
                       </Button>
@@ -440,8 +492,12 @@ const NutritionistDashboard = () => {
             {/* Quick Actions */}
             <Col xs={24}>
               <Card 
-                title="Thao tác nhanh"
+                title={<span style={{ fontWeight: 600 }}>Thao tác nhanh</span>}
                 className="shadow-sm h-100"
+                style={{
+                  background: 'linear-gradient(135deg, #ffffff 0%, #e6f7ff 100%)',
+                  border: '1px solid rgba(9, 109, 217, 0.15)'
+                }}
               >
                 <Space direction="vertical" style={{ width: '100%' }} size="middle">
                   <Button 
@@ -450,6 +506,13 @@ const NutritionistDashboard = () => {
                     icon={<UserOutlined />}
                     size="large"
                     onClick={() => navigate('/nutritionist/patients')}
+                    style={{
+                      background: 'linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)',
+                      border: 'none',
+                      height: '48px',
+                      fontWeight: 500,
+                      boxShadow: '0 4px 12px rgba(9, 109, 217, 0.3)'
+                    }}
                   >
                     Xem danh sách bệnh nhân
                   </Button>
@@ -458,6 +521,12 @@ const NutritionistDashboard = () => {
                     icon={<CalendarOutlined />}
                     size="large"
                     onClick={() => navigate('/nutritionist/appointments')}
+                    style={{
+                      height: '48px',
+                      borderColor: '#096dd9',
+                      color: '#096dd9',
+                      fontWeight: 500
+                    }}
                   >
                     Quản lý lịch tư vấn
                   </Button>
@@ -466,6 +535,12 @@ const NutritionistDashboard = () => {
                     icon={<FileTextOutlined />}
                     size="large"
                     onClick={() => navigate('/nutritionist/records')}
+                    style={{
+                      height: '48px',
+                      borderColor: '#096dd9',
+                      color: '#096dd9',
+                      fontWeight: 500
+                    }}
                   >
                     Duyệt hồ sơ dinh dưỡng
                   </Button>
@@ -474,6 +549,12 @@ const NutritionistDashboard = () => {
                     icon={<MessageOutlined />}
                     size="large"
                     onClick={() => navigate('/nutritionist/chat')}
+                    style={{
+                      height: '48px',
+                      borderColor: '#096dd9',
+                      color: '#096dd9',
+                      fontWeight: 500
+                    }}
                   >
                     Tin nhắn
                   </Button>

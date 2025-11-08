@@ -10,6 +10,7 @@ import {
   LogoutOutlined,
   TeamOutlined,
   WechatOutlined,
+  AppleOutlined,
 } from "@ant-design/icons";
 import { Menu, Avatar, Typography, Tooltip, Badge } from "antd";
 import apiChat from "../../api/Chat";
@@ -43,6 +44,12 @@ const ReceptionistSidebar = ({ collapsed = false }) => {
       label: "Lịch hẹn khám",
       path: "/receptionist/appointments",
       badge: appointmentsBadge > 0 ? appointmentsBadge : undefined,
+    },
+    {
+      key: "/receptionist/consultation-appointments",
+      icon: <AppleOutlined />,
+      label: "Lịch hẹn tư vấn",
+      path: "/receptionist/consultation-appointments",
     },
     {
       key: "/receptionist/billing",

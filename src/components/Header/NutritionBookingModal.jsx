@@ -205,8 +205,6 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
         ly_do_tu_van: desc,
       };
 
-      console.log("Payload gửi lên:", payload);
-
       await apiCuocHenTuVan.create(payload);
 
       toast.success("Đặt lịch tư vấn thành công!");
@@ -552,7 +550,7 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
                                     alignItems: "center", 
                                     gap: "8px",
                                     fontSize: "13px",
-                                    color: "#52c41a",
+                                    color: "#096dd9",
                                     fontWeight: "500",
                                     marginBottom: exp.linh_vuc_chuyen_sau ? "6px" : "0"
                                   }}>
@@ -751,8 +749,8 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
                   {viewingExpert.ten_chuyen_nganh && (
                     <div style={{ marginBottom: "12px", padding: "10px", background: "#f6ffed", borderRadius: "6px", border: "1px solid #b7eb8f" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                        <Heart size={14} color="#52c41a" />
-                        <strong style={{ color: "#52c41a" }}>Chuyên ngành:</strong>
+                        <Heart size={14} color="#096dd9" />
+                        <strong style={{ color: "#096dd9" }}>Chuyên ngành:</strong>
                       </div>
                       <span style={{ color: "#595959" }}>{viewingExpert.ten_chuyen_nganh}</span>
                     </div>

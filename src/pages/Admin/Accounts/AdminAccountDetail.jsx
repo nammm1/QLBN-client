@@ -33,6 +33,7 @@ import {
 } from "@ant-design/icons";
 import apiNguoiDung from "../../../api/NguoiDung";
 import dayjs from "dayjs";
+import { checkAgeForAccountCreation } from "../../../utils/checkAgeForAccountCreation";
 import "./AdminAccountDetail.css";
 
 const { Title, Text } = Typography;
@@ -58,9 +59,17 @@ const AdminAccountDetail = () => {
       setLoading(true);
       const userData = await apiNguoiDung.getUserById(id_nguoi_dung);
       setUser(userData);
+      
+      // Convert trang_thai_hoat_dong từ boolean/number sang string cho form
+      const isActive = userData.trang_thai_hoat_dong === true || 
+                       userData.trang_thai_hoat_dong === 1 || 
+                       userData.trang_thai_hoat_dong === "HoatDong" ||
+                       userData.trang_thai_hoat_dong === "1";
+      
       form.setFieldsValue({
         ...userData,
         ngay_sinh: userData.ngay_sinh ? dayjs(userData.ngay_sinh) : null,
+        trang_thai_hoat_dong: isActive ? "HoatDong" : "Ngung",
       });
     } catch (error) {
       console.error("Error fetching user detail:", error);
@@ -74,19 +83,37 @@ const AdminAccountDetail = () => {
   const handleUpdate = async (values) => {
     try {
       setSaving(true);
+      
+      // Convert trang_thai_hoat_dong từ string sang boolean
+      const trangThaiHoatDong = values.trang_thai_hoat_dong === "HoatDong" ? true : false;
+      
       const formattedValues = {
         ...values,
         ngay_sinh: values.ngay_sinh
           ? dayjs(values.ngay_sinh).format("YYYY-MM-DD")
           : user.ngay_sinh,
+        trang_thai_hoat_dong: trangThaiHoatDong,
       };
+      
+      // Kiểm tra tuổi nếu có cập nhật ngày sinh (phải >= 6 tuổi)
+      if (values.ngay_sinh && formattedValues.ngay_sinh) {
+        const ageCheck = checkAgeForAccountCreation(formattedValues.ngay_sinh);
+        if (!ageCheck.isValid) {
+          console.log(`[ADMIN_UPDATE_ACCOUNT] Người dùng không đủ tuổi: ${ageCheck.message}`);
+          message.error(ageCheck.message);
+          setSaving(false);
+          return;
+        }
+      }
+      
       await apiNguoiDung.updateUser(id_nguoi_dung, formattedValues);
       message.success("Cập nhật thông tin thành công!");
       setIsEditModalOpen(false);
       fetchUserDetail();
     } catch (error) {
       console.error("Error updating user:", error);
-      message.error("Không thể cập nhật thông tin!");
+      const errorMessage = error.response?.data?.message || "Không thể cập nhật thông tin!";
+      message.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -267,12 +294,18 @@ const AdminAccountDetail = () => {
                 <Descriptions.Item label="Trạng thái hoạt động">
                   <Tag
                     color={
-                      user.trang_thai_hoat_dong === "HoatDong"
+                      user.trang_thai_hoat_dong === true || 
+                      user.trang_thai_hoat_dong === 1 || 
+                      user.trang_thai_hoat_dong === "HoatDong" ||
+                      user.trang_thai_hoat_dong === "1"
                         ? "green"
                         : "red"
                     }
                   >
-                    {user.trang_thai_hoat_dong === "HoatDong"
+                    {user.trang_thai_hoat_dong === true || 
+                     user.trang_thai_hoat_dong === 1 || 
+                     user.trang_thai_hoat_dong === "HoatDong" ||
+                     user.trang_thai_hoat_dong === "1"
                       ? "Hoạt động"
                       : "Ngừng"}
                   </Tag>
@@ -339,6 +372,7 @@ const AdminAccountDetail = () => {
               <Option value="chuyen_gia_dinh_duong">Chuyên gia dinh dưỡng</Option>
               <Option value="nhan_vien_quay">Nhân viên quầy</Option>
               <Option value="nhan_vien_phan_cong">Nhân viên phân công</Option>
+              <Option value="nhan_vien_xet_nghiem">Nhân viên xét nghiệm</Option>
               <Option value="quan_tri_vien">Quản trị viên</Option>
             </Select>
           </Form.Item>

@@ -16,6 +16,20 @@ const apiChiDinhXetNghiem = {
     }
   },
 
+  // 🔍 Lấy tất cả chỉ định xét nghiệm (cho nhân viên xét nghiệm)
+  getAll: async (trang_thai = null) => {
+    try {
+      const url = trang_thai 
+        ? `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChiDinhXetNghiem}/?trang_thai=${trang_thai}`
+        : `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ChiDinhXetNghiem}/`;
+      const res = await axiosInstance.get(url);
+      return res.data.data;
+    } catch (err) {
+      console.error("Error fetching all chi định xét nghiệm:", err);
+      throw err;
+    }
+  },
+
   // 🔍 Lấy danh sách chỉ định theo id_ho_so
   getByCuocHen: async (id_cuoc_hen) => {
     try {

@@ -215,7 +215,6 @@ const NutritionistAppointmentDetail = () => {
                 }
               } catch (error) {
                 // Không hiển thị lỗi nếu không tìm thấy thực đơn
-                console.log("Chưa có thực đơn chi tiết");
               }
             } else {
               setLichSuTuVanHienTai(null);
@@ -847,10 +846,6 @@ const NutritionistAppointmentDetail = () => {
 
   const handleAddThucDon = async (values) => {
     try {
-      console.log("handleAddThucDon - values:", values);
-      console.log("handleAddThucDon - lichSuTuVanHienTai:", lichSuTuVanHienTai);
-      console.log("handleAddThucDon - buaAnDangChon:", buaAnDangChon);
-
       if (!buaAnDangChon) {
         message.error("Không xác định được bữa ăn. Vui lòng thử lại.");
         return;
@@ -905,10 +900,7 @@ const NutritionistAppointmentDetail = () => {
           ...thucDonItem
         };
 
-        console.log("handleAddThucDon - thucDonData:", thucDonData);
-
         const newThucDon = await apiThucDonChiTiet.create(thucDonData);
-        console.log("handleAddThucDon - newThucDon:", newThucDon);
         
         setThucDonChiTiet(prev => ({
           ...prev,
@@ -1365,7 +1357,7 @@ const NutritionistAppointmentDetail = () => {
                         </Tag>
                       </Descriptions.Item>
                       <Descriptions.Item label="Tuổi">
-                        <Badge count={hoSo.tuoi} style={{ backgroundColor: '#52c41a' }} />
+                        <Badge count={hoSo.tuoi} style={{ backgroundColor: '#096dd9' }} />
                       </Descriptions.Item>
                       <Descriptions.Item label="Số điện thoại">
                         <Space>
@@ -1414,7 +1406,7 @@ const NutritionistAppointmentDetail = () => {
                       )}
                       {hoSo.vong_eo && (
                         <Col span={6}>
-                          <Card size="small" style={{ textAlign: 'center', background: '#f6ffed' }}>
+                          <Card size="small" style={{ textAlign: 'center', background: '#e6f7ff' }}>
                             <Statistic
                               title="Vòng eo (cm)"
                               value={hoSo.vong_eo}
@@ -1490,7 +1482,7 @@ const NutritionistAppointmentDetail = () => {
               <Card 
                 title={
                   <Space>
-                    <FileTextOutlined style={{ color: '#52c41a' }} />
+                    <FileTextOutlined style={{ color: '#096dd9' }} />
                     <span>Thông tin tư vấn dinh dưỡng</span>
                   </Space>
                 }
@@ -1594,7 +1586,7 @@ const NutritionistAppointmentDetail = () => {
                                   {chenhLech !== null && (
                                     <>
                                       <Text> | </Text>
-                                      <Text strong style={{ color: chenhLech < 0 ? '#ff4d4f' : chenhLech > 0 ? '#52c41a' : '#595959' }}>
+                                      <Text strong style={{ color: chenhLech < 0 ? '#ff4d4f' : chenhLech > 0 ? '#096dd9' : '#595959' }}>
                                         Chênh lệch: {chenhLech > 0 ? '+' : ''}{chenhLech.toFixed(0)} kcal
                                       </Text>
                                     </>
@@ -1805,7 +1797,7 @@ const NutritionistAppointmentDetail = () => {
                   <div>
                     <Text strong>Ngày khám:</Text>
                     <div>
-                      <CalendarOutlined style={{ marginRight: 8, color: '#52c41a' }} />
+                      <CalendarOutlined style={{ marginRight: 8, color: '#096dd9' }} />
                       {new Date(appointment.ngay_kham).toLocaleDateString("vi-VN")}
                     </div>
                   </div>
@@ -2459,7 +2451,7 @@ const NutritionistAppointmentDetail = () => {
                                     {chenhLech !== null && (
                                       <>
                                         <Text> | </Text>
-                                        <Text strong style={{ color: chenhLech < 0 ? '#ff4d4f' : chenhLech > 0 ? '#52c41a' : '#595959' }}>
+                                        <Text strong style={{ color: chenhLech < 0 ? '#ff4d4f' : chenhLech > 0 ? '#096dd9' : '#595959' }}>
                                           Chênh lệch: {chenhLech > 0 ? '+' : ''}{chenhLech.toFixed(0)} kcal
                                         </Text>
                                       </>
@@ -2611,7 +2603,7 @@ const NutritionistAppointmentDetail = () => {
                                         {' '}Chênh lệch: 
                                         <Text strong style={{ 
                                           color: tongCaloNgay > lichSuTamThoi.nhu_cau_calo ? '#ff4d4f' : 
-                                                 tongCaloNgay < lichSuTamThoi.nhu_cau_calo * 0.9 ? '#faad14' : '#52c41a'
+                                                 tongCaloNgay < lichSuTamThoi.nhu_cau_calo * 0.9 ? '#faad14' : '#096dd9'
                                         }}>
                                           {tongCaloNgay > lichSuTamThoi.nhu_cau_calo ? ' +' : ' '}
                                           {(tongCaloNgay - lichSuTamThoi.nhu_cau_calo).toFixed(0)} kcal
@@ -2628,7 +2620,7 @@ const NutritionistAppointmentDetail = () => {
                                         {' '}Chênh lệch: 
                                         <Text strong style={{ 
                                           color: tongCaloNgay > lichSuTuVanHienTai.nhu_cau_calo ? '#ff4d4f' : 
-                                                 tongCaloNgay < lichSuTuVanHienTai.nhu_cau_calo * 0.9 ? '#faad14' : '#52c41a'
+                                                 tongCaloNgay < lichSuTuVanHienTai.nhu_cau_calo * 0.9 ? '#faad14' : '#096dd9'
                                         }}>
                                           {tongCaloNgay > lichSuTuVanHienTai.nhu_cau_calo ? ' +' : ' '}
                                           {(tongCaloNgay - lichSuTuVanHienTai.nhu_cau_calo).toFixed(0)} kcal
@@ -3092,7 +3084,7 @@ const NutritionistAppointmentDetail = () => {
 
 
           {/* Tổng kết */}
-          <Card size="small" style={{ background: '#f6ffed' }}>
+          <Card size="small" style={{ background: '#e6f7ff' }}>
             <Row justify="end">
               <Col>
                 <Space direction="vertical" size="small" align="end">

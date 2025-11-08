@@ -179,7 +179,7 @@ const Doctors = () => {
             }
           });
         } catch (err) {
-          console.log("Không thể lấy danh sách chuyên khoa từ API, sử dụng dữ liệu từ bác sĩ");
+          // Không thể lấy danh sách chuyên khoa từ API, sử dụng dữ liệu từ bác sĩ
         }
         
         // Also extract from doctors' chuyen_mon as fallback or supplement

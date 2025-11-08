@@ -5,17 +5,12 @@ const apiThucDonChiTiet = {
   // Tạo thực đơn chi tiết
   create: async (data) => {
     try {
-      console.log("API ThucDonChiTiet.create - sending data:", data);
       const response = await axiosInstance.post(
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.ThucDonChiTiet}`,
         data
       );
-      console.log("API ThucDonChiTiet.create - response:", response.data);
       return response.data.data;
     } catch (error) {
-      console.error("Error creating thực đơn chi tiết:", error);
-      console.error("Error response:", error.response?.data);
-      console.error("Error status:", error.response?.status);
       throw error;
     }
   },

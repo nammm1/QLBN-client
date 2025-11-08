@@ -14,9 +14,7 @@ import {
 import {
   DashboardOutlined,
   CalendarOutlined,
-  TeamOutlined,
   ScheduleOutlined,
-  BarChartOutlined,
   UserOutlined,
   LogoutOutlined,
   FileTextOutlined,
@@ -52,12 +50,6 @@ const StaffSidebar = ({ collapsed = false }) => {
       path: "/staff/work-schedule"
     },
     { 
-      key: "/staff/staff-management", 
-      label: "Quản lý nhân sự", 
-      icon: <TeamOutlined />,
-      path: "/staff/staff-management",
-    },
-    { 
       key: "/staff/schedule-assignment", 
       label: "Phân công lịch", 
       icon: <CalendarOutlined />,
@@ -76,12 +68,6 @@ const StaffSidebar = ({ collapsed = false }) => {
       icon: <WechatOutlined />,
       path: "/staff/chat",
       badge: chatBadge > 0 ? chatBadge : undefined,
-    },
-    { 
-      key: "/staff/reports", 
-      label: "Báo cáo & Thống kê", 
-      icon: <BarChartOutlined />,
-      path: "/staff/reports"
     },
   ], [chatBadge, leaveRequestsBadge]);
 

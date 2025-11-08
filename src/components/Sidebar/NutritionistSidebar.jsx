@@ -17,7 +17,6 @@ import {
   FolderOpenOutlined,
   MessageOutlined,
   ScheduleOutlined,
-  BarChartOutlined,
   UserOutlined,
   LogoutOutlined,
   AppleOutlined,
@@ -68,12 +67,6 @@ const NutritionistSidebar = ({ collapsed = false }) => {
       label: "Lịch làm việc", 
       icon: <ScheduleOutlined />,
       path: "/nutritionist/work-schedule"
-    },
-    { 
-      key: "/nutritionist/reports", 
-      label: "Báo cáo & Thống kê", 
-      icon: <BarChartOutlined />,
-      path: "/nutritionist/reports"
     },
   ], [chatBadge, appointmentsBadge]);
 
@@ -138,7 +131,7 @@ const NutritionistSidebar = ({ collapsed = false }) => {
       collapsed={collapsed}
       collapsedWidth={80}
       style={{
-        background: 'linear-gradient(180deg, #52c41a 0%, #389e0d 100%)',
+        background: 'linear-gradient(180deg, #096dd9 0%, #0050b3 100%)',
         boxShadow: '8px 0 32px rgba(0, 0, 0, 0.1)',
         position: 'fixed',
         height: '100vh',
@@ -169,14 +162,14 @@ const NutritionistSidebar = ({ collapsed = false }) => {
         >
           <Badge 
             dot 
-            color="#10b981"
+            color="#096dd9"
             offset={[-5, 60]}
             size="default"
           >
             <Avatar 
               size={collapsed ? 50 : 80} 
               style={{ 
-                background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                background: 'linear-gradient(135deg, #096dd9 0%, #0050b3 100%)',
                 border: '4px solid rgba(255,255,255,0.2)',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
                 fontSize: collapsed ? '16px' : '24px',

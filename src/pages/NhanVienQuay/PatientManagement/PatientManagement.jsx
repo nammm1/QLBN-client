@@ -35,6 +35,7 @@ import {
 import apiBenhNhan from "../../../api/BenhNhan";
 import apiNguoiDung from "../../../api/NguoiDung";
 import moment from "moment";
+import { checkAgeForAccountCreation } from "../../../utils/checkAgeForAccountCreation";
 import AutoBookingModal from "./AutoBookingModal";
 
 const { Title, Text } = Typography;
@@ -84,6 +85,16 @@ const PatientManagement = () => {
         ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format("YYYY-MM-DD") : null,
         vai_tro: "benh_nhan",
       };
+
+      // Kiểm tra tuổi (phải >= 6 tuổi mới được tạo/cập nhật tài khoản)
+      if (userData.ngay_sinh) {
+        const ageCheck = checkAgeForAccountCreation(userData.ngay_sinh);
+        if (!ageCheck.isValid) {
+          console.log(`[PATIENT_MANAGEMENT] Người dùng không đủ tuổi: ${ageCheck.message}`);
+          message.error(ageCheck.message);
+          return;
+        }
+      }
 
       if (selectedPatient) {
         // Update

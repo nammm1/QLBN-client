@@ -267,6 +267,7 @@
 .section-title {
   position: relative;
   display: inline-block;
+  color: #096dd9 !important;
 }
 
 .section-title::after {
@@ -275,6 +276,49 @@
 
 .section-title.animate-fade-in-up::after {
   display: none !important;
+}
+
+/* Force blue color for all titles in Home page - High specificity */
+#why-choose .section-title,
+#why-choose .ant-typography h2.section-title,
+#why-choose .ant-typography h3.section-title,
+#services .section-title,
+#services .ant-typography h2.section-title,
+#testimonials .section-title,
+#testimonials .ant-typography h2.section-title,
+#milestones .section-title,
+#milestones .ant-typography h2.section-title,
+#partners .section-title,
+#partners .ant-typography h2.section-title {
+  color: #096dd9 !important;
+}
+
+/* Override any green color for Ant Design Typography in Home page */
+.home-container .ant-typography h2.section-title,
+.home-container .ant-typography h3.section-title,
+.home-container .section-title,
+.home-container .ant-typography h2,
+.home-container .ant-typography h3 {
+  color: #096dd9 !important;
+}
+
+/* Specific override for why-choose section - Maximum specificity */
+#why-choose .ant-typography h2,
+#why-choose .ant-typography h2.section-title,
+#why-choose .ant-typography h2.section-title.animate-fade-in-up,
+.home-container #why-choose .ant-typography h2,
+.home-container #why-choose .ant-typography h2.section-title {
+  color: #096dd9 !important;
+}
+
+/* Override for all section titles with maximum specificity */
+.home-container .section-white .ant-typography h2.section-title,
+.home-container .section-white #why-choose .ant-typography h2,
+.home-container .section-white #services .ant-typography h2,
+.home-container .section-white #testimonials .ant-typography h2,
+.home-container .section-white #milestones .ant-typography h2,
+.home-container .section-white #partners .ant-typography h2 {
+  color: #096dd9 !important;
 }
 
 @keyframes expandLine {

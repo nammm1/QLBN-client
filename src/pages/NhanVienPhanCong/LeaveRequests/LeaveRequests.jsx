@@ -94,10 +94,7 @@ const LeaveRequests = () => {
 
   // Debug: Log khi selectedRequestSchedules thay đổi
   useEffect(() => {
-    console.log('=== SELECTED REQUEST SCHEDULES CHANGED ===');
-    console.log('State value:', selectedRequestSchedules);
-    console.log('Length:', selectedRequestSchedules.length);
-    console.log('Is array:', Array.isArray(selectedRequestSchedules));
+    // State changed
   }, [selectedRequestSchedules]);
 
   const fetchLeaveRequests = async () => {
@@ -226,41 +223,18 @@ const LeaveRequests = () => {
 
       // Lấy lịch làm việc trong khoảng thời gian xin nghỉ
       try {
-        console.log('=== FETCHING SCHEDULES ===');
-        console.log('User ID:', request.id_nguoi_dung);
         const schedulesRes = await apiNhanVienPhanCong.getAllLichLamViec({
           id_nguoi_dung: request.id_nguoi_dung
         });
-        
-        console.log('Raw schedules response:', schedulesRes);
-        console.log('Response type:', typeof schedulesRes);
-        console.log('Response keys:', schedulesRes ? Object.keys(schedulesRes) : 'null');
         
         // Xử lý cấu trúc response: có thể là { success: true, data: [...] } hoặc { data: [...] } hoặc array trực tiếp
         let allSchedules = [];
         if (Array.isArray(schedulesRes)) {
           allSchedules = schedulesRes;
-          console.log('Response is direct array');
         } else if (schedulesRes?.data && Array.isArray(schedulesRes.data)) {
           allSchedules = schedulesRes.data;
-          console.log('Response has data array');
         } else if (schedulesRes?.data?.data && Array.isArray(schedulesRes.data.data)) {
           allSchedules = schedulesRes.data.data;
-          console.log('Response has nested data array');
-        } else {
-          console.warn('Unexpected response structure:', schedulesRes);
-          // Thử các cách khác để extract
-          if (schedulesRes?.data && !Array.isArray(schedulesRes.data)) {
-            console.warn('data exists but is not array:', schedulesRes.data);
-          }
-        }
-        
-        console.log('=== EXTRACTED SCHEDULES ===');
-        console.log('Count:', allSchedules.length);
-        console.log('Is array:', Array.isArray(allSchedules));
-        console.log('First schedule:', allSchedules[0]);
-        if (allSchedules.length > 0) {
-          console.log('Schedule keys:', Object.keys(allSchedules[0]));
         }
         
         if (!Array.isArray(allSchedules)) {
@@ -271,33 +245,12 @@ const LeaveRequests = () => {
         
         // Filter lịch làm việc trong khoảng thời gian xin nghỉ
         if (!request.ngay_bat_dau || !request.ngay_ket_thuc) {
-          console.warn('Missing date range:', { 
-            ngay_bat_dau: request.ngay_bat_dau, 
-            ngay_ket_thuc: request.ngay_ket_thuc 
-          });
           setSelectedRequestSchedules([]);
           return;
         }
         
-        console.log('=== DATE RANGE FROM REQUEST ===');
-        console.log('Raw request dates:', {
-          ngay_bat_dau: request.ngay_bat_dau,
-          ngay_bat_dau_type: typeof request.ngay_bat_dau,
-          ngay_ket_thuc: request.ngay_ket_thuc,
-          ngay_ket_thuc_type: typeof request.ngay_ket_thuc
-        });
-        
         const startDate = dayjs(request.ngay_bat_dau).startOf('day');
         const endDate = dayjs(request.ngay_ket_thuc).endOf('day');
-        
-        console.log('Parsed date range:', {
-          startDate_raw: request.ngay_bat_dau,
-          startDate_parsed: startDate.format('DD/MM/YYYY HH:mm:ss'),
-          startDate_isValid: startDate.isValid(),
-          endDate_raw: request.ngay_ket_thuc,
-          endDate_parsed: endDate.format('DD/MM/YYYY HH:mm:ss'),
-          endDate_isValid: endDate.isValid()
-        });
         
         const schedulesInRange = allSchedules.filter(schedule => {
           try {
@@ -318,19 +271,6 @@ const LeaveRequests = () => {
             const isBeforeOrSame = scheduleDate.isBefore(endDate, 'day') || scheduleDate.isSame(endDate, 'day');
             const isInRange = isAfterOrSame && isBeforeOrSame;
             
-            // Log chi tiết từng schedule để debug
-            console.log(`Schedule check:`, {
-              scheduleId: schedule.id_lich_lam_viec,
-              rawDate: schedule.ngay_lam_viec,
-              parsedDate: scheduleDate.format('DD/MM/YYYY HH:mm:ss'),
-              startDate: startDate.format('DD/MM/YYYY HH:mm:ss'),
-              endDate: endDate.format('DD/MM/YYYY HH:mm:ss'),
-              isAfterOrSame: isAfterOrSame,
-              isBeforeOrSame: isBeforeOrSame,
-              isInRange: isInRange,
-              ca: schedule.ca
-            });
-            
             return isInRange;
           } catch (filterError) {
             console.error('Error filtering schedule:', schedule, filterError);
@@ -338,32 +278,10 @@ const LeaveRequests = () => {
           }
         });
         
-        console.log('=== FILTER RESULTS ===');
-        console.log('Total schedules fetched:', allSchedules.length);
-        console.log('Schedules in range:', schedulesInRange.length);
-        console.log('Date range:', {
-          startDate: startDate.format('DD/MM/YYYY'),
-          endDate: endDate.format('DD/MM/YYYY'),
-          requestStart: request.ngay_bat_dau,
-          requestEnd: request.ngay_ket_thuc
-        });
-        console.log('Matched schedules:', schedulesInRange.map(s => ({
-          id: s.id_lich_lam_viec,
-          date: dayjs(s.ngay_lam_viec).format('DD/MM/YYYY'),
-          rawDate: s.ngay_lam_viec,
-          ca: s.ca
-        })));
-        
         // Đảm bảo set state với array hợp lệ
         const finalSchedules = Array.isArray(schedulesInRange) ? schedulesInRange : [];
-        console.log('=== SETTING STATE ===');
-        console.log('Final schedules to set:', finalSchedules.length);
-        console.log('Final schedules data:', finalSchedules);
         
         setSelectedRequestSchedules(finalSchedules);
-        
-        // Verify state được set (sẽ log qua useEffect)
-        console.log('State set command executed');
       } catch (error) {
         console.error("Lỗi khi lấy lịch làm việc:", error);
         console.error("Error details:", {
@@ -419,15 +337,10 @@ const LeaveRequests = () => {
 
   const deleteSchedulesDuringLeave = async (leaveRequest) => {
     try {
-      console.log('=== BẮT ĐẦU XÓA LỊCH LÀM VIỆC ===');
-      console.log('Leave request:', leaveRequest);
-      
       // Lấy tất cả lịch làm việc của nhân viên
       const schedulesRes = await apiNhanVienPhanCong.getAllLichLamViec({
         id_nguoi_dung: leaveRequest.id_nguoi_dung
       });
-      
-      console.log('Schedules response:', schedulesRes);
       
       // Xử lý cấu trúc response: { success: true, data: [...] }
       let allSchedules = [];
@@ -439,16 +352,9 @@ const LeaveRequests = () => {
         allSchedules = schedulesRes.data.data;
       }
       
-      console.log('All schedules found:', allSchedules.length);
-      
       // Lọc các lịch làm việc trong khoảng thời gian nghỉ phép
       const startDate = dayjs(leaveRequest.ngay_bat_dau).startOf('day');
       const endDate = dayjs(leaveRequest.ngay_ket_thuc).endOf('day');
-      
-      console.log('Date range:', {
-        startDate: startDate.format('DD/MM/YYYY'),
-        endDate: endDate.format('DD/MM/YYYY')
-      });
       
       const schedulesToDelete = allSchedules.filter(schedule => {
         // Kiểm tra nhân viên
@@ -475,11 +381,7 @@ const LeaveRequests = () => {
         return isInRange;
       });
       
-      console.log('Schedules to delete:', schedulesToDelete.length);
-      console.log('Schedule IDs:', schedulesToDelete.map(s => s.id_lich_lam_viec));
-      
       if (schedulesToDelete.length === 0) {
-        console.log('Không có lịch làm việc nào cần xóa');
         return;
       }
       
@@ -491,15 +393,10 @@ const LeaveRequests = () => {
         try {
           await apiNhanVienPhanCong.deleteLichLamViec(schedule.id_lich_lam_viec);
           deletedCount++;
-          console.log(`Đã xóa lịch làm việc: ${schedule.id_lich_lam_viec}`);
         } catch (err) {
           failedCount++;
-          console.error(`Không thể xóa lịch làm việc ${schedule.id_lich_lam_viec}:`, err);
         }
       }
-      
-      console.log(`=== HOÀN THÀNH XÓA LỊCH ===`);
-      console.log(`Đã xóa: ${deletedCount}, Thất bại: ${failedCount}`);
       
       if (deletedCount > 0) {
         message.success(`Đã xóa ${deletedCount} lịch làm việc trong khoảng thời gian nghỉ phép`);
@@ -928,12 +825,6 @@ const LeaveRequests = () => {
                   <Text strong>Lịch làm việc trong khoảng thời gian nghỉ</Text>
                 </Divider>
                 {(() => {
-                  // Debug log khi render
-                  console.log('=== RENDERING SCHEDULES ===');
-                  console.log('selectedRequestSchedules:', selectedRequestSchedules);
-                  console.log('Length:', selectedRequestSchedules?.length || 0);
-                  console.log('Is array:', Array.isArray(selectedRequestSchedules));
-                  
                   if (!selectedRequestSchedules || !Array.isArray(selectedRequestSchedules) || selectedRequestSchedules.length === 0) {
                     return <Empty description="Không có lịch làm việc trong khoảng thời gian này" />;
                   }
@@ -981,7 +872,7 @@ const LeaveRequests = () => {
       <Modal
         title={
           <Space>
-            <CheckCircleOutlined style={{ color: '#52c41a' }} />
+            <CheckCircleOutlined style={{ color: '#096dd9' }} />
             <span>Xác nhận duyệt đơn nghỉ phép</span>
           </Space>
         }

@@ -125,7 +125,6 @@ const Specialties = () => {
     const fetchData = async () => {
       try {
         const data = await apiChuyenKhoa.getAllChuyenKhoa();
-        console.log(data);
         setSpecialties(data); 
       } catch (error) {
         console.error("Lỗi khi lấy danh sách chuyên khoa:", error);
@@ -230,16 +229,18 @@ const Specialties = () => {
                               flexDirection: "column",
                               transition: "all 0.3s ease"
                             }}
-                            bodyStyle={{
-                              textAlign: "center",
-                              padding: 32,
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "stretch",
-                              justifyContent: "space-between",
-                              flex: 1,
-                              height: "100%",
-                              minHeight: 280
+                            styles={{
+                              body: {
+                                textAlign: "center",
+                                padding: 32,
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "stretch",
+                                justifyContent: "space-between",
+                                flex: 1,
+                                height: "100%",
+                                minHeight: 280
+                              }
                             }}
                           >
                             {/* Top gradient bar */}

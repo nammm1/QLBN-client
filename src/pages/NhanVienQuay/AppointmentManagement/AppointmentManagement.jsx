@@ -13,13 +13,13 @@ import {
   Select,
   DatePicker,
   TimePicker,
-  message,
   Typography,
   Tabs,
   Badge,
   Tooltip,
   Divider,
   Segmented,
+  App,
 } from "antd";
 import {
   CalendarOutlined,
@@ -51,9 +51,11 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const AppointmentManagement = () => {
+  const { message } = App.useApp();
   const [appointments, setAppointments] = useState([]);
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [nutritionists, setNutritionists] = useState([]); // Chuyên gia dinh dưỡng
   const [specialties, setSpecialties] = useState([]);
   const [nutritionSpecialties, setNutritionSpecialties] = useState([]); // Chuyên ngành dinh dưỡng
   const [timeSlots, setTimeSlots] = useState([]);
@@ -68,6 +70,11 @@ const AppointmentManagement = () => {
   const [form] = Form.useForm();
   const [loaiHen, setLoaiHen] = useState("kham_benh"); // kham_benh hoặc tu_van_dinh_duong
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]); // Khung giờ có bác sĩ/chuyên gia available
+  
+  // Watch form values to avoid useForm warning
+  const ngayHen = Form.useWatch("ngay_hen", form);
+  const idChuyenKhoa = Form.useWatch("id_chuyen_khoa", form);
+  const idChuyenNganh = Form.useWatch("id_chuyen_nganh", form);
 
   useEffect(() => {
     fetchData();
@@ -76,18 +83,27 @@ const AppointmentManagement = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [apptData, patientData, doctorData, specialtyData, timeSlotData, nutritionSpecialtyData] = await Promise.all([
-        apiCuocHenKham.getAll(),
+      const [apptKhamData, apptTuVanData, patientData, doctorData, nutritionistData, specialtyData, timeSlotData, nutritionSpecialtyData] = await Promise.all([
+        apiCuocHenKham.getAll().catch(() => []),
+        apiCuocHenTuVan.getAll().catch(() => []),
         apiBenhNhan.getAll(),
         apiBacSi.getAll(),
+        apiChuyenGiaDinhDuong.getAll().catch(() => []),
         apiChuyenKhoa.getAllChuyenKhoa(), // Giống AutoBookingModal
         apiKhungGioKham.getAll(),
         apiChuyenGiaDinhDuong.getAllChuyenNganh().catch(() => []),
       ]);
 
-      setAppointments(apptData || []);
+      // Merge cả hai loại lịch hẹn và thêm trường loại để phân biệt
+      const mergedAppointments = [
+        ...(apptKhamData || []).map(apt => ({ ...apt, loai_hen: 'kham_benh' })),
+        ...(apptTuVanData || []).map(apt => ({ ...apt, loai_hen: 'tu_van_dinh_duong' }))
+      ];
+
+      setAppointments(mergedAppointments);
       setPatients(patientData || []);
       setDoctors(doctorData || []);
+      setNutritionists(nutritionistData || []);
       setSpecialties(specialtyData || []);
       setTimeSlots(timeSlotData || []);
       setNutritionSpecialties(nutritionSpecialtyData || []);
@@ -419,7 +435,12 @@ const AppointmentManagement = () => {
 
   const handleConfirm = async (record) => {
     try {
-      await apiCuocHenKham.update(record.id_cuoc_hen, { trang_thai: "da_xac_nhan" });
+      const isTuVan = record.loai_hen === 'tu_van_dinh_duong' || record.id_chuyen_gia;
+      if (isTuVan) {
+        await apiCuocHenTuVan.update(record.id_cuoc_hen, { trang_thai: "da_xac_nhan" });
+      } else {
+        await apiCuocHenKhamBenh.update(record.id_cuoc_hen, { trang_thai: "da_xac_nhan" });
+      }
       message.success("Xác nhận lịch hẹn thành công!");
       fetchData();
     } catch (error) {
@@ -437,7 +458,12 @@ const AppointmentManagement = () => {
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
-          await apiCuocHenKham.update(record.id_cuoc_hen, { trang_thai: "da_huy" });
+          const isTuVan = record.loai_hen === 'tu_van_dinh_duong' || record.id_chuyen_gia;
+          if (isTuVan) {
+            await apiCuocHenTuVan.update(record.id_cuoc_hen, { trang_thai: "da_huy" });
+          } else {
+            await apiCuocHenKhamBenh.update(record.id_cuoc_hen, { trang_thai: "da_huy" });
+          }
           message.success("Đã hủy lịch hẹn");
           fetchData();
         } catch (error) {
@@ -460,6 +486,11 @@ const AppointmentManagement = () => {
         text: "Chờ xác nhận",
         icon: <SyncOutlined spin />,
       },
+      da_dat: {
+        color: "blue",
+        text: "Đã đặt",
+        icon: <CalendarOutlined />,
+      },
       da_xac_nhan: {
         color: "success",
         text: "Đã xác nhận",
@@ -468,6 +499,11 @@ const AppointmentManagement = () => {
       da_kham: {
         color: "processing",
         text: "Đã khám",
+        icon: <CheckCircleOutlined />,
+      },
+      da_hoan_thanh: {
+        color: "success",
+        text: "Đã hoàn thành",
         icon: <CheckCircleOutlined />,
       },
       da_huy: {
@@ -536,19 +572,29 @@ const AppointmentManagement = () => {
       },
     },
     {
-      title: "Bác sĩ",
+      title: "Bác sĩ/Chuyên gia",
       key: "doctor",
       render: (_, record) => {
-        const doctor = doctors.find((d) => d.id_bac_si === record.id_bac_si);
-        return <Text>{doctor?.ho_ten || "N/A"}</Text>;
+        if (record.loai_hen === 'tu_van_dinh_duong' || record.id_chuyen_gia) {
+          const nutritionist = nutritionists.find((n) => n.id_chuyen_gia === record.id_chuyen_gia);
+          return <Text>CG. {nutritionist?.ho_ten || "N/A"}</Text>;
+        } else {
+          const doctor = doctors.find((d) => d.id_bac_si === record.id_bac_si);
+          return <Text>BS. {doctor?.ho_ten || "N/A"}</Text>;
+        }
       },
     },
     {
-      title: "Chuyên khoa",
+      title: "Chuyên khoa/Chuyên ngành",
       key: "specialty",
       render: (_, record) => {
-        const specialty = specialties.find((s) => s.id_chuyen_khoa === record.id_chuyen_khoa);
-        return <Tag color="blue">{specialty?.ten_chuyen_khoa || "N/A"}</Tag>;
+        if (record.loai_hen === 'tu_van_dinh_duong' || record.id_chuyen_gia) {
+          const specialty = nutritionSpecialties.find((s) => s.id_chuyen_nganh === record.id_chuyen_nganh);
+          return <Tag color="orange">{specialty?.ten_chuyen_nganh || "N/A"}</Tag>;
+        } else {
+          const specialty = specialties.find((s) => s.id_chuyen_khoa === record.id_chuyen_khoa);
+          return <Tag color="blue">{specialty?.ten_chuyen_khoa || "N/A"}</Tag>;
+        }
       },
     },
     {
@@ -585,7 +631,7 @@ const AppointmentManagement = () => {
                   type="text"
                   icon={<CheckCircleOutlined />}
                   onClick={() => handleConfirm(record)}
-                  style={{ color: "#52c41a" }}
+                  style={{ color: "#096dd9" }}
                 />
               </Tooltip>
               <Tooltip title="Hủy">
@@ -604,18 +650,30 @@ const AppointmentManagement = () => {
   ];
 
   const getFilteredAppointments = () => {
-    let filtered = appointments.filter(
-      (appt) =>
-        patients
-          .find((p) => p.id_benh_nhan === appt.id_benh_nhan)
-          ?.ho_ten?.toLowerCase()
-          .includes(searchText.toLowerCase()) ||
-        doctors
-          .find((d) => d.id_bac_si === appt.id_bac_si)
-          ?.ho_ten?.toLowerCase()
-          .includes(searchText.toLowerCase())
-    );
+    let filtered = appointments;
 
+    // Filter theo search text nếu có
+    if (searchText.trim()) {
+      filtered = filtered.filter((appt) => {
+        const patient = patients.find((p) => p.id_benh_nhan === appt.id_benh_nhan);
+        const patientName = patient?.ho_ten?.toLowerCase() || "";
+        
+        // Tìm bác sĩ hoặc chuyên gia tùy loại lịch hẹn
+        let providerName = "";
+        if (appt.loai_hen === 'tu_van_dinh_duong' || appt.id_chuyen_gia) {
+          const nutritionist = nutritionists.find((n) => n.id_chuyen_gia === appt.id_chuyen_gia);
+          providerName = nutritionist?.ho_ten?.toLowerCase() || "";
+        } else {
+          const doctor = doctors.find((d) => d.id_bac_si === appt.id_bac_si);
+          providerName = doctor?.ho_ten?.toLowerCase() || "";
+        }
+        
+        const searchLower = searchText.toLowerCase().trim();
+        return patientName.includes(searchLower) || providerName.includes(searchLower);
+      });
+    }
+
+    // Filter theo tab (trạng thái)
     if (activeTab !== "all") {
       filtered = filtered.filter((appt) => appt.trang_thai === activeTab);
     }
@@ -704,7 +762,10 @@ const AppointmentManagement = () => {
                     {dayAppointments.length > 0 ? (
                       dayAppointments.map((appt) => {
                         const patient = patients.find(p => p.id_benh_nhan === appt.id_benh_nhan);
-                        const doctor = doctors.find(d => d.id_bac_si === appt.id_bac_si);
+                        // Kiểm tra loại lịch hẹn
+                        const isTuVan = appt.loai_hen === 'tu_van_dinh_duong' || appt.id_chuyen_gia;
+                        const doctor = isTuVan ? null : doctors.find(d => d.id_bac_si === appt.id_bac_si);
+                        const nutritionist = isTuVan ? nutritionists.find(n => n.id_chuyen_gia === appt.id_chuyen_gia) : null;
                         const { color, text, icon } = getStatusConfig(appt.trang_thai);
                         
                         return (
@@ -714,7 +775,8 @@ const AppointmentManagement = () => {
                             style={{
                               borderRadius: '8px',
                               cursor: 'pointer',
-                              backgroundColor: '#f9f9f9',
+                              backgroundColor: isTuVan ? '#fff7e6' : '#f9f9f9',
+                              border: isTuVan ? '1px solid #ffa940' : 'none',
                             }}
                             onClick={() => handleViewDetail(appt)}
                           >
@@ -723,7 +785,7 @@ const AppointmentManagement = () => {
                                 {patient?.ho_ten || 'N/A'}
                               </Text>
                               <Text type="secondary" style={{ fontSize: '11px' }}>
-                                BS. {doctor?.ho_ten || 'N/A'}
+                                {isTuVan ? `CG. ${nutritionist?.ho_ten || 'N/A'}` : `BS. ${doctor?.ho_ten || 'N/A'}`}
                               </Text>
                               <Text type="secondary" style={{ fontSize: '11px' }}>
                                 {appt.gio_bat_dau} - {appt.gio_ket_thuc}
@@ -731,6 +793,11 @@ const AppointmentManagement = () => {
                               <Tag color={color} icon={icon} style={{ fontSize: '10px' }}>
                                 {text}
                               </Tag>
+                              {isTuVan && (
+                                <Tag color="orange" style={{ fontSize: '9px' }}>
+                                  Tư vấn dinh dưỡng
+                                </Tag>
+                              )}
                             </Space>
                           </Card>
                         );
@@ -835,14 +902,12 @@ const AppointmentManagement = () => {
                   ),
                 },
                 {
-                  key: "cho_xac_nhan",
+                  key: "da_dat",
                   label: (
-                    <Badge count={getTabCount("cho_xac_nhan")} offset={[10, 0]}>
-                      <span>
-                        <SyncOutlined spin />
-                        Chờ xác nhận
-                      </span>
-                    </Badge>
+                    <span>
+                      <CalendarOutlined />
+                      Đã đặt ({getTabCount("da_dat")})
+                    </span>
                   ),
                   children: (
                     <Table
@@ -859,11 +924,11 @@ const AppointmentManagement = () => {
                   ),
                 },
                 {
-                  key: "da_xac_nhan",
+                  key: "da_hoan_thanh",
                   label: (
                     <span>
                       <CheckCircleOutlined />
-                      Đã xác nhận ({getTabCount("da_xac_nhan")})
+                      Đã hoàn thành ({getTabCount("da_hoan_thanh")})
                     </span>
                   ),
                   children: (
@@ -1040,12 +1105,12 @@ const AppointmentManagement = () => {
                     <Option key={slot.id_khung_gio} value={slot.id_khung_gio}>
                       {slot.gio_bat_dau} - {slot.gio_ket_thuc}
                       {loaiHen === "kham_benh" && slot.ten_bac_si && (
-                        <span style={{ color: "#52c41a", marginLeft: "8px" }}>
+                        <span style={{ color: "#096dd9", marginLeft: "8px" }}>
                           (BS. {slot.ten_bac_si})
                         </span>
                       )}
                       {loaiHen === "tu_van_dinh_duong" && slot.ten_chuyen_gia && (
-                        <span style={{ color: "#52c41a", marginLeft: "8px" }}>
+                        <span style={{ color: "#096dd9", marginLeft: "8px" }}>
                           (CG. {slot.ten_chuyen_gia})
                         </span>
                       )}
@@ -1078,14 +1143,14 @@ const AppointmentManagement = () => {
             </Form.Item>
           )}
 
-          {loading && availableTimeSlots.length === 0 && form.getFieldValue("ngay_hen") && (
+          {loading && availableTimeSlots.length === 0 && ngayHen && (
             <div style={{ textAlign: "center", padding: "20px", color: "#8c8c8c" }}>
               Đang tải khung giờ trống...
             </div>
           )}
 
-          {!loading && form.getFieldValue("ngay_hen") && availableTimeSlots.length === 0 && 
-           (form.getFieldValue("id_chuyen_khoa") || form.getFieldValue("id_chuyen_nganh")) && (
+          {!loading && ngayHen && availableTimeSlots.length === 0 && 
+           (idChuyenKhoa || idChuyenNganh) && (
             <div
               style={{
                 textAlign: "center",
@@ -1173,32 +1238,53 @@ const AppointmentManagement = () => {
               </Col>
               <Col span={12}>
                 <Text type="secondary" style={{ display: "block", marginBottom: "4px" }}>
-                  Bác sĩ
+                  {(() => {
+                    const isTuVan = selectedAppointment.loai_hen === 'tu_van_dinh_duong' || selectedAppointment.id_chuyen_gia;
+                    return isTuVan ? "Chuyên gia" : "Bác sĩ";
+                  })()}
                 </Text>
                 <Text strong>
-                  {doctors.find((d) => d.id_bac_si === selectedAppointment.id_bac_si)?.ho_ten ||
-                    "N/A"}
+                  {(() => {
+                    const isTuVan = selectedAppointment.loai_hen === 'tu_van_dinh_duong' || selectedAppointment.id_chuyen_gia;
+                    if (isTuVan) {
+                      const nutritionist = nutritionists.find((n) => n.id_chuyen_gia === selectedAppointment.id_chuyen_gia);
+                      return nutritionist?.ho_ten || "N/A";
+                    } else {
+                      const doctor = doctors.find((d) => d.id_bac_si === selectedAppointment.id_bac_si);
+                      return doctor?.ho_ten || "N/A";
+                    }
+                  })()}
                 </Text>
               </Col>
               <Col span={12}>
                 <Text type="secondary" style={{ display: "block", marginBottom: "4px" }}>
                   Ngày hẹn
                 </Text>
-                <Text strong>{moment(selectedAppointment.ngay_hen).format("DD/MM/YYYY")}</Text>
+                <Text strong>{moment(selectedAppointment.ngay_hen || selectedAppointment.ngay_kham).format("DD/MM/YYYY")}</Text>
               </Col>
               <Col span={12}>
                 <Text type="secondary" style={{ display: "block", marginBottom: "4px" }}>
-                  Giờ khám
+                  Giờ {selectedAppointment.loai_hen === 'tu_van_dinh_duong' ? 'tư vấn' : 'khám'}
                 </Text>
                 <Text strong>
                   {selectedAppointment.gio_bat_dau} - {selectedAppointment.gio_ket_thuc}
                 </Text>
               </Col>
+              {selectedAppointment.loai_hen === 'tu_van_dinh_duong' && (
+                <Col span={24}>
+                  <Text type="secondary" style={{ display: "block", marginBottom: "4px" }}>
+                    Chuyên ngành dinh dưỡng
+                  </Text>
+                  <Tag color="orange">
+                    {nutritionSpecialties.find((s) => s.id_chuyen_nganh === selectedAppointment.id_chuyen_nganh)?.ten_chuyen_nganh || selectedAppointment.loai_dinh_duong || "N/A"}
+                  </Tag>
+                </Col>
+              )}
               <Col span={24}>
                 <Text type="secondary" style={{ display: "block", marginBottom: "4px" }}>
-                  Lý do khám
+                  {selectedAppointment.loai_hen === 'tu_van_dinh_duong' ? 'Lý do tư vấn' : 'Lý do khám'}
                 </Text>
-                <Text>{selectedAppointment.ly_do_kham || "Không có"}</Text>
+                <Text>{selectedAppointment.ly_do_kham || selectedAppointment.ly_do_tu_van || "Không có"}</Text>
               </Col>
             </Row>
           </div>

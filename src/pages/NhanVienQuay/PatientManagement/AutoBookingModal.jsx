@@ -308,8 +308,6 @@ const AutoBookingModal = ({ visible, onCancel, onSuccess }) => {
           trieu_chung: null,
         };
 
-        console.log("Debug - Payload to send:", payload);
-        console.log("Debug - selectedPatient value:", selectedPatient);
         await apiCuocHenKhamBenh.create(payload);
         message.success("Đặt lịch khám bệnh thành công!");
       } else if (serviceType === "tu_van_dinh_duong") {

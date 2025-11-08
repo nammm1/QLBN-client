@@ -190,7 +190,7 @@ const Home = () => {
       icon: <HeartOutlined />,
       title: "Chăm sóc tận tâm",
       text: "Đội ngũ y bác sĩ luôn đặt bệnh nhân làm trung tâm, chăm sóc với tình thương và sự thấu hiểu.",
-      color: "#ff4d4f",
+      color: "#1890ff",
     },
     {
       icon: <ExperimentOutlined />,
@@ -202,13 +202,13 @@ const Home = () => {
       icon: <ClockCircleOutlined />,
       title: "Phục vụ nhanh chóng",
       text: "Quy trình khám chữa bệnh tối ưu, giảm thiểu thời gian chờ đợi, đặt lịch online tiện lợi.",
-      color: "#52c41a",
+      color: "#1890ff",
     },
     {
       icon: <GlobalOutlined />,
       title: "Uy tín & chất lượng",
       text: "Được hàng ngàn bệnh nhân trong và ngoài nước tin tưởng, chứng nhận chất lượng quốc tế.",
-      color: "#722ed1",
+      color: "#1890ff",
     },
   ];
 
@@ -224,7 +224,7 @@ const Home = () => {
       title: "Khám tổng quát",
       description: "Khám sức khỏe định kỳ, tầm soát bệnh lý",
       icon: <HeartOutlined />,
-      color: "#ff4d4f",
+      color: "#1890ff",
     },
     {
       title: "Chẩn đoán hình ảnh",
@@ -236,13 +236,13 @@ const Home = () => {
       title: "Phẫu thuật",
       description: "Phẫu thuật nội soi, phẫu thuật ít xâm lấn",
       icon: <SafetyOutlined />,
-      color: "#52c41a",
+      color: "#1890ff",
     },
     {
       title: "Tư vấn dinh dưỡng",
       description: "Chế độ ăn uống khoa học, dinh dưỡng cá nhân hóa",
       icon: <TeamOutlined />,
-      color: "#722ed1",
+      color: "#1890ff",
     },
   ];
 
@@ -593,7 +593,7 @@ const Home = () => {
                   styles={{ body: { padding: 32 } }}
                 >
                   <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-                    <Rate disabled defaultValue={testimonial.rating} style={{ color: "#faad14" }} />
+                    <Rate disabled defaultValue={testimonial.rating} style={{ color: "#1890ff" }} />
                     <Paragraph style={{ color: "#666", fontSize: 15, lineHeight: 1.8, fontStyle: "italic" }}>
                       "{testimonial.content}"
                     </Paragraph>

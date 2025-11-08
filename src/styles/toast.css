@@ -3,7 +3,7 @@
 /* Container chính của message */
 .ant-message {
   top: 24px !important;
-  z-index: 1010;
+  z-index: 1100 !important; /* Cao hơn modal (1050) để hiển thị trên modal */
 }
 
 /* Toast item */

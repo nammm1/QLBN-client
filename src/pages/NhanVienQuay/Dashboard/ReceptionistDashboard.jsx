@@ -153,7 +153,7 @@ const ReceptionistDashboard = () => {
   const getActivityIcon = (type) => {
     switch (type) {
       case "check-in":
-        return <UserAddOutlined style={{ color: "#52c41a" }} />;
+        return <UserAddOutlined style={{ color: "#096dd9" }} />;
       case "appointment":
         return <CalendarOutlined style={{ color: "#1890ff" }} />;
       case "payment":
@@ -198,7 +198,7 @@ const ReceptionistDashboard = () => {
               value={stats.patientsToday}
               prefix={<UserAddOutlined />}
               valueStyle={{ color: "#fff", fontWeight: "bold" }}
-              suffix={<Badge count={"+12"} style={{ backgroundColor: "#52c41a" }} />}
+              suffix={<Badge count={"+12"} style={{ backgroundColor: "#096dd9" }} />}
             />
           </Card>
         </Col>
@@ -267,15 +267,14 @@ const ReceptionistDashboard = () => {
               </span>
             }
             style={{ borderRadius: "12px", height: "100%" }}
-            bodyStyle={{ maxHeight: "400px", overflowY: "auto" }}
+            styles={{ body: { maxHeight: "400px", overflowY: "auto" } }}
           >
-            <Timeline>
-              {formattedActivities.map((activity, index) => (
-                <Timeline.Item
-                  key={index}
-                  dot={getActivityIcon(activity.type)}
-                  color={activity.status === "completed" ? "green" : "blue"}
-                >
+            <Timeline
+              items={formattedActivities.map((activity, index) => ({
+                key: index,
+                dot: getActivityIcon(activity.type),
+                color: activity.status === "completed" ? "green" : "blue",
+                children: (
                   <div>
                     <Text strong style={{ color: "#f39c12" }}>
                       {activity.time}
@@ -288,9 +287,9 @@ const ReceptionistDashboard = () => {
                       </Tag>
                     )}
                   </div>
-                </Timeline.Item>
-              ))}
-            </Timeline>
+                ),
+              }))}
+            />
           </Card>
         </Col>
 
@@ -333,13 +332,13 @@ const ReceptionistDashboard = () => {
                   <Avatar
                     size={64}
                     icon={<CheckCircleOutlined />}
-                    style={{ backgroundColor: "#52c41a", marginBottom: "12px" }}
+                    style={{ backgroundColor: "#096dd9", marginBottom: "12px" }}
                   />
                   <div>
                     <Text type="secondary" style={{ display: "block", fontSize: "13px" }}>
                       Đã hoàn thành
                     </Text>
-                    <Text strong style={{ fontSize: "24px", color: "#52c41a" }}>
+                    <Text strong style={{ fontSize: "24px", color: "#096dd9" }}>
                       24
                     </Text>
                   </div>
