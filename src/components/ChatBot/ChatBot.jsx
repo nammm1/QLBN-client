@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import medicalChatService from "../../api/MedicalChat/index.js";
 import "./ChatBot.css";
 
 const ChatBot = () => {
@@ -16,8 +16,8 @@ const ChatBot = () => {
     setInput("");
 
     try {
-      const res = await axios.post("http://localhost:5000/api/chat", { message: input });
-      const botMessage = { from: "bot", text: res.data.reply };
+      const response = await medicalChatService.getResponse(input, []);
+      const botMessage = { from: "bot", text: response.message };
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       setMessages((prev) => [...prev, { from: "bot", text: "Xin lỗi, tôi đang gặp sự cố 😢" }]);

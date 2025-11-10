@@ -17,6 +17,34 @@ const apiNguoiDung = {
     }
   },
 
+  // Quên mật khẩu - yêu cầu mã
+  requestResetCode: async (email_or_username) => {
+    try {
+      const res = await axios.post(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.NguoiDung}/forgot-password/request-code`,
+        { email_or_username }
+      );
+      return res.data; // { success, data: { token } }
+    } catch (err) {
+      console.error("Error request reset code:", err);
+      throw err;
+    }
+  },
+
+  // Quên mật khẩu - xác thực mã và gửi mật khẩu mới
+  verifyResetCode: async (token, code) => {
+    try {
+      const res = await axios.post(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.NguoiDung}/forgot-password/verify-code`,
+        { token, code }
+      );
+      return res.data;
+    } catch (err) {
+      console.error("Error verify reset code:", err);
+      throw err;
+    }
+  },
+
   // Đăng ký
   register: async (data) => {
     try {
@@ -27,6 +55,62 @@ const apiNguoiDung = {
       return res.data;
     } catch (err) {
       console.error("Error register:", err);
+      throw err;
+    }
+  },
+
+  // Đăng ký - yêu cầu mã xác thực email (dùng template riêng cho đăng ký)
+  requestRegisterCode: async (email, ho_ten) => {
+    try {
+      const res = await axios.post(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.NguoiDung}/register/request-code`,
+        { email, ho_ten }
+      );
+      // expected: { success, data: { token } }
+      return res.data;
+    } catch (err) {
+      // Fallback: nếu backend chưa có endpoint mới, dùng tạm forgot-password
+      if (err?.response?.status === 404) {
+        try {
+          const fallback = await axios.post(
+            `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.NguoiDung}/forgot-password/request-code`,
+            { email_or_username: email }
+          );
+          return fallback.data;
+        } catch (fbErr) {
+          console.error("Fallback error request register code:", fbErr);
+          throw fbErr;
+        }
+      }
+      console.error("Error request register code:", err);
+      throw err;
+    }
+  },
+
+  // Đăng ký - xác thực mã email
+  verifyRegisterCode: async (token, code) => {
+    try {
+      const res = await axios.post(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.NguoiDung}/register/verify-code`,
+        { token, code }
+      );
+      // expected: { success, data: { registerToken } } or { success: true }
+      return res.data;
+    } catch (err) {
+      // Fallback: nếu backend chưa có endpoint mới, dùng tạm forgot-password
+      if (err?.response?.status === 404) {
+        try {
+          const fallback = await axios.post(
+            `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.NguoiDung}/forgot-password/verify-code`,
+            { token, code }
+          );
+          return fallback.data;
+        } catch (fbErr) {
+          console.error("Fallback error verify register code:", fbErr);
+          throw fbErr;
+        }
+      }
+      console.error("Error verify register code:", err);
       throw err;
     }
   },

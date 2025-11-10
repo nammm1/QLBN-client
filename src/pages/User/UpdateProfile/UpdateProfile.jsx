@@ -65,6 +65,14 @@ const UpdateProfile = () => {
   const [profileData, setProfileData] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
+   // Forgot-password trong modal đổi mật khẩu
+  const [forgotMode, setForgotMode] = useState(false);
+  const [fpIdentifier, setFpIdentifier] = useState("");
+  const [fpToken, setFpToken] = useState("");
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [fpStep, setFpStep] = useState(1); // 1: nhập email/username, 2: nhập mã
+  const [fpLoading, setFpLoading] = useState(false);
+  const [resendSeconds, setResendSeconds] = useState(0);
 
   const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
   const id_nguoi_dung =
@@ -117,6 +125,20 @@ const UpdateProfile = () => {
 
     fetchData();
   }, [id_nguoi_dung]);
+
+  useEffect(() => {
+    // Prefill identifier từ email hồ sơ
+    if (profileData?.email) setFpIdentifier(profileData.email);
+  }, [profileData]);
+
+  useEffect(() => {
+    if (!forgotMode) return;
+    if (resendSeconds <= 0) return;
+    const t = setInterval(() => {
+      setResendSeconds((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [forgotMode, resendSeconds]);
 
   const handleImageChange = async (info) => {
     const file = info.file;
@@ -310,6 +332,7 @@ const UpdateProfile = () => {
       await apiNguoiDung.changePassword(id_nguoi_dung, {
         mat_khau_hien_tai,
         mat_khau_moi,
+        nhap_lai_mat_khau_moi: xac_nhan_mat_khau,
       });
       toast.success("Đổi mật khẩu thành công!");
       setPasswordModal(false);
@@ -319,6 +342,80 @@ const UpdateProfile = () => {
       // Toast đã được hiển thị tự động bởi axios interceptor với message từ API
       // const errorMessage = error?.response?.data?.message || "Đổi mật khẩu thất bại!";
       // toast.error(errorMessage);
+    }
+  };
+
+  // Forgot password handlers
+  const handleForgotSubmitIdentifier = async () => {
+    if (!fpIdentifier) {
+      return toast.error("Vui lòng nhập email hoặc tên đăng nhập");
+    }
+    setFpLoading(true);
+    try {
+      const res = await apiNguoiDung.requestResetCode(fpIdentifier);
+      if (res?.success) {
+        setFpToken(res.data?.token || "");
+        setFpStep(2);
+        toast.success("Đã gửi mã xác thực qua email!");
+        setResendSeconds(60);
+      } else {
+        toast.error(res?.message || "Không thể gửi mã xác thực");
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || "Lỗi gửi mã";
+      toast.error(msg);
+    } finally {
+      setFpLoading(false);
+    }
+  };
+
+  const handleForgotVerifyCode = async () => {
+    const code = otpDigits.join("").trim();
+    if (!code || code.length !== 6 || !fpToken) {
+      return toast.error("Vui lòng nhập đủ 6 số mã xác thực");
+    }
+    setFpLoading(true);
+    try {
+      const res = await apiNguoiDung.verifyResetCode(fpToken, code);
+      if (res?.success) {
+        toast.success("Đã gửi mật khẩu mới qua email!");
+        // reset forgot flow, đóng modal đổi mật khẩu vì người dùng sẽ dùng mật khẩu mới
+        setForgotMode(false);
+        setPasswordModal(false);
+        setFpIdentifier("");
+        setOtpDigits(["", "", "", "", "", ""]);
+        setFpToken("");
+        setFpStep(1);
+        setResendSeconds(0);
+      } else {
+        toast.error(res?.message || "Mã xác thực không đúng");
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || "Xác thực thất bại";
+      toast.error(msg);
+    } finally {
+      setFpLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!fpIdentifier) return toast.error("Thiếu email hoặc tên đăng nhập");
+    if (resendSeconds > 0) return;
+    setFpLoading(true);
+    try {
+      const res = await apiNguoiDung.requestResetCode(fpIdentifier);
+      if (res?.success) {
+        setFpToken(res.data?.token || "");
+        toast.success("Đã gửi lại mã xác thực!");
+        setResendSeconds(60);
+      } else {
+        toast.error(res?.message || "Không thể gửi lại mã");
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || "Lỗi gửi lại mã";
+      toast.error(msg);
+    } finally {
+      setFpLoading(false);
     }
   };
 
@@ -684,74 +781,188 @@ const UpdateProfile = () => {
         open={passwordModal}
         onCancel={() => {
           setPasswordModal(false);
+          setForgotMode(false);
+          setFpIdentifier(profileData?.email || "");
+          setOtpDigits(["", "", "", "", "", ""]);
+          setFpToken("");
+          setFpStep(1);
+          setResendSeconds(0);
           passwordForm.resetFields();
         }}
         footer={null}
         className="modern-password-modal"
         width={480}
       >
-        <Form
-          form={passwordForm}
-          layout="vertical"
-          onFinish={handleChangePassword}
-          size="large"
-        >
-          <Form.Item
-            name="mat_khau_hien_tai"
-            label="Mật khẩu hiện tại"
-            rules={[{ required: true, message: "Vui lòng nhập mật khẩu cũ!" }]}
-          >
-            <Input.Password 
-              placeholder="Nhập mật khẩu hiện tại" 
-              className="modern-input"
-            />
-          </Form.Item>
-          <Form.Item
-            name="mat_khau_moi"
-            label="Mật khẩu mới"
-            rules={[
-              { required: true, message: "Vui lòng nhập mật khẩu mới!" },
-              { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự!" }
-            ]}
-          >
-            <Input.Password 
-              placeholder="Nhập mật khẩu mới" 
-              className="modern-input"
-            />
-          </Form.Item>
-          <Form.Item
-            name="xac_nhan_mat_khau"
-            label="Xác nhận mật khẩu mới"
-            dependencies={["mat_khau_moi"]}
-            rules={[
-              { required: true, message: "Vui lòng nhập lại mật khẩu!" },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue("mat_khau_moi") === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error("Mật khẩu không khớp!"));
-                },
-              }),
-            ]}
-          >
-            <Input.Password 
-              placeholder="Nhập lại mật khẩu mới" 
-              className="modern-input"
-            />
-          </Form.Item>
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              className="modern-submit-btn"
+        {!forgotMode ? (
+          <div>
+            <Form
+              form={passwordForm}
+              layout="vertical"
+              onFinish={handleChangePassword}
               size="large"
             >
-              <LockOutlined /> Cập nhật mật khẩu
-            </Button>
-          </Form.Item>
-        </Form>
+              <Form.Item
+                name="mat_khau_hien_tai"
+                label="Mật khẩu hiện tại"
+                rules={[{ required: true, message: "Vui lòng nhập mật khẩu cũ!" }]}
+              >
+                <Input.Password 
+                  placeholder="Nhập mật khẩu hiện tại" 
+                  className="modern-input"
+                />
+              </Form.Item>
+              <Form.Item
+                name="mat_khau_moi"
+                label="Mật khẩu mới"
+                rules={[
+                  { required: true, message: "Vui lòng nhập mật khẩu mới!" },
+                  { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự!" }
+                ]}
+              >
+                <Input.Password 
+                  placeholder="Nhập mật khẩu mới" 
+                  className="modern-input"
+                />
+              </Form.Item>
+              <Form.Item
+                name="xac_nhan_mat_khau"
+                label="Xác nhận mật khẩu mới"
+                dependencies={["mat_khau_moi"]}
+                rules={[
+                  { required: true, message: "Vui lòng nhập lại mật khẩu!" },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue("mat_khau_moi") === value) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(new Error("Mật khẩu không khớp!"));
+                    },
+                  }),
+                ]}
+              >
+                <Input.Password 
+                  placeholder="Nhập lại mật khẩu mới" 
+                  className="modern-input"
+                />
+              </Form.Item>
+              <Form.Item>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  block
+                  className="modern-submit-btn"
+                  size="large"
+                >
+                  <LockOutlined /> Cập nhật mật khẩu
+                </Button>
+              </Form.Item>
+            </Form>
+            <Divider plain>Hoặc</Divider>
+            <div style={{ textAlign: "center" }}>
+              <Button type="link" onClick={() => setForgotMode(true)}>
+                Quên mật khẩu?
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <Title level={5} style={{ marginBottom: 8 }}>Khôi phục mật khẩu</Title>
+            {fpStep === 1 ? (
+              <div>
+                <Input
+                  placeholder="Email hoặc tên đăng nhập"
+                  value={fpIdentifier}
+                  onChange={(e) => setFpIdentifier(e.target.value)}
+                  size="large"
+                  prefix={<MailOutlined />}
+                  className="modern-input"
+                />
+                <Space style={{ marginTop: 12 }}>
+                  <Button type="primary" loading={fpLoading} onClick={handleForgotSubmitIdentifier}>
+                    Gửi mã
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setForgotMode(false);
+                      setFpIdentifier(profileData?.email || "");
+                      setOtpDigits(["", "", "", "", "", ""]);
+                      setFpToken("");
+                      setFpStep(1);
+                      setResendSeconds(0);
+                    }}
+                  >
+                    Hủy
+                  </Button>
+                </Space>
+              </div>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', margin: '12px 0' }}>
+                  {otpDigits.map((d, idx) => (
+                    <input
+                      key={idx}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      value={otpDigits[idx]}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(0,1);
+                        const next = [...otpDigits];
+                        next[idx] = val;
+                        setOtpDigits(next);
+                        if (val && idx < 5) {
+                          const inputs = e.target.parentElement.querySelectorAll('input');
+                          inputs[idx + 1] && inputs[idx + 1].focus();
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Backspace" && !otpDigits[idx] && idx > 0) {
+                          const inputs = e.currentTarget.parentElement.querySelectorAll('input');
+                          inputs[idx - 1] && inputs[idx - 1].focus();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0,6);
+                        if (pasted) {
+                          e.preventDefault();
+                          const arr = pasted.split("").slice(0,6);
+                          const next = ["","","","","",""];
+                          for (let i = 0; i < arr.length; i++) next[i] = arr[i];
+                          setOtpDigits(next);
+                          const lastIndex = Math.min(arr.length - 1, 5);
+                          const inputs = e.currentTarget.parentElement.querySelectorAll('input');
+                          inputs[lastIndex] && inputs[lastIndex].focus();
+                        }
+                      }}
+                      style={{ width: 40, height: 44, textAlign: 'center', fontSize: 18, borderRadius: 8, border: '1px solid #ddd' }}
+                    />
+                  ))}
+                </div>
+                <Space wrap>
+                  <Button type="primary" loading={fpLoading} onClick={handleForgotVerifyCode}>
+                    Xác thực
+                  </Button>
+                  <Button onClick={handleResendCode} disabled={fpLoading || resendSeconds > 0}>
+                    {resendSeconds > 0 ? `Gửi lại mã (${resendSeconds}s)` : 'Gửi lại mã'}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setForgotMode(false);
+                      setFpIdentifier(profileData?.email || "");
+                      setOtpDigits(["", "", "", "", "", ""]);
+                      setFpToken("");
+                      setFpStep(1);
+                      setResendSeconds(0);
+                    }}
+                  >
+                    Hủy
+                  </Button>
+                </Space>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
     </div>
   );
