@@ -266,10 +266,18 @@
   color: white;
 }
 
-.stat-icon.patients { background: #1890ff; }
-.stat-icon.appointments { background: #52c41a; }
-.stat-icon.success { background: #fa8c16; }
-.stat-icon.rating { background: #eb2f96; }
+.stat-icon.patients { 
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%) !important;
+}
+.stat-icon.appointments { 
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%) !important;
+}
+.stat-icon.success { 
+  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%) !important;
+}
+.stat-icon.rating { 
+  background: linear-gradient(135deg, #fa8c16 0%, #d46b08 100%) !important;
+}
 
 .stat-info h3 {
   font-size: 28px;

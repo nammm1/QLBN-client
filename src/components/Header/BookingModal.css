@@ -681,3 +681,26 @@
 .modal-container::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #0050b3 0%, #096dd9 100%);
 }
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,28 @@
+/* ============================================
+   CSS OVERRIDE HOVER CHO TẤT CẢ BẢNG ANT DESIGN
+   ============================================
+   File này override CSS hover cho TẤT CẢ các bảng Ant Design
+   trong toàn bộ ứng dụng.
+   
+   Để tắt hoặc chỉnh sửa hiệu ứng hover, sửa các thuộc tính bên dưới.
+   ============================================ */
+
+/* Override hover effect cho TẤT CẢ các bảng Ant Design */
+.ant-table-tbody > tr:hover > td {
+  /* Màu nền hover bình thường (không dùng linear gradient) */
+  background: #f5f5f5 !important;
+  transition: all 0.2s ease;
+}
+
+/* Override hover cho row bị disabled (đã hủy) */
+.ant-table-tbody > tr.ant-table-row-disabled:hover > td,
+.ant-table-tbody > tr[style*="opacity: 0.6"]:hover > td {
+  background: transparent !important;
+  cursor: not-allowed !important;
+}
+
+/* Override hover cho row được chọn (selected) */
+.ant-table-tbody > tr.ant-table-row-selected:hover > td {
+  background: #e6f7ff !important;
+}
+

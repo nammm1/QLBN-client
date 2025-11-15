@@ -41,6 +41,7 @@ import apiChuyenGiaDinhDuong from '../../../api/ChuyenGiaDinhDuong';
 import apiNguoiDung from '../../../api/NguoiDung';
 import apiCuocHenTuVan from '../../../api/CuocHenTuVan';
 import apiHoSoDinhDuong from '../../../api/HoSoDinhDuong';
+import apiUpload from '../../../api/Upload';
 import './NutritionistProfile.css';
 
 const { Option } = Select;
@@ -167,14 +168,31 @@ const NutritionistProfile = () => {
   const handleAvatarUpload = async (file) => {
     setAvatarLoading(true);
     try {
-      // TODO: Implement actual avatar upload
-      setTimeout(() => {
-        message.success('Cập nhật ảnh đại diện thành công');
-        setAvatarLoading(false);
-        fetchProfile();
-      }, 1000);
+      const res = await apiUpload.uploadUserImage(file);
+      const imageUrl = res?.data?.imageUrl || res?.data?.url || res?.url;
+      if (!imageUrl) {
+        throw new Error('Không nhận được đường dẫn ảnh');
+      }
+
+      const userInfoData = JSON.parse(localStorage.getItem("userInfo") || "{}");
+      const id_nguoi_dung = userInfoData?.user?.id_nguoi_dung;
+      if (id_nguoi_dung) {
+        await apiNguoiDung.updateUser(id_nguoi_dung, { anh_dai_dien: imageUrl });
+      }
+
+      const stored = JSON.parse(localStorage.getItem('userInfo') || '{}');
+      if (stored?.user) {
+        const updated = { ...stored, user: { ...stored.user, anh_dai_dien: imageUrl } };
+        localStorage.setItem('userInfo', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('userInfoUpdated'));
+      }
+
+      message.success('Cập nhật ảnh đại diện thành công');
+      fetchProfile();
     } catch (error) {
+      console.error(error);
       message.error('Upload ảnh thất bại');
+    } finally {
       setAvatarLoading(false);
     }
   };
@@ -372,6 +390,7 @@ const NutritionistProfile = () => {
                       size="large"
                       className="custom-input"
                       prefix={<AppleOutlined className="input-icon" />}
+                      disabled
                     />
                   </Form.Item>
                 </Col>
@@ -385,6 +404,7 @@ const NutritionistProfile = () => {
                       placeholder="Chọn trình độ" 
                       size="large"
                       className="custom-select"
+                      disabled
                     >
                       <Option value="Cử nhân dinh dưỡng">Cử nhân dinh dưỡng</Option>
                       <Option value="Thạc sĩ dinh dưỡng">Thạc sĩ dinh dưỡng</Option>
@@ -407,6 +427,7 @@ const NutritionistProfile = () => {
                       size="large"
                       className="custom-input"
                       prefix={<SafetyCertificateOutlined className="input-icon" />}
+                      disabled
                     />
                   </Form.Item>
                 </Col>
@@ -422,6 +443,7 @@ const NutritionistProfile = () => {
                       size="large"
                       className="custom-input"
                       prefix={<TrophyOutlined className="input-icon" />}
+                      disabled
                     />
                   </Form.Item>
                 </Col>
@@ -438,6 +460,7 @@ const NutritionistProfile = () => {
                   showCount
                   maxLength={500}
                   className="custom-textarea"
+                  disabled
                 />
               </Form.Item>
             </div>

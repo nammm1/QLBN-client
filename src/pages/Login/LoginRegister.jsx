@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import axios from "axios";
-import { Button } from "antd";
-import { ArrowLeftOutlined } from "@ant-design/icons";
 import styles from "./LoginRegister.module.css";
+import "../../components/Header/Header.css";
 import { FaUser, FaEye, FaEyeSlash } from "react-icons/fa";
 import { IoMailSharp } from "react-icons/io5";
 import { PiGenderIntersexBold } from "react-icons/pi";
@@ -426,35 +425,23 @@ const LoginRegister = () => {
     }
   };
 
-  const handleBack = () => {
-    // Luôn chuyển về trang home
-    navigate("/");
-  };
-
   return (
     <div className={styles.loginPage}>
-      {/* Back Button */}
-      <Button
-        icon={<ArrowLeftOutlined />}
-        onClick={handleBack}
+      {/* Brand Logo Button */}
+      <Link
+        to="/"
+        className="logo-container"
         style={{
           position: "absolute",
           top: 20,
           left: 20,
           zIndex: 1000,
-          background: "rgba(255, 255, 255, 0.9)",
-          border: "none",
-          borderRadius: 8,
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-          padding: "8px 16px",
-          height: "auto",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
+          textDecoration: "none",
         }}
       >
-        Quay lại
-      </Button>
+        <span className="logo-text">HOSPITAL</span>
+        <span className="logo-text-care">CARE</span>
+      </Link>
       
       <div className={`${styles.wrapper} ${isRegister ? styles.active : ""}`}>
         

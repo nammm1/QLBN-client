@@ -112,7 +112,7 @@ const AdminChuyenNganhDinhDuong = () => {
       
       if (file) {
         const uploadRes = await uploadService.uploadImage(file, "ChuyenNganhDinhDuong");
-        hinh_anh = uploadRes.url;
+        hinh_anh = uploadRes?.data?.imageUrl || null;
       }
 
       const data = {
@@ -171,7 +171,7 @@ const AdminChuyenNganhDinhDuong = () => {
       
       if (newFile) {
         const uploadRes = await uploadService.uploadImage(newFile, "ChuyenNganhDinhDuong");
-        hinh_anh = uploadRes.url;
+        hinh_anh = uploadRes?.data?.imageUrl || hinh_anh;
       }
 
       const data = {

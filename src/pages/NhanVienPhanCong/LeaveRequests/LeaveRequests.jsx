@@ -41,6 +41,7 @@ import apiNguoiDung from "../../../api/NguoiDung";
 import apiBacSi from "../../../api/BacSi";
 import apiChuyenKhoa from "../../../api/ChuyenKhoa";
 import apiPhongKham from "../../../api/PhongKham";
+import apiChuyenGiaDinhDuong from "../../../api/ChuyenGiaDinhDuong";
 
 dayjs.locale("vi");
 
@@ -53,6 +54,7 @@ const LeaveRequests = () => {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [chuyenKhoaMap, setChuyenKhoaMap] = useState({}); // Map id_bac_si -> ten_chuyen_khoa
+  const [chuyenNganhMap, setChuyenNganhMap] = useState({}); // Map id_chuyen_gia -> ten_chuyen_nganh
   const [usersMap, setUsersMap] = useState({}); // Map id_nguoi_dung -> {ho_ten, vai_tro}
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [selectedRequestUser, setSelectedRequestUser] = useState(null);
@@ -109,6 +111,7 @@ const LeaveRequests = () => {
       
       const newUsersMap = { ...usersMap };
       const newChuyenKhoaMap = { ...chuyenKhoaMap };
+      const newChuyenNganhMap = { ...chuyenNganhMap };
       
       // Fetch thông tin người dùng song song
       await Promise.all(userIds.map(async (userId) => {
@@ -127,7 +130,10 @@ const LeaveRequests = () => {
       
       // Lấy thông tin chuyên khoa cho các đơn nghỉ phép của bác sĩ
       const bacSiIds = [...new Set(data
-        .filter(item => item.id_nguoi_dung?.startsWith('BS_'))
+        .filter(item => {
+          const userInfo = newUsersMap[item.id_nguoi_dung];
+          return userInfo?.vai_tro === 'bac_si' || item.id_nguoi_dung?.startsWith('BS_');
+        })
         .map(item => item.id_nguoi_dung)
       )];
       
@@ -151,9 +157,40 @@ const LeaveRequests = () => {
           console.error(`Lỗi khi lấy bác sĩ ${bacSiId}:`, error);
         }
       }));
+
+      // Lấy thông tin chuyên ngành cho các đơn nghỉ phép của chuyên gia dinh dưỡng
+      const chuyenGiaIds = [...new Set(data
+        .filter(item => {
+          const userInfo = newUsersMap[item.id_nguoi_dung];
+          return userInfo?.vai_tro === 'chuyen_gia_dinh_duong';
+        })
+        .map(item => item.id_nguoi_dung)
+      )];
+
+      // Fetch thông tin chuyên gia dinh dưỡng và chuyên ngành song song
+      await Promise.all(chuyenGiaIds.map(async (chuyenGiaId) => {
+        try {
+          const chuyenGiaRes = await apiChuyenGiaDinhDuong.getById(chuyenGiaId);
+          const chuyenGia = chuyenGiaRes?.data || chuyenGiaRes;
+          if (chuyenGia?.id_chuyen_nganh) {
+            try {
+              const chuyenNganhRes = await apiChuyenGiaDinhDuong.getChuyenNganhById(chuyenGia.id_chuyen_nganh);
+              const chuyenNganh = chuyenNganhRes?.data || chuyenNganhRes;
+              if (chuyenNganh?.ten_chuyen_nganh) {
+                newChuyenNganhMap[chuyenGiaId] = chuyenNganh.ten_chuyen_nganh;
+              }
+            } catch (error) {
+              console.error(`Lỗi khi lấy chuyên ngành ${chuyenGia.id_chuyen_nganh}:`, error);
+            }
+          }
+        } catch (error) {
+          console.error(`Lỗi khi lấy chuyên gia dinh dưỡng ${chuyenGiaId}:`, error);
+        }
+      }));
       
       setUsersMap(newUsersMap);
       setChuyenKhoaMap(newChuyenKhoaMap);
+      setChuyenNganhMap(newChuyenNganhMap);
     } catch (error) {
       console.error("Lỗi khi lấy danh sách đơn nghỉ phép:", error);
       message.error("Không thể tải danh sách đơn nghỉ phép");
@@ -192,7 +229,7 @@ const LeaveRequests = () => {
       setSelectedRequestUser(user);
 
       // Nếu là bác sĩ, lấy thông tin bác sĩ (chuyên khoa)
-      if (request.id_nguoi_dung?.startsWith('BS_')) {
+      if (user?.vai_tro === 'bac_si' || request.id_nguoi_dung?.startsWith('BS_')) {
         try {
           const bacSiRes = await apiBacSi.getById(request.id_nguoi_dung);
           const bacSi = bacSiRes?.data || bacSiRes;
@@ -213,6 +250,35 @@ const LeaveRequests = () => {
           }
         } catch (error) {
           console.error("Lỗi khi lấy thông tin bác sĩ:", error);
+          setSelectedRequestBacSi(null);
+          setSelectedRequestChuyenKhoa(null);
+        }
+      } else if (user?.vai_tro === 'chuyen_gia_dinh_duong') {
+        // Nếu là chuyên gia dinh dưỡng, lấy thông tin chuyên ngành
+        try {
+          const chuyenGiaRes = await apiChuyenGiaDinhDuong.getById(request.id_nguoi_dung);
+          const chuyenGia = chuyenGiaRes?.data || chuyenGiaRes;
+          setSelectedRequestBacSi(null); // Không dùng cho chuyên gia
+          
+          // Lấy tên chuyên ngành nếu có id_chuyen_nganh
+          if (chuyenGia?.id_chuyen_nganh) {
+            try {
+              const chuyenNganhRes = await apiChuyenGiaDinhDuong.getChuyenNganhById(chuyenGia.id_chuyen_nganh);
+              const chuyenNganh = chuyenNganhRes?.data || chuyenNganhRes;
+              // Sử dụng selectedRequestChuyenKhoa để lưu chuyên ngành (tái sử dụng state)
+              setSelectedRequestChuyenKhoa({
+                ten_chuyen_khoa: chuyenNganh.ten_chuyen_nganh, // Map để tái sử dụng component hiển thị
+                ten_chuyen_nganh: chuyenNganh.ten_chuyen_nganh
+              });
+            } catch (error) {
+              console.error("Lỗi khi lấy thông tin chuyên ngành:", error);
+              setSelectedRequestChuyenKhoa(null);
+            }
+          } else {
+            setSelectedRequestChuyenKhoa(null);
+          }
+        } catch (error) {
+          console.error("Lỗi khi lấy thông tin chuyên gia dinh dưỡng:", error);
           setSelectedRequestBacSi(null);
           setSelectedRequestChuyenKhoa(null);
         }
@@ -517,20 +583,36 @@ const LeaveRequests = () => {
       }
     },
     {
-      title: "Chuyên khoa",
-      key: "chuyen_khoa",
-      width: 150,
+      title: "Chuyên khoa/Chuyên ngành",
+      key: "chuyen_khoa_nganh",
+      width: 180,
       render: (_, record) => {
-        if (!record.id_nguoi_dung?.startsWith('BS_')) {
-          return '-';
+        const userInfo = usersMap[record.id_nguoi_dung];
+        const vaiTro = userInfo?.vai_tro;
+        
+        // Hiển thị chuyên khoa cho bác sĩ
+        if (vaiTro === 'bac_si' || record.id_nguoi_dung?.startsWith('BS_')) {
+          const tenChuyenKhoa = chuyenKhoaMap[record.id_nguoi_dung];
+          return (
+            <Space>
+              <MedicineBoxOutlined />
+              <Text>{tenChuyenKhoa || '-'}</Text>
+            </Space>
+          );
         }
-        const tenChuyenKhoa = chuyenKhoaMap[record.id_nguoi_dung];
-        return (
-          <Space>
-            <MedicineBoxOutlined />
-            <Text>{tenChuyenKhoa || '-'}</Text>
-          </Space>
-        );
+        
+        // Hiển thị chuyên ngành cho chuyên gia dinh dưỡng
+        if (vaiTro === 'chuyen_gia_dinh_duong') {
+          const tenChuyenNganh = chuyenNganhMap[record.id_nguoi_dung];
+          return (
+            <Space>
+              <MedicineBoxOutlined />
+              <Text>{tenChuyenNganh || '-'}</Text>
+            </Space>
+          );
+        }
+        
+        return '-';
       }
     },
     {
@@ -760,10 +842,10 @@ const LeaveRequests = () => {
                     </>
                   )}
                   {selectedRequestChuyenKhoa && (
-                    <Descriptions.Item label="Chuyên khoa">
+                    <Descriptions.Item label={selectedRequestUser?.vai_tro === 'chuyen_gia_dinh_duong' ? 'Chuyên ngành' : 'Chuyên khoa'}>
                       <Space>
                         <MedicineBoxOutlined />
-                        <Text>{selectedRequestChuyenKhoa.ten_chuyen_khoa || '-'}</Text>
+                        <Text>{selectedRequestChuyenKhoa.ten_chuyen_nganh || selectedRequestChuyenKhoa.ten_chuyen_khoa || '-'}</Text>
                       </Space>
                     </Descriptions.Item>
                   )}

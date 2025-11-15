@@ -5,7 +5,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import toast from "../../utils/toast";
 import { 
   X, Calendar, Clock, User, Stethoscope, MessageSquare, Building2, Video, MapPin,
-  Mail, Phone, Award, Briefcase, GraduationCap
+  Mail, Phone, Award, Briefcase, GraduationCap, Sparkles, Loader2
 } from "lucide-react";
 
 import apiChuyenKhoa from "../../api/ChuyenKhoa";
@@ -14,6 +14,7 @@ import apiLichLamViec from "../../api/LichLamViec";
 import apiKhungGioKham from "../../api/KhungGioKham";
 import apiNguoiDung from "../../api/NguoiDung";
 import apiCuocHenKhamBenh from "../../api/CuocHenKhamBenh";
+import symptomAnalysisService from "../../api/SymptomAnalysis";
 import { Modal, Card, Pagination, Tag, Empty } from "antd";
 import LoginRequiredModal from "../LoginRequiredModal/LoginRequiredModal";
 import { useNavigate } from "react-router-dom";
@@ -75,6 +76,11 @@ const BookingModal = ({ show, onClose }) => {
   const [showDoctorSelectModal, setShowDoctorSelectModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(6); // Hiển thị 6 bác sĩ mỗi trang
+  
+  // AI gợi ý chuyên khoa
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showAiSuggestions, setShowAiSuggestions] = useState(false);
 
   // load chuyên khoa
   useEffect(() => {
@@ -195,6 +201,16 @@ const BookingModal = ({ show, onClose }) => {
           }
         }
         
+        // Sắp xếp khung giờ theo thời gian bắt đầu tăng dần (HH:mm)
+        availableSlots.sort((a, b) => {
+          const toMinutes = (t) => {
+            if (!t) return 0;
+            const [hh, mm] = String(t).split(":").map((x) => parseInt(x, 10));
+            return (isNaN(hh) ? 0 : hh) * 60 + (isNaN(mm) ? 0 : mm);
+          };
+          return toMinutes(a.gio_bat_dau) - toMinutes(b.gio_bat_dau);
+        });
+        
         setAvailableTimeSlots(availableSlots);
       } catch (err) {
         console.error("Lỗi khi tải khung giờ khám:", err);
@@ -230,6 +246,46 @@ const BookingModal = ({ show, onClose }) => {
     setAvailableTimeSlots([]);
     setShowDoctorCard(false);
     setShowDoctorSelectModal(false);
+    setAiSuggestions(null);
+    setShowAiSuggestions(false);
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  // Xử lý AI gợi ý chuyên khoa
+  const handleAiSuggest = async () => {
+    if (!lyDoKham || !lyDoKham.trim()) {
+      toast.warning("Vui lòng nhập lý do khám trước!");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setShowAiSuggestions(true);
+    
+    try {
+      const response = await symptomAnalysisService.analyzeSymptoms(lyDoKham, trieuChung);
+      
+      if (response.success && response.data) {
+        setAiSuggestions(response.data);
+        
+        // Nếu có gợi ý và chưa chọn chuyên khoa, tự động chọn gợi ý đầu tiên
+        if (response.data.suggested_specialties && response.data.suggested_specialties.length > 0 && !specialty) {
+          const firstSuggestion = response.data.suggested_specialties[0];
+          setSpecialty(String(firstSuggestion.id_chuyen_khoa));
+          toast.success(`AI đã gợi ý chuyên khoa: ${firstSuggestion.ten_chuyen_khoa}`);
+        }
+      } else {
+        toast.error("Không thể phân tích triệu chứng. Vui lòng thử lại!");
+      }
+    } catch (error) {
+      console.error("Error analyzing symptoms:", error);
+      toast.error("Có lỗi xảy ra khi phân tích. Vui lòng thử lại!");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -262,7 +318,7 @@ const BookingModal = ({ show, onClose }) => {
 
       toast.success("Đặt lịch thành công!");
       resetForm(); // Reset form sau khi đặt thành công
-    onClose();
+      onClose();
     } catch (err) {
       console.error(err);
       // Toast đã được hiển thị tự động bởi axios interceptor với message từ API
@@ -271,14 +327,14 @@ const BookingModal = ({ show, onClose }) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-wrapper">
           <div className="modal-header-content">
             <Stethoscope className="modal-header-icon" size={28} />
             <h4 className="modal-header-title">Đăng ký khám bệnh</h4>
           </div>
-          <button type="button" className="modal-close-btn" onClick={onClose}>
+          <button type="button" className="modal-close-btn" onClick={handleClose}>
             <X size={20} />
           </button>
         </div>
@@ -313,6 +369,288 @@ const BookingModal = ({ show, onClose }) => {
             </div>
           </div>
 
+          {/* Lý do khám */}
+          <div className="form-group">
+            <label className="form-label">
+              <MessageSquare size={16} className="label-icon" />
+              Lý do khám <span style={{ color: "#ff4d4f" }}>*</span>
+            </label>
+            <div className="input-wrapper">
+              <textarea
+                className="form-control modern-textarea"
+                rows="3"
+                value={lyDoKham}
+                onChange={(e) => setLyDoKham(e.target.value)}
+                placeholder="Vui lòng mô tả chi tiết lý do khám..."
+              ></textarea>
+            </div>
+          </div>
+
+          {/* Triệu chứng */}
+          <div className="form-group">
+            <label className="form-label">
+              <MessageSquare size={16} className="label-icon" />
+              Triệu chứng (nếu có)
+            </label>
+            <div className="input-wrapper">
+            <textarea
+                className="form-control modern-textarea"
+              rows="3"
+                value={trieuChung}
+                onChange={(e) => setTrieuChung(e.target.value)}
+                placeholder="Vui lòng mô tả các triệu chứng bạn đang gặp phải (nếu có)..."
+            ></textarea>
+            </div>
+          </div>
+
+          {/* AI gợi ý chuyên khoa */}
+          {lyDoKham && lyDoKham.trim() && (
+            <div className="form-group">
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '12px'
+              }}>
+                <label className="form-label" style={{ marginBottom: 0 }}>
+                  <Sparkles size={16} className="label-icon" />
+                  AI gợi ý chuyên khoa
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAiSuggest}
+                  disabled={isAnalyzing}
+                  style={{
+                    background: isAnalyzing ? '#d9d9d9' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    color: 'white',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    cursor: isAnalyzing ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isAnalyzing) {
+                      e.target.style.opacity = '0.9';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isAnalyzing) {
+                      e.target.style.opacity = '1';
+                    }
+                  }}
+                  title="AI sẽ phân tích lý do khám và triệu chứng để gợi ý chuyên khoa phù hợp"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                      <span>Đang phân tích...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={14} />
+                      <span>Phân tích và gợi ý</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              
+              {/* Hiển thị kết quả AI gợi ý */}
+              {showAiSuggestions && aiSuggestions && aiSuggestions.suggested_specialties && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '16px',
+                  background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                  borderRadius: '12px',
+                  border: '2px solid #0ea5e9',
+                  animation: 'fadeIn 0.3s ease-in'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '12px',
+                    color: '#0369a1',
+                    fontWeight: '600'
+                  }}>
+                    <Sparkles size={16} />
+                    <span>AI gợi ý chuyên khoa phù hợp:</span>
+                  </div>
+                  
+                  {aiSuggestions.explanation && (
+                    <div style={{
+                      marginBottom: '12px',
+                      padding: '10px',
+                      background: 'rgba(255, 255, 255, 0.7)',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      color: '#475569',
+                      lineHeight: '1.6'
+                    }}>
+                      {aiSuggestions.explanation}
+                    </div>
+                  )}
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {aiSuggestions.suggested_specialties.map((suggestion, index) => {
+                      const isSelected = specialty === String(suggestion.id_chuyen_khoa);
+                      const confidence = suggestion.confidence || 0;
+                      const confidencePercent = Math.round(confidence * 100);
+                      
+                      return (
+                        <div
+                          key={suggestion.id_chuyen_khoa}
+                          onClick={() => {
+                            setSpecialty(String(suggestion.id_chuyen_khoa));
+                            setDoctor(null);
+                            toast.success(`Đã chọn: ${suggestion.ten_chuyen_khoa}`);
+                          }}
+                          style={{
+                            padding: '12px 16px',
+                            background: isSelected 
+                              ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+                              : 'white',
+                            borderRadius: '10px',
+                            border: isSelected ? '2px solid #1e40af' : '1px solid #cbd5e1',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = '#3b82f6';
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.2)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = '#cbd5e1';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                            }
+                          }}
+                        >
+                          <div style={{ flex: 1 }}>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              marginBottom: '4px'
+                            }}>
+                              <span style={{
+                                fontWeight: '600',
+                                fontSize: '15px',
+                                color: isSelected ? 'white' : '#1e293b'
+                              }}>
+                                {index + 1}. {suggestion.ten_chuyen_khoa}
+                              </span>
+                              {isSelected && (
+                                <span style={{
+                                  background: 'rgba(255, 255, 255, 0.3)',
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  fontSize: '11px',
+                                  fontWeight: '500'
+                                }}>
+                                  Đã chọn
+                                </span>
+                              )}
+                            </div>
+                            {suggestion.reason && (
+                              <div style={{
+                                fontSize: '12px',
+                                color: isSelected ? 'rgba(255, 255, 255, 0.9)' : '#64748b',
+                                marginTop: '4px'
+                              }}>
+                                {suggestion.reason}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-end',
+                            gap: '4px'
+                          }}>
+                            <div style={{
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              color: isSelected ? 'white' : '#3b82f6'
+                            }}>
+                              {confidencePercent}%
+                            </div>
+                            <div style={{
+                              width: '60px',
+                              height: '6px',
+                              background: isSelected ? 'rgba(255, 255, 255, 0.3)' : '#e2e8f0',
+                              borderRadius: '3px',
+                              overflow: 'hidden'
+                            }}>
+                              <div style={{
+                                width: `${confidencePercent}%`,
+                                height: '100%',
+                                background: isSelected ? 'white' : '#3b82f6',
+                                transition: 'width 0.3s'
+                              }} />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {aiSuggestions.urgency_level === 'khẩn_cap' && (
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '10px',
+                      background: '#fef2f2',
+                      border: '1px solid #fca5a5',
+                      borderRadius: '8px',
+                      color: '#dc2626',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span>⚠️</span>
+                      <span>Triệu chứng có thể cần khám khẩn cấp. Vui lòng đến bệnh viện sớm nhất có thể!</span>
+                    </div>
+                  )}
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAiSuggestions(false);
+                    }}
+                    style={{
+                      marginTop: '12px',
+                      padding: '6px 12px',
+                      background: 'transparent',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      color: '#64748b',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      width: '100%'
+                    }}
+                  >
+                    Ẩn gợi ý
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* chuyên khoa */}
           <div className="form-group">
             <label className="form-label">
@@ -320,21 +658,21 @@ const BookingModal = ({ show, onClose }) => {
               Chọn chuyên khoa
             </label>
             <div className="input-wrapper">
-            <select
+              <select
                 className="form-select modern-select"
-              value={specialty}
-              onChange={(e) => {
-                setSpecialty(e.target.value);
+                value={specialty}
+                onChange={(e) => {
+                  setSpecialty(e.target.value);
                   setDoctor(null);
-              }}
-            >
+                }}
+              >
                 <option value="">-- Chọn chuyên khoa --</option>
-              {specialties.map((sp) => (
+                {specialties.map((sp) => (
                   <option key={sp.id_chuyen_khoa} value={sp.id_chuyen_khoa}>
                     {sp.ten_chuyen_khoa}
-                </option>
-              ))}
-            </select>
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -1058,46 +1396,12 @@ const BookingModal = ({ show, onClose }) => {
             )}
           </div>
 
-          {/* Lý do khám */}
-          <div className="form-group">
-            <label className="form-label">
-              <MessageSquare size={16} className="label-icon" />
-              Lý do khám <span style={{ color: "#ff4d4f" }}>*</span>
-            </label>
-            <div className="input-wrapper">
-              <textarea
-                className="form-control modern-textarea"
-                rows="3"
-                value={lyDoKham}
-                onChange={(e) => setLyDoKham(e.target.value)}
-                placeholder="Vui lòng mô tả chi tiết lý do khám..."
-              ></textarea>
-            </div>
-          </div>
-
-          {/* Triệu chứng */}
-          <div className="form-group">
-            <label className="form-label">
-              <MessageSquare size={16} className="label-icon" />
-              Triệu chứng (nếu có)
-            </label>
-            <div className="input-wrapper">
-            <textarea
-                className="form-control modern-textarea"
-              rows="3"
-                value={trieuChung}
-                onChange={(e) => setTrieuChung(e.target.value)}
-                placeholder="Vui lòng mô tả các triệu chứng bạn đang gặp phải (nếu có)..."
-            ></textarea>
-            </div>
-          </div>
-
           {/* buttons */}
           <div className="form-actions">
             <button
               type="button"
               className="btn-cancel"
-              onClick={onClose}
+              onClick={handleClose}
             >
               Hủy
             </button>
@@ -1114,7 +1418,7 @@ const BookingModal = ({ show, onClose }) => {
         open={showLoginRequiredModal}
         onCancel={() => {
           setShowLoginRequiredModal(false);
-          onClose();
+          handleClose();
         }}
       />
     </div>

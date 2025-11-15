@@ -3,13 +3,14 @@ import "./BookingModal.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import toast from "../../utils/toast";
-import { X, Calendar, Clock, User, UtensilsCrossed, MessageSquare, Video, MapPin, Heart, Mail, Phone, Award, Briefcase, GraduationCap, Building2 } from "lucide-react";
+import { X, Calendar, Clock, User, UtensilsCrossed, MessageSquare, Video, MapPin, Heart, Mail, Phone, Award, Briefcase, GraduationCap, Building2, Sparkles, Loader2 } from "lucide-react";
 
 import apiChuyenGiaDinhDuong from "../../api/ChuyenGiaDinhDuong";
 import apiLichLamViec from "../../api/LichLamViec";
 import apiKhungGioTuVan from "../../api/KhungGioKham";
 import apiNguoiDung from "../../api/NguoiDung";
 import apiCuocHenTuVan from "../../api/CuocHenTuVan";
+import nutritionAnalysisService from "../../api/NutritionAnalysis";
 import { Modal, Card, Pagination, Tag, Empty } from "antd";
 import LoginRequiredModal from "../LoginRequiredModal/LoginRequiredModal";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +25,11 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
   const [session, setSession] = useState("");
   const [timeSlot, setTimeSlot] = useState("");
   const [desc, setDesc] = useState("");
+
+  // Tìm chuyên ngành phù hợp với AI
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showAiSuggestions, setShowAiSuggestions] = useState(false);
 
   const [chuyenNganhList, setChuyenNganhList] = useState([]);
   const [experts, setExperts] = useState([]);
@@ -158,6 +164,16 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
           }
         }
         
+        // Sắp xếp khung giờ theo thời gian bắt đầu tăng dần (HH:mm)
+        availableSlots.sort((a, b) => {
+          const toMinutes = (t) => {
+            if (!t) return 0;
+            const [hh, mm] = String(t).split(":").map((x) => parseInt(x, 10));
+            return (isNaN(hh) ? 0 : hh) * 60 + (isNaN(mm) ? 0 : mm);
+          };
+          return toMinutes(a.gio_bat_dau) - toMinutes(b.gio_bat_dau);
+        });
+        
         setAvailableTimeSlots(availableSlots);
       } catch (err) {
         console.error("Lỗi khi tải khung giờ:", err);
@@ -175,6 +191,62 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
   const isAllowedDate = (dateObj) => {
     const d = formatDateLocal(dateObj);
     return allowedDates.includes(d);
+  };
+
+  // Xử lý tìm chuyên ngành phù hợp với AI
+  const handleAiSuggest = async () => {
+    if (!desc || !desc.trim()) {
+      toast.warning("Vui lòng nhập lý do tư vấn trước!");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setShowAiSuggestions(true);
+    
+    try {
+      const response = await nutritionAnalysisService.analyzeNutrition(desc, '');
+      
+      if (response.success && response.data) {
+        setAiSuggestions(response.data);
+        
+        // Nếu có gợi ý và chưa chọn chuyên ngành, tự động chọn gợi ý đầu tiên
+        if (response.data.suggested_specialties && response.data.suggested_specialties.length > 0 && !chuyenNganh) {
+          const firstSuggestion = response.data.suggested_specialties[0];
+          setChuyenNganh(String(firstSuggestion.id_chuyen_nganh));
+          toast.success(`Đã tìm thấy chuyên ngành phù hợp: ${firstSuggestion.ten_chuyen_nganh}`);
+        }
+      } else {
+        toast.error("Không thể phân tích. Vui lòng thử lại!");
+      }
+    } catch (error) {
+      console.error("Error analyzing nutrition:", error);
+      toast.error("Có lỗi xảy ra khi phân tích. Vui lòng thử lại!");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const resetForm = () => {
+    setServiceType("");
+    setChuyenNganh("");
+    setExpert(null);
+    setDate(null);
+    setSession("");
+    setTimeSlot("");
+    setDesc("");
+    setExperts([]);
+    setExpertSchedule({});
+    setTimeSlots([]);
+    setAvailableTimeSlots([]);
+    setShowExpertCard(false);
+    setShowExpertSelectModal(false);
+    setAiSuggestions(null);
+    setShowAiSuggestions(false);
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
   };
 
   const handleSubmit = async (e) => {
@@ -208,7 +280,8 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
       await apiCuocHenTuVan.create(payload);
 
       toast.success("Đặt lịch tư vấn thành công!");
-    onClose();
+      resetForm();
+      onClose();
     } catch (err) {
       console.error(err);
       // Toast đã được hiển thị tự động bởi axios interceptor với message từ API
@@ -217,14 +290,14 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-wrapper">
           <div className="modal-header-content">
             <UtensilsCrossed className="modal-header-icon" size={28} />
             <h4 className="modal-header-title">Đăng ký tư vấn dinh dưỡng</h4>
           </div>
-          <button type="button" className="modal-close-btn" onClick={onClose}>
+          <button type="button" className="modal-close-btn" onClick={handleClose}>
             <X size={20} />
           </button>
         </div>
@@ -257,6 +330,145 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
                 );
               })}
             </div>
+          </div>
+
+          {/* lý do tư vấn */}
+          <div className="form-group">
+            <label className="form-label">
+              <MessageSquare size={16} className="label-icon" />
+              Lý do tư vấn
+            </label>
+            <div className="input-wrapper">
+            <textarea
+                className="form-control modern-textarea"
+                rows="4"
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+                placeholder="Vui lòng mô tả chi tiết mong muốn tư vấn và mục tiêu của bạn..."
+            ></textarea>
+            </div>
+            {/* Nút tìm chuyên ngành phù hợp với AI */}
+            {desc && desc.trim() && (
+              <div style={{ marginTop: "12px" }}>
+                <button
+                  type="button"
+                  onClick={handleAiSuggest}
+                  disabled={isAnalyzing}
+                  style={{
+                    padding: "10px 20px",
+                    background: isAnalyzing ? "#d9d9d9" : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    cursor: isAnalyzing ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    transition: "all 0.3s"
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isAnalyzing) {
+                      e.target.style.transform = "translateY(-2px)";
+                      e.target.style.boxShadow = "0 4px 12px rgba(102, 126, 234, 0.4)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isAnalyzing) {
+                      e.target.style.transform = "translateY(0)";
+                      e.target.style.boxShadow = "none";
+                    }
+                  }}
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 size={16} className="spin" style={{ animation: "spin 1s linear infinite" }} />
+                      <span>Đang phân tích...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} />
+                      <span>Tìm chuyên ngành phù hợp với AI</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+            {/* Hiển thị kết quả tìm chuyên ngành phù hợp */}
+            {showAiSuggestions && aiSuggestions && (
+              <div style={{ 
+                marginTop: "16px", 
+                padding: "16px", 
+                background: "#f0f5ff", 
+                borderRadius: "12px",
+                border: "1px solid #adc6ff"
+              }}>
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "8px", 
+                  marginBottom: "12px",
+                  color: "#0958d9",
+                  fontWeight: "600"
+                }}>
+                  <Sparkles size={16} />
+                  <span>Chuyên ngành phù hợp với bạn:</span>
+                </div>
+                {aiSuggestions.suggested_specialties && aiSuggestions.suggested_specialties.length > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {aiSuggestions.suggested_specialties.map((spec, idx) => (
+                      <div 
+                        key={idx}
+                        style={{
+                          padding: "12px",
+                          background: "white",
+                          borderRadius: "8px",
+                          border: chuyenNganh === String(spec.id_chuyen_nganh) ? "2px solid #0958d9" : "1px solid #d9d9d9",
+                          cursor: "pointer",
+                          transition: "all 0.3s"
+                        }}
+                        onClick={() => {
+                          setChuyenNganh(String(spec.id_chuyen_nganh));
+                          toast.success(`Đã chọn: ${spec.ten_chuyen_nganh}`);
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = "#0958d9";
+                          e.currentTarget.style.background = "#f0f5ff";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (chuyenNganh !== String(spec.id_chuyen_nganh)) {
+                            e.currentTarget.style.borderColor = "#d9d9d9";
+                            e.currentTarget.style.background = "white";
+                          }
+                        }}
+                      >
+                        <div style={{ 
+                          fontWeight: "600", 
+                          color: "#0958d9",
+                          marginBottom: "4px"
+                        }}>
+                          {spec.ten_chuyen_nganh}
+                        </div>
+                        {spec.ly_do && (
+                          <div style={{ 
+                            fontSize: "13px", 
+                            color: "#595959",
+                            lineHeight: "1.5"
+                          }}>
+                            {spec.ly_do}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ color: "#8c8c8c", fontSize: "14px" }}>
+                    Không tìm thấy chuyên ngành phù hợp. Vui lòng chọn thủ công.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* chuyên ngành dinh dưỡng */}
@@ -1020,29 +1232,12 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
             )}
           </div>
 
-          {/* lý do tư vấn */}
-          <div className="form-group">
-            <label className="form-label">
-              <MessageSquare size={16} className="label-icon" />
-              Lý do tư vấn
-            </label>
-            <div className="input-wrapper">
-            <textarea
-                className="form-control modern-textarea"
-                rows="4"
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-                placeholder="Vui lòng mô tả chi tiết mong muốn tư vấn và mục tiêu của bạn..."
-            ></textarea>
-            </div>
-          </div>
-
           {/* buttons */}
           <div className="form-actions">
             <button
               type="button"
               className="btn-cancel"
-              onClick={onClose}
+              onClick={handleClose}
             >
               Hủy
             </button>
@@ -1059,7 +1254,7 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
         open={showLoginRequiredModal}
         onCancel={() => {
           setShowLoginRequiredModal(false);
-          onClose();
+          handleClose();
         }}
       />
     </div>

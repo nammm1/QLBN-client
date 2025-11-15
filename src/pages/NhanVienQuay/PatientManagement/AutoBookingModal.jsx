@@ -61,8 +61,10 @@ const AutoBookingModal = ({ visible, onCancel, onSuccess }) => {
   const [serviceType, setServiceType] = useState(""); // "kham_benh" | "tu_van_dinh_duong"
   const [patients, setPatients] = useState([]);
   const [specialties, setSpecialties] = useState([]);
+  const [nutritionSpecialties, setNutritionSpecialties] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [selectedSpecialty, setSelectedSpecialty] = useState(null);
+  const [selectedNutritionSpecialty, setSelectedNutritionSpecialty] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
@@ -77,6 +79,7 @@ const AutoBookingModal = ({ visible, onCancel, onSuccess }) => {
       setServiceType("");
       setSelectedPatient(null);
       setSelectedSpecialty(null);
+      setSelectedNutritionSpecialty(null);
       setSelectedDate(null);
       setAvailableTimeSlots([]);
       setSelectedTimeSlot(null);
@@ -87,12 +90,14 @@ const AutoBookingModal = ({ visible, onCancel, onSuccess }) => {
 
   const fetchInitialData = async () => {
     try {
-      const [patientData, specialtyData] = await Promise.all([
+      const [patientData, specialtyData, nutritionSpecialtyData] = await Promise.all([
         apiBenhNhan.getAll(),
         apiChuyenKhoa.getAllChuyenKhoa(),
+        apiChuyenGiaDinhDuong.getAllChuyenNganh().catch(() => []),
       ]);
       setPatients(patientData || []);
       setSpecialties(specialtyData || []);
+      setNutritionSpecialties(nutritionSpecialtyData || []);
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu:", error);
       message.error("Không thể tải dữ liệu");
@@ -107,7 +112,7 @@ const AutoBookingModal = ({ visible, onCancel, onSuccess }) => {
       setAvailableTimeSlots([]);
       setSelectedTimeSlot(null);
     }
-  }, [selectedDate, serviceType, selectedSpecialty]);
+  }, [selectedDate, serviceType, selectedSpecialty, selectedNutritionSpecialty]);
 
   const fetchAvailableTimeSlots = async () => {
     if (!selectedDate || !serviceType) return;
@@ -218,6 +223,15 @@ const AutoBookingModal = ({ visible, onCancel, onSuccess }) => {
           })
         );
 
+        let expertsToCheck = mergedExperts;
+
+        // Nếu có chọn chuyên ngành dinh dưỡng, filter theo chuyên ngành
+        if (selectedNutritionSpecialty) {
+          expertsToCheck = mergedExperts.filter(
+            (expert) => String(expert.id_chuyen_nganh) === String(selectedNutritionSpecialty)
+          );
+        }
+
         // Với mỗi khung giờ, kiểm tra xem có chuyên gia nào còn chỗ trống
         for (const timeSlot of allTimeSlots) {
           // Tìm các chuyên gia có lịch làm việc trong ca này
@@ -226,7 +240,7 @@ const AutoBookingModal = ({ visible, onCancel, onSuccess }) => {
             .filter((s) => s.ca === ca)
             .map((s) => s.id_nguoi_dung);
 
-          const availableExperts = mergedExperts.filter((expert) =>
+          const availableExperts = expertsToCheck.filter((expert) =>
             expertsInCa.includes(expert.id_chuyen_gia)
           );
 
@@ -240,11 +254,18 @@ const AutoBookingModal = ({ visible, onCancel, onSuccess }) => {
               );
 
               if (countData.count < countData.max_count) {
+                // Lấy tên chuyên ngành từ danh sách
+                const specialty = nutritionSpecialties.find(
+                  (sp) => sp.id_chuyen_nganh === expert.id_chuyen_nganh
+                );
+                
                 // Còn chỗ trống, thêm vào danh sách
                 availableSlots.push({
                   ...timeSlot,
                   id_chuyen_gia: expert.id_chuyen_gia,
+                  id_chuyen_nganh: expert.id_chuyen_nganh,
                   ten_chuyen_gia: expert.ho_ten,
+                  ten_chuyen_nganh: specialty?.ten_chuyen_nganh || "",
                   bookedCount: countData.count,
                   maxCount: countData.max_count,
                   availableSlots: countData.max_count - countData.count,
@@ -312,13 +333,17 @@ const AutoBookingModal = ({ visible, onCancel, onSuccess }) => {
         message.success("Đặt lịch khám bệnh thành công!");
       } else if (serviceType === "tu_van_dinh_duong") {
         // Đặt lịch tư vấn dinh dưỡng
+        const selectedChuyenNganh = nutritionSpecialties.find(
+          (cn) => cn.id_chuyen_nganh === (selectedNutritionSpecialty || timeSlot.id_chuyen_nganh)
+        );
+        
         const payload = {
           id_benh_nhan: selectedPatient,
           id_chuyen_gia: timeSlot.id_chuyen_gia,
           id_khung_gio: timeSlot.id_khung_gio,
           ngay_kham: dateStr,
           loai_hen: loaiHen,
-          loai_dinh_duong: "",
+          loai_dinh_duong: selectedChuyenNganh?.ten_chuyen_nganh || timeSlot.ten_chuyen_nganh || "",
           ly_do_tu_van: lyDo,
         };
 
@@ -331,6 +356,7 @@ const AutoBookingModal = ({ visible, onCancel, onSuccess }) => {
       setServiceType("");
       setSelectedPatient(null);
       setSelectedSpecialty(null);
+      setSelectedNutritionSpecialty(null);
       setSelectedDate(null);
       setAvailableTimeSlots([]);
       setSelectedTimeSlot(null);
@@ -373,6 +399,7 @@ const AutoBookingModal = ({ visible, onCancel, onSuccess }) => {
             onChange={(e) => {
               setServiceType(e.target.value);
               setSelectedSpecialty(null);
+              setSelectedNutritionSpecialty(null);
               setSelectedDate(null);
               setAvailableTimeSlots([]);
               setSelectedTimeSlot(null);
@@ -438,6 +465,33 @@ const AutoBookingModal = ({ visible, onCancel, onSuccess }) => {
                   value={specialty.id_chuyen_khoa}
                 >
                   {specialty.ten_chuyen_khoa}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        )}
+
+        {/* Chọn chuyên ngành dinh dưỡng (chỉ hiển thị khi chọn tư vấn dinh dưỡng) */}
+        {serviceType === "tu_van_dinh_duong" && (
+          <Form.Item label="Chuyên ngành dinh dưỡng (tùy chọn)">
+            <Select
+              placeholder="Chọn chuyên ngành dinh dưỡng (để trống nếu không quan trọng)"
+              value={selectedNutritionSpecialty}
+              onChange={(value) => {
+                setSelectedNutritionSpecialty(value);
+                setSelectedDate(null);
+                setAvailableTimeSlots([]);
+                setSelectedTimeSlot(null);
+              }}
+              allowClear
+              style={{ width: "100%" }}
+            >
+              {nutritionSpecialties.map((specialty) => (
+                <Option
+                  key={specialty.id_chuyen_nganh}
+                  value={specialty.id_chuyen_nganh}
+                >
+                  {specialty.ten_chuyen_nganh}
                 </Option>
               ))}
             </Select>
@@ -520,7 +574,12 @@ const AutoBookingModal = ({ visible, onCancel, onSuccess }) => {
                     {serviceType === "tu_van_dinh_duong" && slot.ten_chuyen_gia && (
                       <div style={{ color: "#595959", fontSize: "13px" }}>
                         <UserOutlined style={{ marginRight: 4 }} />
-                        {slot.ten_chuyen_gia}
+                        CG. {slot.ten_chuyen_gia}
+                        {slot.ten_chuyen_nganh && (
+                          <span style={{ marginLeft: 8, color: "#8c8c8c" }}>
+                            - {slot.ten_chuyen_nganh}
+                          </span>
+                        )}
                       </div>
                     )}
                   </Space>

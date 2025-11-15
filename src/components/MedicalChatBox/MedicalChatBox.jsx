@@ -195,7 +195,10 @@ const MedicalChatBox = () => {
   };
 
   const handleMinimize = () => {
-    setIsMinimized(true);
+    // Thay vì giữ trạng thái cửa sổ tối thiểu (hiển thị header),
+    // chuyển về bong bóng chat như ban đầu để tránh lỗi hiển thị header
+    setIsMinimized(false);
+    setIsOpen(false);
   };
 
   const handleExpand = () => {

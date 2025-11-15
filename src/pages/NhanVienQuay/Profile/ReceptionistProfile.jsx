@@ -39,7 +39,8 @@ const ReceptionistProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [form] = Form.useForm();
 
-  const userId = localStorage.getItem("userId") || "NV_quay001";
+  const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+  const userId = userInfo?.user?.id_nguoi_dung || localStorage.getItem("userId") || "NV_quay001";
 
   useEffect(() => {
     fetchProfile();
@@ -73,6 +74,25 @@ const ReceptionistProfile = () => {
       await apiNguoiDung.updateUser(userId, updateData);
       message.success("Cập nhật thông tin thành công!");
       setIsEditing(false);
+
+      // Cập nhật localStorage để các khu vực khác hiển thị đúng ngay lập tức
+      try {
+        const stored = JSON.parse(localStorage.getItem("userInfo") || "{}");
+        if (stored?.user) {
+          stored.user = {
+            ...stored.user,
+            ho_ten: updateData.ho_ten ?? stored.user.ho_ten,
+            email: updateData.email ?? stored.user.email,
+            so_dien_thoai: updateData.so_dien_thoai ?? stored.user.so_dien_thoai,
+            dia_chi: updateData.dia_chi ?? stored.user.dia_chi,
+            ngay_sinh: updateData.ngay_sinh ?? stored.user.ngay_sinh,
+            so_cccd: updateData.so_cccd ?? stored.user.so_cccd,
+          };
+          localStorage.setItem("userInfo", JSON.stringify(stored));
+          window.dispatchEvent(new Event("userInfoUpdated"));
+        }
+      } catch {}
+
       fetchProfile();
     } catch (error) {
       message.error("Không thể cập nhật thông tin");

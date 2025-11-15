@@ -107,6 +107,7 @@ const apiYeuCauEmail = {
       const queryParams = new URLSearchParams();
       if (params.page) queryParams.append('page', params.page);
       if (params.pageSize) queryParams.append('pageSize', params.pageSize);
+      if (params.loai_email) queryParams.append('loai_email', params.loai_email);
 
       const res = await axiosInstance.get(
         `${API_CONFIG.BASE_URL}yeu-cau-email/lich-su?${queryParams.toString()}`

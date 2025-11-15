@@ -6,7 +6,7 @@ const apiPayment = {
   createMomoPayment: async (id_hoa_don) => {
     try {
       const res = await axiosInstance.post(
-        `${API_CONFIG.BASE_URL}/api/payment/momo/${id_hoa_don}`
+        `${API_CONFIG.BASE_URL}api/payment/momo/${id_hoa_don}`
       );
       return res.data;
     } catch (err) {
@@ -19,7 +19,7 @@ const apiPayment = {
   createVNPayPayment: async (id_hoa_don) => {
     try {
       const res = await axiosInstance.post(
-        `${API_CONFIG.BASE_URL}/api/payment/vnpay/${id_hoa_don}`
+        `${API_CONFIG.BASE_URL}api/payment/vnpay/${id_hoa_don}`
       );
       return res.data;
     } catch (err) {

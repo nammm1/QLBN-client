@@ -212,55 +212,119 @@
 /* Stats Section */
 .stats-section {
   padding: 20px 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .stat-card {
   text-align: center;
-  padding: 24px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  border: 1px solid rgba(64, 169, 255, 0.1);
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  padding: 28px 20px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.stat-card:hover::before {
+  opacity: 1;
 }
 
 .stat-card:hover {
-  transform: translateY(-8px);
-  background: rgba(64, 169, 255, 0.1);
-  border-color: rgba(64, 169, 255, 0.3);
-  box-shadow: 0 8px 24px rgba(64, 169, 255, 0.2);
+  transform: translateY(-10px) scale(1.02);
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 40px rgba(64, 169, 255, 0.2);
 }
 
 .stat-icon {
-  color: #40a9ff;
-  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.9) !important;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.stat-icon svg,
+.stat-icon * {
+  color: rgba(255, 255, 255, 0.9) !important;
+  fill: rgba(255, 255, 255, 0.9) !important;
+  stroke: rgba(255, 255, 255, 0.9) !important;
 }
 
 .stat-card:hover .stat-icon {
-  transform: scale(1.2) rotate(5deg);
-  color: #096dd9;
+  transform: scale(1.15) rotate(5deg) translateY(-4px);
+  color: #ffffff !important;
+  filter: drop-shadow(0 4px 12px rgba(255, 255, 255, 0.5));
+}
+
+.stat-card:hover .stat-icon svg,
+.stat-card:hover .stat-icon * {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
 }
 
 .stat-number {
-  font-size: 32px;
-  font-weight: 700;
-  color: white;
-  margin-bottom: 8px;
-  background: linear-gradient(135deg, #40a9ff 0%, #096dd9 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 36px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 10px;
+  line-height: 1.2;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 1;
+  letter-spacing: -0.5px;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-number {
+  transform: scale(1.05);
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 255, 255, 0.2);
 }
 
 .stat-label {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.95) !important;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
+  line-height: 1.4;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.stat-card:hover .stat-label {
+  color: #ffffff !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 /* Footer Content */
@@ -847,8 +911,20 @@
     justify-content: center;
   }
 
+  .stat-card {
+    padding: 24px 16px;
+  }
+
+  .stat-icon {
+    margin-bottom: 12px;
+  }
+
   .stat-number {
     font-size: 28px;
+  }
+
+  .stat-label {
+    font-size: 11px;
   }
 
   .quick-actions {
@@ -937,14 +1013,26 @@
 
   .stat-card {
     padding: 20px 12px;
+    border-radius: 12px;
+  }
+
+  .stat-icon {
+    margin-bottom: 10px;
+  }
+
+  .stat-icon svg,
+  .stat-icon * {
+    font-size: 24px !important;
   }
 
   .stat-number {
     font-size: 24px;
+    margin-bottom: 8px;
   }
 
   .stat-label {
-    font-size: 11px;
+    font-size: 10px;
+    letter-spacing: 0.5px;
   }
 
   .cert-tag {

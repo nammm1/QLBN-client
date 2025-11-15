@@ -20,6 +20,11 @@ import {
   Badge,
   Statistic,
   Alert,
+  Input,
+  Form,
+  InputNumber,
+  Select,
+  message,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -45,6 +50,9 @@ import {
   EditOutlined,
   PhoneOutlined,
   HomeOutlined,
+  CalculatorOutlined,
+  PlusOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import {
   LineChart,
@@ -67,6 +75,7 @@ import apiTheoDoiTienDo from "../../../api/TheoDoiTienDo";
 import apiCuocHenTuVan from "../../../api/CuocHenTuVan";
 import apiHoaDon from "../../../api/HoaDon";
 import apiThucDonChiTiet from "../../../api/ThucDonChiTiet";
+import apiCalorieCalculator from "../../../api/CalorieCalculator";
 
 const { Title, Paragraph, Text } = Typography;
 const { Panel } = Collapse;
@@ -127,6 +136,24 @@ const formatBuaAn = (bua) => {
   return buaMap[buaLower] || bua.charAt(0).toUpperCase() + bua.slice(1).toLowerCase();
 };
 
+// Format mục tiêu dinh dưỡng
+const formatMucTieuDinhDuong = (mucTieu) => {
+  if (!mucTieu || mucTieu === "—") return "—";
+  
+  const mucTieuMap = {
+    'giam_can': 'Giảm cân',
+    'tang_can': 'Tăng cân',
+    'duy_tri_can_nang': 'Duy trì cân nặng',
+    'tang_co': 'Tăng cơ',
+    'giam_mo': 'Giảm mỡ',
+    'tang_suc_khoe': 'Tăng sức khỏe',
+    'cai_thien_dinh_duong': 'Cải thiện dinh dưỡng',
+  };
+  
+  const mucTieuLower = mucTieu.toLowerCase().trim();
+  return mucTieuMap[mucTieuLower] || mucTieu.charAt(0).toUpperCase() + mucTieu.slice(1).toLowerCase().replace(/_/g, ' ');
+};
+
 const NutritionRecords = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [personalInfo, setPersonalInfo] = useState(null);
@@ -136,6 +163,32 @@ const NutritionRecords = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [calorieForm] = Form.useForm();
+  // Cấu trúc mới: theo buổi, mỗi buổi có danh sách món
+  const [calorieMealsByMeal, setCalorieMealsByMeal] = useState({
+    sang: [],
+    trua: [],
+    chieu: [],
+    toi: []
+  });
+  const [calorieResult, setCalorieResult] = useState(null);
+  const [calorieLoading, setCalorieLoading] = useState(false);
+  const [isCalorieStarted, setIsCalorieStarted] = useState(false);
+  
+  // Đơn vị có sẵn
+  const unitOptions = [
+    { value: "gram", label: "Gram (g)" },
+    { value: "bat", label: "Bát" },
+    { value: "dia", label: "Đĩa" },
+    { value: "ly", label: "Ly" },
+    { value: "coc", label: "Cốc" },
+    { value: "mieng", label: "Miếng" },
+    { value: "phan", label: "Phần" },
+    { value: "cai", label: "Cái" },
+    { value: "qua", label: "Quả" },
+    { value: "lon", label: "Lon" },
+    { value: "chai", label: "Chai" },
+  ];
   const navigate = useNavigate();
 
   const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
@@ -155,28 +208,7 @@ const NutritionRecords = () => {
       try {
         setLoading(true);
 
-        // 1. Load thông tin bệnh nhân
-        let personalInfoData = null;
-        const benhNhanRes = await apiBenhNhan.getById(patientId).catch(() => null);
-        const benhNhan = unwrap(benhNhanRes);
-        
-        if (benhNhan) {
-          const userInfoData = await apiNguoiDung.getUserById(patientId).catch(() => ({}));
-          const userData = unwrap(userInfoData) || {};
-          
-          personalInfoData = {
-            ho_ten: benhNhan.ho_ten || userData.ho_ten || "—",
-            gioi_tinh: benhNhan.gioi_tinh || userData.gioi_tinh || "—",
-            tuoi: benhNhan.tuoi || "—",
-            ngay_sinh: benhNhan.ngay_sinh || userData.ngay_sinh || null,
-            dan_toc: benhNhan.dan_toc || userData.dan_toc || "—",
-            so_dien_thoai: benhNhan.so_dien_thoai || userData.so_dien_thoai || "—",
-            dia_chi: benhNhan.dia_chi || userData.dia_chi || "—",
-            ma_BHYT: benhNhan.ma_BHYT || "—",
-          };
-        }
-
-        // 2. Load hồ sơ dinh dưỡng (lấy cái mới nhất)
+        // 1. Load hồ sơ dinh dưỡng (lấy cái mới nhất) - ƯU TIÊN LẤY THÔNG TIN TỪ ĐÂY
         const hoSoRes = await apiHoSoDinhDuong.getByBenhNhan(patientId).catch(() => null);
         // API có thể trả về object (findOne) hoặc array (findAll)
         let hoSoList = [];
@@ -189,8 +221,18 @@ const NutritionRecords = () => {
           }
         }
         
-        // Nếu chưa có thông tin cá nhân từ API bệnh nhân, thử lấy từ hồ sơ
-        if (!personalInfoData && hoSoList.length > 0) {
+        // Sắp xếp theo ngày tạo để lấy hồ sơ mới nhất
+        if (hoSoList.length > 0) {
+          hoSoList.sort((a, b) => {
+            const dateA = new Date(a.ngay_tao || 0);
+            const dateB = new Date(b.ngay_tao || 0);
+            return dateB - dateA;
+          });
+        }
+        
+        // Ưu tiên lấy thông tin cá nhân từ hồ sơ dinh dưỡng mới nhất
+        let personalInfoData = null;
+        if (hoSoList.length > 0) {
           const latestHoSo = hoSoList[0];
           personalInfoData = {
             ho_ten: latestHoSo.ho_ten || "—",
@@ -202,6 +244,28 @@ const NutritionRecords = () => {
             dia_chi: latestHoSo.dia_chi || "—",
             ma_BHYT: latestHoSo.ma_BHYT || "—",
           };
+        }
+        
+        // 2. Nếu không có hồ sơ dinh dưỡng, fallback sang thông tin bệnh nhân
+        if (!personalInfoData) {
+          const benhNhanRes = await apiBenhNhan.getById(patientId).catch(() => null);
+          const benhNhan = unwrap(benhNhanRes);
+          
+          if (benhNhan) {
+            const userInfoData = await apiNguoiDung.getUserById(patientId).catch(() => ({}));
+            const userData = unwrap(userInfoData) || {};
+            
+            personalInfoData = {
+              ho_ten: benhNhan.ho_ten || userData.ho_ten || "—",
+              gioi_tinh: benhNhan.gioi_tinh || userData.gioi_tinh || "—",
+              tuoi: benhNhan.tuoi || "—",
+              ngay_sinh: benhNhan.ngay_sinh || userData.ngay_sinh || null,
+              dan_toc: benhNhan.dan_toc || userData.dan_toc || "—",
+              so_dien_thoai: benhNhan.so_dien_thoai || userData.so_dien_thoai || "—",
+              dia_chi: benhNhan.dia_chi || userData.dia_chi || "—",
+              ma_BHYT: benhNhan.ma_BHYT || "—",
+            };
+          }
         }
         
         if (personalInfoData) {
@@ -222,7 +286,7 @@ const NutritionRecords = () => {
           : null;
         
         if (hoSoList.length > 0) {
-          const latestHoSo = hoSoList[hoSoList.length - 1]; // Lấy hồ sơ mới nhất
+          const latestHoSo = hoSoList[0]; // Lấy hồ sơ mới nhất (đã sắp xếp ở trên)
           let ten_chuyen_gia = "—";
           
           if (latestHoSo.id_chuyen_gia) {
@@ -293,17 +357,15 @@ const NutritionRecords = () => {
             console.log(`[DEBUG] Không có latestLichSu hoặc id_lich_su để lấy thực đơn`);
           }
 
-          // Format mục tiêu dinh dưỡng (có thể là JSON string)
-          let formattedMucTieu = latestLichSu?.muc_tieu_dinh_duong || "—";
+          // Lấy mục tiêu dinh dưỡng (giữ nguyên để format sau)
+          let formattedMucTieu = latestLichSu?.muc_tieu_dinh_duong || latestHoSo.muc_tieu_dinh_duong || "—";
           if (formattedMucTieu && formattedMucTieu !== "—") {
             try {
               // Thử parse JSON nếu là string JSON
               const parsed = typeof formattedMucTieu === 'string' ? JSON.parse(formattedMucTieu) : formattedMucTieu;
               if (typeof parsed === 'object' && parsed !== null) {
-                // Nếu là object, format thành text
-                formattedMucTieu = Object.entries(parsed)
-                  .map(([key, value]) => `${key}: ${value}`)
-                  .join('\n');
+                // Nếu là object, lấy giá trị đầu tiên hoặc giá trị mục tiêu
+                formattedMucTieu = parsed.muc_tieu || parsed.goal || Object.values(parsed)[0] || formattedMucTieu;
               }
             } catch {
               // Nếu không phải JSON, giữ nguyên
@@ -400,15 +462,15 @@ const NutritionRecords = () => {
             }
           }
 
-          // Format mục tiêu dinh dưỡng
+          // Lấy mục tiêu dinh dưỡng (giữ nguyên để format sau)
           let formattedMucTieu = latestLichSu.muc_tieu_dinh_duong || "—";
           if (formattedMucTieu && formattedMucTieu !== "—") {
             try {
+              // Thử parse JSON nếu là string JSON
               const parsed = typeof formattedMucTieu === 'string' ? JSON.parse(formattedMucTieu) : formattedMucTieu;
               if (typeof parsed === 'object' && parsed !== null) {
-                formattedMucTieu = Object.entries(parsed)
-                  .map(([key, value]) => `${key}: ${value}`)
-                  .join('\n');
+                // Nếu là object, lấy giá trị đầu tiên hoặc giá trị mục tiêu
+                formattedMucTieu = parsed.muc_tieu || parsed.goal || Object.values(parsed)[0] || formattedMucTieu;
               }
             } catch {
               // Nếu không phải JSON, giữ nguyên
@@ -614,6 +676,752 @@ const NutritionRecords = () => {
   };
 
   // Render biểu đồ tiến độ
+  // Xử lý tính calories - cấu trúc mới theo buổi
+  const handleAddMealToMeal = (mealType) => {
+    const newId = Date.now() + Math.random();
+    setCalorieMealsByMeal({
+      ...calorieMealsByMeal,
+      [mealType]: [
+        ...calorieMealsByMeal[mealType],
+        { id: newId, name: "", amount: "", unit: "gram" }
+      ]
+    });
+  };
+
+  const handleRemoveMealFromMeal = (mealType, id) => {
+    setCalorieMealsByMeal({
+      ...calorieMealsByMeal,
+      [mealType]: calorieMealsByMeal[mealType].filter(meal => meal.id !== id)
+    });
+  };
+
+  const handleMealChange = (mealType, id, field, value) => {
+    setCalorieMealsByMeal({
+      ...calorieMealsByMeal,
+      [mealType]: calorieMealsByMeal[mealType].map(meal =>
+        meal.id === id ? { ...meal, [field]: value } : meal
+      )
+    });
+  };
+
+  const handleCalculateCalories = async () => {
+    // Validate form
+    const allMeals = [
+      ...calorieMealsByMeal.sang,
+      ...calorieMealsByMeal.trua,
+      ...calorieMealsByMeal.chieu,
+      ...calorieMealsByMeal.toi
+    ];
+
+    if (allMeals.length === 0) {
+      message.error("Vui lòng thêm ít nhất một món ăn");
+      return;
+    }
+
+    const hasEmptyMeal = allMeals.some(meal => !meal.name.trim());
+    if (hasEmptyMeal) {
+      message.error("Vui lòng nhập tên món ăn cho tất cả các món");
+      return;
+    }
+
+    const hasEmptyAmount = allMeals.some(meal => !meal.amount || meal.amount <= 0);
+    if (hasEmptyAmount) {
+      message.error("Vui lòng nhập lượng tiêu thụ cho tất cả các món");
+      return;
+    }
+
+    try {
+      setCalorieLoading(true);
+      setCalorieResult(null);
+
+      // Format data để gửi lên server - chuyển từ cấu trúc theo buổi sang cấu trúc theo món
+      const mealsMap = {};
+      
+      // Tổng hợp món ăn từ các buổi
+      ["sang", "trua", "chieu", "toi"].forEach(mealType => {
+        calorieMealsByMeal[mealType].forEach(meal => {
+          const key = meal.name.trim();
+          if (!mealsMap[key]) {
+            mealsMap[key] = {
+              ten_mon: key,
+              sang: { amount: 0, unit: "gram" },
+              trua: { amount: 0, unit: "gram" },
+              chieu: { amount: 0, unit: "gram" },
+              toi: { amount: 0, unit: "gram" }
+            };
+          }
+          mealsMap[key][mealType] = {
+            amount: parseFloat(meal.amount),
+            unit: meal.unit
+          };
+        });
+      });
+
+      // Chuyển sang format array
+      const mealsData = Object.values(mealsMap).map(meal => ({
+        ten_mon: meal.ten_mon,
+        sang: meal.sang.amount,
+        sang_unit: meal.sang.unit,
+        trua: meal.trua.amount,
+        trua_unit: meal.trua.unit,
+        chieu: meal.chieu.amount,
+        chieu_unit: meal.chieu.unit,
+        toi: meal.toi.amount,
+        toi_unit: meal.toi.unit,
+      }));
+
+      const response = await apiCalorieCalculator.calculate({
+        meals: mealsData
+      });
+
+      setCalorieResult(response);
+      message.success("Tính calories thành công!");
+    } catch (error) {
+      console.error("Error calculating calories:", error);
+      message.error(error.response?.data?.message || "Có lỗi xảy ra khi tính calories");
+    } finally {
+      setCalorieLoading(false);
+    }
+  };
+
+  const handleResetCalories = () => {
+    setCalorieMealsByMeal({
+      sang: [],
+      trua: [],
+      chieu: [],
+      toi: []
+    });
+    setCalorieResult(null);
+    setIsCalorieStarted(false);
+    calorieForm.resetFields();
+  };
+
+  const handleStartCalorie = () => {
+    setIsCalorieStarted(true);
+    message.success("Bắt đầu tính calories! Hãy thêm các món ăn của bạn.");
+  };
+
+  // Render tính calories
+  const renderCalorieCalculator = () => {
+    return (
+      <div className="calorie-calculator-container">
+        <Card 
+          title={
+            <span>
+              <CalculatorOutlined /> Tính calories
+            </span>
+          }
+          className="calorie-calculator-card"
+        >
+          <div className="calorie-feature-banner">
+            <div className="calorie-banner-content">
+              <div className="calorie-banner-icon">
+                <FireOutlined />
+              </div>
+              <div className="calorie-banner-text">
+                <Title level={4} style={{ margin: 0, color: "#fff" }}>
+                  <ThunderboltOutlined style={{ marginRight: 8 }} />
+                  Tính Calories Thông Minh với AI
+                </Title>
+                <Paragraph style={{ margin: "8px 0 0 0", color: "#fff", fontSize: "15px" }}>
+                  Theo dõi lượng calo tiêu thụ hàng ngày một cách chính xác và dễ dàng. 
+                  Chỉ cần nhập món ăn và lượng tiêu thụ, AI sẽ tự động tính toán calories cho bạn!
+                </Paragraph>
+                <div className="calorie-banner-features">
+                  <Tag color="rgba(255,255,255,0.3)" style={{ marginTop: 12, color: "#fff", border: "1px solid rgba(255,255,255,0.5)" }}>
+                    <CheckCircleOutlined /> Tính toán chính xác
+                  </Tag>
+                  <Tag color="rgba(255,255,255,0.3)" style={{ marginTop: 12, color: "#fff", border: "1px solid rgba(255,255,255,0.5)" }}>
+                    <CheckCircleOutlined /> Hỗ trợ đa dạng đơn vị
+                  </Tag>
+                  <Tag color="rgba(255,255,255,0.3)" style={{ marginTop: 12, color: "#fff", border: "1px solid rgba(255,255,255,0.5)" }}>
+                    <CheckCircleOutlined /> Báo cáo chi tiết
+                  </Tag>
+                </div>
+              </div>
+            </div>
+            <div className="calorie-banner-guide">
+              <Text type="secondary" style={{ fontSize: "13px" }}>
+                <BulbOutlined style={{ marginRight: 4 }} />
+                <strong>Hướng dẫn:</strong> Chọn buổi ăn → Thêm món ăn với tên, lượng và đơn vị → Nhấn "Tính calories"
+              </Text>
+            </div>
+          </div>
+
+          <Form form={calorieForm} layout="vertical">
+            {!isCalorieStarted ? (
+              <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                <FireOutlined style={{ fontSize: "64px", color: "#1890ff", marginBottom: "24px" }} />
+                <Title level={3} style={{ marginBottom: "16px" }}>
+                  Sẵn sàng tính calories?
+                </Title>
+                <Paragraph style={{ marginBottom: "32px", fontSize: "16px", color: "#666" }}>
+                  Nhấn nút "Bắt đầu" để bắt đầu thêm các món ăn và tính toán lượng calories tiêu thụ trong ngày.
+                </Paragraph>
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<ThunderboltOutlined />}
+                  onClick={handleStartCalorie}
+                  style={{
+                    height: "50px",
+                    fontSize: "18px",
+                    padding: "0 40px",
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    border: "none",
+                    boxShadow: "0 4px 15px rgba(102, 126, 234, 0.4)"
+                  }}
+                >
+                  Bắt đầu
+                </Button>
+              </div>
+            ) : (
+              <>
+            {/* Bữa sáng */}
+            <Card
+              title={
+                <span>
+                  <AppleOutlined style={{ color: "#ff9800" }} /> Bữa sáng
+                </span>
+              }
+              style={{ marginBottom: 16 }}
+              extra={
+                <Button
+                  type="dashed"
+                  icon={<PlusOutlined />}
+                  onClick={() => handleAddMealToMeal("sang")}
+                  size="small"
+                  disabled={!isCalorieStarted}
+                >
+                  Thêm món
+                </Button>
+              }
+            >
+              {calorieMealsByMeal.sang.length === 0 ? (
+                <Empty
+                  description="Chưa có món ăn nào"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  style={{ padding: "20px 0" }}
+                />
+              ) : (
+                calorieMealsByMeal.sang.map((meal, index) => (
+                  <Card
+                    key={meal.id}
+                    size="small"
+                    style={{ marginBottom: 12 }}
+                    extra={
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleRemoveMealFromMeal("sang", meal.id)}
+                        size="small"
+                      >
+                        Xóa
+                      </Button>
+                    }
+                  >
+                    <Row gutter={[16, 16]}>
+                      <Col xs={24} sm={10}>
+                        <Form.Item label="Tên món ăn" required>
+                          <Input
+                            placeholder="Ví dụ: Cơm trắng, Phở..."
+                            value={meal.name}
+                            onChange={(e) => handleMealChange("sang", meal.id, "name", e.target.value)}
+                            disabled={!isCalorieStarted}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={12} sm={6}>
+                        <Form.Item label="Lượng" required>
+                          <InputNumber
+                            placeholder="0"
+                            min={0}
+                            style={{ width: "100%" }}
+                            value={meal.amount}
+                            onChange={(value) => handleMealChange("sang", meal.id, "amount", value || "")}
+                            disabled={!isCalorieStarted}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={12} sm={8}>
+                        <Form.Item label="Đơn vị" required>
+                          <Select
+                            value={meal.unit}
+                            onChange={(value) => handleMealChange("sang", meal.id, "unit", value)}
+                            style={{ width: "100%" }}
+                            options={unitOptions}
+                            disabled={!isCalorieStarted}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </Card>
+                ))
+              )}
+            </Card>
+
+            {/* Bữa trưa */}
+            <Card
+              title={
+                <span>
+                  <AppleOutlined style={{ color: "#4caf50" }} /> Bữa trưa
+                </span>
+              }
+              style={{ marginBottom: 16 }}
+              extra={
+                <Button
+                  type="dashed"
+                  icon={<PlusOutlined />}
+                  onClick={() => handleAddMealToMeal("trua")}
+                  size="small"
+                  disabled={!isCalorieStarted}
+                >
+                  Thêm món
+                </Button>
+              }
+            >
+              {calorieMealsByMeal.trua.length === 0 ? (
+                <Empty
+                  description="Chưa có món ăn nào"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  style={{ padding: "20px 0" }}
+                />
+              ) : (
+                calorieMealsByMeal.trua.map((meal, index) => (
+                  <Card
+                    key={meal.id}
+                    size="small"
+                    style={{ marginBottom: 12 }}
+                    extra={
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleRemoveMealFromMeal("trua", meal.id)}
+                        size="small"
+                      >
+                        Xóa
+                      </Button>
+                    }
+                  >
+                    <Row gutter={[16, 16]}>
+                      <Col xs={24} sm={10}>
+                        <Form.Item label="Tên món ăn" required>
+                          <Input
+                            placeholder="Ví dụ: Cơm trắng, Thịt gà..."
+                            value={meal.name}
+                            onChange={(e) => handleMealChange("trua", meal.id, "name", e.target.value)}
+                            disabled={!isCalorieStarted}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={12} sm={6}>
+                        <Form.Item label="Lượng" required>
+                          <InputNumber
+                            placeholder="0"
+                            min={0}
+                            style={{ width: "100%" }}
+                            value={meal.amount}
+                            onChange={(value) => handleMealChange("trua", meal.id, "amount", value || "")}
+                            disabled={!isCalorieStarted}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={12} sm={8}>
+                        <Form.Item label="Đơn vị" required>
+                          <Select
+                            value={meal.unit}
+                            onChange={(value) => handleMealChange("trua", meal.id, "unit", value)}
+                            style={{ width: "100%" }}
+                            options={unitOptions}
+                            disabled={!isCalorieStarted}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </Card>
+                ))
+              )}
+            </Card>
+
+            {/* Bữa chiều */}
+            <Card
+              title={
+                <span>
+                  <AppleOutlined style={{ color: "#2196f3" }} /> Bữa chiều
+                </span>
+              }
+              style={{ marginBottom: 16 }}
+              extra={
+                <Button
+                  type="dashed"
+                  icon={<PlusOutlined />}
+                  onClick={() => handleAddMealToMeal("chieu")}
+                  size="small"
+                  disabled={!isCalorieStarted}
+                >
+                  Thêm món
+                </Button>
+              }
+            >
+              {calorieMealsByMeal.chieu.length === 0 ? (
+                <Empty
+                  description="Chưa có món ăn nào"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  style={{ padding: "20px 0" }}
+                />
+              ) : (
+                calorieMealsByMeal.chieu.map((meal, index) => (
+                  <Card
+                    key={meal.id}
+                    size="small"
+                    style={{ marginBottom: 12 }}
+                    extra={
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleRemoveMealFromMeal("chieu", meal.id)}
+                        size="small"
+                      >
+                        Xóa
+                      </Button>
+                    }
+                  >
+                    <Row gutter={[16, 16]}>
+                      <Col xs={24} sm={10}>
+                        <Form.Item label="Tên món ăn" required>
+                          <Input
+                            placeholder="Ví dụ: Bánh mì, Sữa chua..."
+                            value={meal.name}
+                            onChange={(e) => handleMealChange("chieu", meal.id, "name", e.target.value)}
+                            disabled={!isCalorieStarted}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={12} sm={6}>
+                        <Form.Item label="Lượng" required>
+                          <InputNumber
+                            placeholder="0"
+                            min={0}
+                            style={{ width: "100%" }}
+                            value={meal.amount}
+                            onChange={(value) => handleMealChange("chieu", meal.id, "amount", value || "")}
+                            disabled={!isCalorieStarted}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={12} sm={8}>
+                        <Form.Item label="Đơn vị" required>
+                          <Select
+                            value={meal.unit}
+                            onChange={(value) => handleMealChange("chieu", meal.id, "unit", value)}
+                            style={{ width: "100%" }}
+                            options={unitOptions}
+                            disabled={!isCalorieStarted}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </Card>
+                ))
+              )}
+            </Card>
+
+            {/* Bữa tối */}
+            <Card
+              title={
+                <span>
+                  <AppleOutlined style={{ color: "#9c27b0" }} /> Bữa tối
+                </span>
+              }
+              style={{ marginBottom: 24 }}
+              extra={
+                <Button
+                  type="dashed"
+                  icon={<PlusOutlined />}
+                  onClick={() => handleAddMealToMeal("toi")}
+                  size="small"
+                  disabled={!isCalorieStarted}
+                >
+                  Thêm món
+                </Button>
+              }
+            >
+              {calorieMealsByMeal.toi.length === 0 ? (
+                <Empty
+                  description="Chưa có món ăn nào"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  style={{ padding: "20px 0" }}
+                />
+              ) : (
+                calorieMealsByMeal.toi.map((meal, index) => (
+                  <Card
+                    key={meal.id}
+                    size="small"
+                    style={{ marginBottom: 12 }}
+                    extra={
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleRemoveMealFromMeal("toi", meal.id)}
+                        size="small"
+                      >
+                        Xóa
+                      </Button>
+                    }
+                  >
+                    <Row gutter={[16, 16]}>
+                      <Col xs={24} sm={10}>
+                        <Form.Item label="Tên món ăn" required>
+                          <Input
+                            placeholder="Ví dụ: Cơm trắng, Canh chua..."
+                            value={meal.name}
+                            onChange={(e) => handleMealChange("toi", meal.id, "name", e.target.value)}
+                            disabled={!isCalorieStarted}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={12} sm={6}>
+                        <Form.Item label="Lượng" required>
+                          <InputNumber
+                            placeholder="0"
+                            min={0}
+                            style={{ width: "100%" }}
+                            value={meal.amount}
+                            onChange={(value) => handleMealChange("toi", meal.id, "amount", value || "")}
+                            disabled={!isCalorieStarted}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={12} sm={8}>
+                        <Form.Item label="Đơn vị" required>
+                          <Select
+                            value={meal.unit}
+                            onChange={(value) => handleMealChange("toi", meal.id, "unit", value)}
+                            style={{ width: "100%" }}
+                            options={unitOptions}
+                            disabled={!isCalorieStarted}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </Card>
+                ))
+              )}
+            </Card>
+
+            <Space>
+              <Button
+                type="primary"
+                icon={<CalculatorOutlined />}
+                onClick={handleCalculateCalories}
+                loading={calorieLoading}
+                size="large"
+                disabled={!isCalorieStarted}
+              >
+                Tính calories
+              </Button>
+              <Button 
+                onClick={handleResetCalories}
+                disabled={!isCalorieStarted}
+              >
+                Đặt lại
+              </Button>
+            </Space>
+              </>
+            )}
+          </Form>
+        </Card>
+
+        {calorieResult && (
+          <Card
+            title={
+              <span>
+                <FireOutlined /> Kết quả tính calories
+              </span>
+            }
+            className="calorie-result-card"
+            style={{ marginTop: 24 }}
+          >
+            <Row gutter={[24, 24]}>
+              {/* Tổng calories cả ngày */}
+              <Col xs={24}>
+                <Card
+                  type="inner"
+                  style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white" }}
+                >
+                  <Statistic
+                    title={<span style={{ color: "white" }}>Tổng calories cả ngày</span>}
+                    value={calorieResult.tong_calo_ngay || 0}
+                    suffix="kcal"
+                    valueStyle={{ color: "white", fontSize: "32px", fontWeight: "bold" }}
+                  />
+                </Card>
+              </Col>
+
+              {/* Calories theo buổi */}
+              <Col xs={24} sm={12} md={6}>
+                <Card type="inner" style={{ background: "#fff7e6" }}>
+                  <Statistic
+                    title="Bữa sáng"
+                    value={calorieResult.calo_sang || 0}
+                    suffix="kcal"
+                    prefix={<FireOutlined style={{ color: "#faad14" }} />}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Card type="inner" style={{ background: "#e6f7ff" }}>
+                  <Statistic
+                    title="Bữa trưa"
+                    value={calorieResult.calo_trua || 0}
+                    suffix="kcal"
+                    prefix={<FireOutlined style={{ color: "#1890ff" }} />}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Card type="inner" style={{ background: "#f6ffed" }}>
+                  <Statistic
+                    title="Bữa chiều"
+                    value={calorieResult.calo_chieu || 0}
+                    suffix="kcal"
+                    prefix={<FireOutlined style={{ color: "#52c41a" }} />}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Card type="inner" style={{ background: "#fff1f0" }}>
+                  <Statistic
+                    title="Bữa tối"
+                    value={calorieResult.calo_toi || 0}
+                    suffix="kcal"
+                    prefix={<FireOutlined style={{ color: "#ff4d4f" }} />}
+                  />
+                </Card>
+              </Col>
+
+              {/* Chi tiết từng món */}
+              {calorieResult.chi_tiet_mon && calorieResult.chi_tiet_mon.length > 0 && (
+                <Col xs={24}>
+                  <Divider orientation="left">Chi tiết calories theo món</Divider>
+                  <Table
+                    dataSource={calorieResult.chi_tiet_mon}
+                    rowKey={(record, index) => index}
+                    pagination={false}
+                    size="small"
+                    columns={[
+                      {
+                        title: "Tên món",
+                        dataIndex: "ten_mon",
+                        key: "ten_mon",
+                        width: "20%",
+                      },
+                      {
+                        title: "Lượng tiêu thụ",
+                        key: "luong_tieu_thu",
+                        align: "center",
+                        children: [
+                          {
+                            title: "Sáng",
+                            dataIndex: "luong_sang",
+                            key: "luong_sang",
+                            align: "center",
+                            width: "15%",
+                            render: (value) => value || '-',
+                          },
+                          {
+                            title: "Trưa",
+                            dataIndex: "luong_trua",
+                            key: "luong_trua",
+                            align: "center",
+                            width: "15%",
+                            render: (value) => value || '-',
+                          },
+                          {
+                            title: "Chiều",
+                            dataIndex: "luong_chieu",
+                            key: "luong_chieu",
+                            align: "center",
+                            width: "15%",
+                            render: (value) => value || '-',
+                          },
+                          {
+                            title: "Tối",
+                            dataIndex: "luong_toi",
+                            key: "luong_toi",
+                            align: "center",
+                            width: "15%",
+                            render: (value) => value || '-',
+                          },
+                        ],
+                      },
+                      {
+                        title: "Calories",
+                        key: "calories",
+                        align: "center",
+                        children: [
+                          {
+                            title: "Sáng (kcal)",
+                            dataIndex: "calo_sang",
+                            key: "calo_sang",
+                            align: "center",
+                            width: "10%",
+                            render: (value) => value || 0,
+                          },
+                          {
+                            title: "Trưa (kcal)",
+                            dataIndex: "calo_trua",
+                            key: "calo_trua",
+                            align: "center",
+                            width: "10%",
+                            render: (value) => value || 0,
+                          },
+                          {
+                            title: "Chiều (kcal)",
+                            dataIndex: "calo_chieu",
+                            key: "calo_chieu",
+                            align: "center",
+                            width: "10%",
+                            render: (value) => value || 0,
+                          },
+                          {
+                            title: "Tối (kcal)",
+                            dataIndex: "calo_toi",
+                            key: "calo_toi",
+                            align: "center",
+                            width: "10%",
+                            render: (value) => value || 0,
+                          },
+                        ],
+                      },
+                      {
+                        title: "Tổng (kcal)",
+                        key: "tong",
+                        align: "center",
+                        width: "10%",
+                        render: (_, record) => {
+                          const total = (record.calo_sang || 0) + 
+                                       (record.calo_trua || 0) + 
+                                       (record.calo_chieu || 0) + 
+                                       (record.calo_toi || 0);
+                          return <Text strong>{total}</Text>;
+                        },
+                      },
+                    ]}
+                  />
+                </Col>
+              )}
+            </Row>
+          </Card>
+        )}
+      </div>
+    );
+  };
+
   const renderProgressChart = () => {
     if (progressData.length === 0) {
       return (
@@ -903,9 +1711,6 @@ const NutritionRecords = () => {
               <Descriptions.Item label={<span className="desc-label"><PhoneOutlined /> Số điện thoại</span>}>
                 <Text className="desc-value">{personalInfo.so_dien_thoai}</Text>
               </Descriptions.Item>
-              <Descriptions.Item label={<span className="desc-label">Mã BHYT</span>}>
-                <Tag color="green">{personalInfo.ma_BHYT}</Tag>
-              </Descriptions.Item>
               <Descriptions.Item label={<span className="desc-label"><HomeOutlined /> Địa chỉ</span>} span={3}>
                 <Text className="desc-value">{personalInfo.dia_chi}</Text>
               </Descriptions.Item>
@@ -1144,122 +1949,6 @@ const NutritionRecords = () => {
                     </Card>
                   )}
 
-                  {/* Meal Plan Section */}
-                  {(() => {
-                    console.log('[DEBUG] nutritionProfile.thuc_don:', nutritionProfile.thuc_don);
-                    console.log('[DEBUG] Object.keys(nutritionProfile.thuc_don):', nutritionProfile.thuc_don ? Object.keys(nutritionProfile.thuc_don) : 'null');
-                    return null;
-                  })()}
-                  {nutritionProfile.thuc_don && Object.keys(nutritionProfile.thuc_don).length > 0 && (
-        <Card
-                      className="info-card modern-content-card" 
-                      style={{ marginTop: 24 }}
-                      title={
-                        <span className="card-title-with-icon">
-                          <AppleOutlined /> Thực đơn dinh dưỡng
-                        </span>
-                      }
-                    >
-                      <Row gutter={[16, 16]}>
-                        {Object.entries(nutritionProfile.thuc_don).map(([bua, monAnList]) => {
-                          console.log(`[DEBUG] Hiển thị bữa ${bua} với ${monAnList?.length || 0} món ăn:`, monAnList);
-                          return (
-                          <Col xs={24} sm={12} lg={8} key={bua}>
-                            <Card
-                              title={
-                                <span style={{ fontWeight: 600, color: '#52c41a', fontSize: '16px' }}>
-                                  {formatBuaAn(bua)}
-                                </span>
-                              }
-                              size="small"
-                              className="meal-card"
-                              style={{ height: '100%' }}
-                            >
-                              {Array.isArray(monAnList) && monAnList.length > 0 ? (
-                                <div style={{ margin: 0 }}>
-                                  {monAnList.map((mon, idx) => {
-                                    // Nếu mon là object, hiển thị thông tin chi tiết
-                                    if (typeof mon === 'object' && mon !== null) {
-                                      const tenMon = mon.ten_mon || mon.mon_an || '—';
-                                      const khoiLuong = mon.khoi_luong;
-                                      const calo = mon.calo;
-                                      return (
-                                        <div 
-                                          key={idx} 
-                                          style={{ 
-                                            marginBottom: 12, 
-                                            padding: '12px', 
-                                            backgroundColor: '#f8f9fa', 
-                                            borderRadius: '8px',
-                                            border: '1px solid #e8e8e8',
-                                            transition: 'all 0.2s'
-                                          }}
-                                        >
-                                          <div style={{ fontWeight: 600, color: '#2d3436', fontSize: '15px', marginBottom: 8 }}>
-                                            {tenMon}
-                                          </div>
-                                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                            {khoiLuong && (
-                                              <div style={{ fontSize: '13px', color: '#666' }}>
-                                                <span style={{ fontWeight: 500 }}>Khối lượng:</span> {khoiLuong}g
-                                              </div>
-                                            )}
-                                            {calo && (
-                                              <div style={{ fontSize: '13px', color: '#ff6b6b', fontWeight: 500 }}>
-                                                <span style={{ fontWeight: 600 }}>Calo:</span> {calo} kcal
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      );
-                                    }
-                                    // Nếu mon là string, hiển thị bình thường
-                                    return (
-                                      <div 
-                                        key={idx} 
-                                        style={{ 
-                                          marginBottom: 8, 
-                                          padding: '12px', 
-                                          backgroundColor: '#f8f9fa', 
-                                          borderRadius: '8px',
-                                          border: '1px solid #e8e8e8'
-                                        }}
-                                      >
-                                        <div style={{ color: '#2d3436', fontSize: '15px' }}>{mon}</div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                <div style={{ color: '#999', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
-                                  Chưa có món ăn cho {bua}
-                                </div>
-                              )}
-                            </Card>
-                          </Col>
-                          );
-                        })}
-                      </Row>
-                    </Card>
-                  )}
-                  {(!nutritionProfile.thuc_don || Object.keys(nutritionProfile.thuc_don).length === 0) && (
-                    <Card 
-                      className="info-card modern-content-card" 
-                      style={{ marginTop: 24 }}
-                      title={
-                        <span className="card-title-with-icon">
-                          <AppleOutlined /> Thực đơn dinh dưỡng
-                        </span>
-                      }
-                    >
-                      <Empty 
-                        description="Chưa có thực đơn dinh dưỡng"
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        style={{ padding: "40px 0" }}
-                        />
-                      </Card>
-                    )}
-
                   {/* Nutrition Plan and Notes Section */}
                   <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
                   <Col xs={24} lg={12}>
@@ -1316,8 +2005,10 @@ const NutritionRecords = () => {
                           style={{ marginBottom: 24 }}
                         >
                           <div className="content-box content-goal">
-                          {nutritionProfile.muc_tieu_dinh_duong}
-                        </div>
+                            <Text strong style={{ fontSize: '16px', color: '#52c41a' }}>
+                              {formatMucTieuDinhDuong(nutritionProfile.muc_tieu_dinh_duong)}
+                            </Text>
+                          </div>
                       </Card>
                     )}
 
@@ -1384,6 +2075,15 @@ const NutritionRecords = () => {
                 </span>
               ),
               children: renderAppointmentHistory(),
+            },
+            {
+              key: "calorie",
+              label: (
+                <span>
+                  <CalculatorOutlined /> Tính calories
+                </span>
+              ),
+              children: renderCalorieCalculator(),
             },
           ]}
         />
@@ -1500,7 +2200,7 @@ const NutritionRecords = () => {
                               className="meal-card"
                             >
                               {Array.isArray(monAn) && monAn.length > 0 ? (
-                                <div style={{ margin: 0 }}>
+                                <div className="meal-list-container">
                                   {monAn.map((mon, idx) => {
                                     // Nếu mon là object, hiển thị thông tin chi tiết
                                     if (typeof mon === 'object' && mon !== null) {
@@ -1508,34 +2208,38 @@ const NutritionRecords = () => {
                                       const khoiLuong = mon.khoi_luong;
                                       const calo = mon.calo;
                                       return (
-                                        <div key={idx} style={{ marginBottom: 12, padding: '8px 12px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                                          <div style={{ fontWeight: 600, color: '#2d3436', fontSize: '15px', marginBottom: 4 }}>
+                                        <div key={idx} className="meal-item">
+                                          <div className="meal-item-name">
                                             {tenMon}
                                           </div>
-                                          {khoiLuong && (
-                                            <div style={{ fontSize: '13px', color: '#666', marginTop: 4 }}>
-                                              Khối lượng: <span style={{ fontWeight: 500 }}>{khoiLuong}g</span>
-                                            </div>
-                                          )}
-                                          {calo && (
-                                            <div style={{ fontSize: '13px', color: '#ff6b6b', marginTop: 4, fontWeight: 500 }}>
-                                              Calo: {calo} kcal
-                                            </div>
-                                          )}
+                                          <div className="meal-item-details">
+                                            {khoiLuong && (
+                                              <div className="meal-detail-item">
+                                                <span className="meal-detail-label">Khối lượng:</span>
+                                                <span className="meal-detail-value">{khoiLuong}g</span>
+                                              </div>
+                                            )}
+                                            {calo && (
+                                              <div className="meal-detail-item calorie-detail">
+                                                <span className="meal-detail-label">Calo:</span>
+                                                <span className="meal-detail-value">{calo} kcal</span>
+                                              </div>
+                                            )}
+                                          </div>
                                         </div>
                                       );
                                     }
                                     // Nếu mon là string, hiển thị bình thường
                                     return (
-                                      <div key={idx} style={{ marginBottom: 8, padding: '8px 12px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                                        <div style={{ color: '#2d3436' }}>{mon}</div>
+                                      <div key={idx} className="meal-item meal-item-simple">
+                                        <div className="meal-item-name">{mon}</div>
                                       </div>
                                     );
                                   })}
                                 </div>
                               ) : (
-                                <div style={{ color: '#999', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
-                                  Chưa có món ăn cho {bua}
+                                <div className="meal-empty-state">
+                                  Chưa có món ăn cho {formatBuaAn(bua)}
                                 </div>
                               )}
                 </Card>

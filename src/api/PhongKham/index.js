@@ -16,6 +16,20 @@ const apiPhongKham = {
     }
   },
 
+  // Lấy tất cả phòng khám cho Admin (không mặc định lọc trạng thái)
+  getAllAdmin: async (params = {}) => {
+    try {
+      const res = await axiosInstance.get(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.PhongKham}/admin`,
+        { params }
+      );
+      return res.data;
+    } catch (err) {
+      console.error("Error fetching all phòng khám for admin:", err);
+      throw err;
+    }
+  },
+
   // Lấy phòng khám theo ID
   getById: async (id_phong_kham) => {
     try {

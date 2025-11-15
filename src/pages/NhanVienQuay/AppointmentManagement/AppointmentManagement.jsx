@@ -20,6 +20,7 @@ import {
   Divider,
   Segmented,
   App,
+  Spin,
 } from "antd";
 import {
   CalendarOutlined,
@@ -68,13 +69,11 @@ const AppointmentManagement = () => {
   const [viewMode, setViewMode] = useState("table"); // table or calendar
   const [selectedDate, setSelectedDate] = useState(moment());
   const [form] = Form.useForm();
-  const [loaiHen, setLoaiHen] = useState("kham_benh"); // kham_benh hoặc tu_van_dinh_duong
-  const [availableTimeSlots, setAvailableTimeSlots] = useState([]); // Khung giờ có bác sĩ/chuyên gia available
+  const [availableTimeSlots, setAvailableTimeSlots] = useState([]); // Khung giờ có bác sĩ available
   
   // Watch form values to avoid useForm warning
   const ngayHen = Form.useWatch("ngay_hen", form);
   const idChuyenKhoa = Form.useWatch("id_chuyen_khoa", form);
-  const idChuyenNganh = Form.useWatch("id_chuyen_nganh", form);
 
   useEffect(() => {
     fetchData();
@@ -94,13 +93,10 @@ const AppointmentManagement = () => {
         apiChuyenGiaDinhDuong.getAllChuyenNganh().catch(() => []),
       ]);
 
-      // Merge cả hai loại lịch hẹn và thêm trường loại để phân biệt
-      const mergedAppointments = [
-        ...(apptKhamData || []).map(apt => ({ ...apt, loai_hen: 'kham_benh' })),
-        ...(apptTuVanData || []).map(apt => ({ ...apt, loai_hen: 'tu_van_dinh_duong' }))
-      ];
+      // Chỉ hiển thị lịch hẹn khám bệnh cho trang này
+      const khamAppointments = (apptKhamData || []).map(apt => ({ ...apt, loai_hen: 'kham_benh' }));
 
-      setAppointments(mergedAppointments);
+      setAppointments(khamAppointments);
       setPatients(patientData || []);
       setDoctors(doctorData || []);
       setNutritionists(nutritionistData || []);
@@ -139,9 +135,9 @@ const AppointmentManagement = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // Tìm khung giờ available khi chọn ngày và loại hẹn - Logic từ AutoBookingModal
-  const fetchAvailableTimeSlots = async (ngayHen, loaiHenValue, idChuyenKhoaOrNganh) => {
-    if (!ngayHen || !loaiHenValue) {
+  // Tìm khung giờ available khi chọn ngày và chuyên khoa - Logic từ AutoBookingModal
+  const fetchAvailableTimeSlots = async (ngayHen, idChuyenKhoa) => {
+    if (!ngayHen || !idChuyenKhoa) {
       setAvailableTimeSlots([]);
       return;
     }
@@ -160,139 +156,69 @@ const AppointmentManagement = () => {
       const allTimeSlots = await apiKhungGioKham.getAll();
       const availableSlots = [];
 
-      if (loaiHenValue === "kham_benh" && idChuyenKhoaOrNganh) {
-        // Đối với khám bệnh: tìm bác sĩ có lịch trống
-        const allDoctors = await apiBacSi.getAll();
-        
-        // Merge với thông tin user
-        const mergedDoctors = await Promise.all(
-          allDoctors.map(async (bs) => {
-            try {
-              const user = await apiNguoiDung.getUserById(bs.id_bac_si);
-              return { ...bs, ...user };
-            } catch (err) {
-              console.error("Lỗi khi lấy user cho bác sĩ:", err);
-              return bs;
-            }
-          })
-        );
-
-        // Filter theo chuyên khoa
-        const doctorsToCheck = mergedDoctors.filter(
-          (bs) => String(bs.id_chuyen_khoa) === String(idChuyenKhoaOrNganh)
-        );
-
-        // Với mỗi khung giờ, kiểm tra xem có bác sĩ nào còn chỗ trống
-        for (const timeSlot of allTimeSlots) {
-          // Tìm các bác sĩ có lịch làm việc trong ca này
-          const ca = timeSlot.ca;
-          const doctorsInCa = schedulesOnDate
-            .filter((s) => s.ca === ca)
-            .map((s) => s.id_nguoi_dung);
-
-          const availableDoctors = doctorsToCheck.filter((doctor) =>
-            doctorsInCa.includes(doctor.id_bac_si)
-          );
-
-          // Kiểm tra từng bác sĩ xem còn chỗ trống không
-          for (const doctor of availableDoctors) {
-            try {
-              const countData = await apiCuocHenKhamBenh.countByTimeSlot(
-                doctor.id_bac_si,
-                timeSlot.id_khung_gio,
-                dateStr
-              );
-
-              if (countData.count < countData.max_count) {
-                // Lấy tên chuyên khoa từ danh sách specialties
-                const specialty = specialties.find(
-                  (sp) => sp.id_chuyen_khoa === doctor.id_chuyen_khoa
-                );
-                
-                // Còn chỗ trống, thêm vào danh sách
-                availableSlots.push({
-                  ...timeSlot,
-                  id_bac_si: doctor.id_bac_si,
-                  id_chuyen_khoa: doctor.id_chuyen_khoa,
-                  ten_bac_si: doctor.ho_ten,
-                  ten_chuyen_khoa: specialty?.ten_chuyen_khoa || "",
-                  bookedCount: countData.count,
-                  maxCount: countData.max_count,
-                  availableSlots: countData.max_count - countData.count,
-                });
-                break; // Chỉ cần 1 bác sĩ còn chỗ là đủ
-              }
-            } catch (err) {
-              console.error(`Lỗi khi check bác sĩ ${doctor.id_bac_si}:`, err);
-            }
+      // Tìm bác sĩ có lịch trống
+      const allDoctors = await apiBacSi.getAll();
+      
+      // Merge với thông tin user
+      const mergedDoctors = await Promise.all(
+        allDoctors.map(async (bs) => {
+          try {
+            const user = await apiNguoiDung.getUserById(bs.id_bac_si);
+            return { ...bs, ...user };
+          } catch (err) {
+            console.error("Lỗi khi lấy user cho bác sĩ:", err);
+            return bs;
           }
-        }
-      } else if (loaiHenValue === "tu_van_dinh_duong" && idChuyenKhoaOrNganh) {
-        // Đối với tư vấn dinh dưỡng: tìm chuyên gia có lịch trống
-        const allExperts = await apiChuyenGiaDinhDuong.getAll();
+        })
+      );
 
-        // Merge với thông tin user
-        const mergedExperts = await Promise.all(
-          (allExperts || []).map(async (cg) => {
-            try {
-              const user = await apiNguoiDung.getUserById(cg.id_chuyen_gia);
-              return { ...cg, ...user };
-            } catch (err) {
-              console.error("Lỗi khi lấy user cho chuyên gia:", err);
-              return cg;
-            }
-          })
+      // Filter theo chuyên khoa
+      const doctorsToCheck = mergedDoctors.filter(
+        (bs) => String(bs.id_chuyen_khoa) === String(idChuyenKhoa)
+      );
+
+      // Với mỗi khung giờ, kiểm tra xem có bác sĩ nào còn chỗ trống
+      for (const timeSlot of allTimeSlots) {
+        // Tìm các bác sĩ có lịch làm việc trong ca này
+        const ca = timeSlot.ca;
+        const doctorsInCa = schedulesOnDate
+          .filter((s) => s.ca === ca)
+          .map((s) => s.id_nguoi_dung);
+
+        const availableDoctors = doctorsToCheck.filter((doctor) =>
+          doctorsInCa.includes(doctor.id_bac_si)
         );
 
-        // Filter theo chuyên ngành nếu có
-        let expertsToCheck = mergedExperts;
-        if (idChuyenKhoaOrNganh) {
-          expertsToCheck = mergedExperts.filter(
-            (expert) => String(expert.id_chuyen_nganh) === String(idChuyenKhoaOrNganh)
-          );
-        }
+        // Kiểm tra từng bác sĩ xem còn chỗ trống không
+        for (const doctor of availableDoctors) {
+          try {
+            const countData = await apiCuocHenKhamBenh.countByTimeSlot(
+              doctor.id_bac_si,
+              timeSlot.id_khung_gio,
+              dateStr
+            );
 
-        // Với mỗi khung giờ, kiểm tra xem có chuyên gia nào còn chỗ trống
-        for (const timeSlot of allTimeSlots) {
-          // Tìm các chuyên gia có lịch làm việc trong ca này
-          const ca = timeSlot.ca;
-          const expertsInCa = schedulesOnDate
-            .filter((s) => s.ca === ca)
-            .map((s) => s.id_nguoi_dung);
-
-          const availableExperts = expertsToCheck.filter((expert) =>
-            expertsInCa.includes(expert.id_chuyen_gia)
-          );
-
-          // Kiểm tra từng chuyên gia xem còn chỗ trống không
-          for (const expert of availableExperts) {
-            try {
-              const countData = await apiCuocHenTuVan.countByTimeSlot(
-                expert.id_chuyen_gia,
-                timeSlot.id_khung_gio,
-                dateStr
+            if (countData.count < countData.max_count) {
+              // Lấy tên chuyên khoa từ danh sách specialties
+              const specialty = specialties.find(
+                (sp) => sp.id_chuyen_khoa === doctor.id_chuyen_khoa
               );
-
-              if (countData.count < countData.max_count) {
-                // Còn chỗ trống, thêm vào danh sách
-                const selectedChuyenNganh = nutritionSpecialties.find(
-                  (cn) => cn.id_chuyen_nganh === expert.id_chuyen_nganh
-                );
-                
-                availableSlots.push({
-                  ...timeSlot,
-                  id_chuyen_gia: expert.id_chuyen_gia,
-                  ten_chuyen_gia: expert.ho_ten,
-                  ten_chuyen_nganh: selectedChuyenNganh?.ten_chuyen_nganh || "",
-                  bookedCount: countData.count,
-                  maxCount: countData.max_count,
-                  availableSlots: countData.max_count - countData.count,
-                });
-                break; // Chỉ cần 1 chuyên gia còn chỗ là đủ
-              }
-            } catch (err) {
-              console.error(`Lỗi khi check chuyên gia ${expert.id_chuyen_gia}:`, err);
+              
+              // Còn chỗ trống, thêm vào danh sách
+              availableSlots.push({
+                ...timeSlot,
+                id_bac_si: doctor.id_bac_si,
+                id_chuyen_khoa: doctor.id_chuyen_khoa,
+                ten_bac_si: doctor.ho_ten,
+                ten_chuyen_khoa: specialty?.ten_chuyen_khoa || "",
+                bookedCount: countData.count,
+                maxCount: countData.max_count,
+                availableSlots: countData.max_count - countData.count,
+              });
+              break; // Chỉ cần 1 bác sĩ còn chỗ là đủ
             }
+          } catch (err) {
+            console.error(`Lỗi khi check bác sĩ ${doctor.id_bac_si}:`, err);
           }
         }
       }
@@ -314,9 +240,17 @@ const AppointmentManagement = () => {
     }
   };
 
+  // Tự động fetch khung giờ khi ngày hoặc chuyên khoa thay đổi
+  useEffect(() => {
+    if (ngayHen && idChuyenKhoa) {
+      fetchAvailableTimeSlots(ngayHen, idChuyenKhoa);
+    } else {
+      setAvailableTimeSlots([]);
+    }
+  }, [ngayHen, idChuyenKhoa]);
+
   const handleCreateAppointment = () => {
     form.resetFields();
-    setLoaiHen("kham_benh");
     setAvailableTimeSlots([]);
     setIsModalVisible(true);
   };
@@ -335,40 +269,23 @@ const AppointmentManagement = () => {
         return;
       }
 
-      if (loaiHen === "kham_benh") {
-        // Đặt lịch khám bệnh - giống AutoBookingModal
-        const payload = {
-          id_benh_nhan: values.id_benh_nhan,
-          id_bac_si: selectedTimeSlot.id_bac_si,
-          id_chuyen_khoa: values.id_chuyen_khoa || selectedTimeSlot.id_chuyen_khoa,
-          id_khung_gio: selectedTimeSlot.id_khung_gio,
-          ngay_kham: dateStr,
-          loai_hen: "truc_tiep",
-          ly_do_kham: values.ly_do_kham || "",
-          trieu_chung: values.trieu_chung || null,
-        };
+      // Đặt lịch khám bệnh
+      const payload = {
+        id_benh_nhan: values.id_benh_nhan,
+        id_bac_si: selectedTimeSlot.id_bac_si,
+        id_chuyen_khoa: values.id_chuyen_khoa || selectedTimeSlot.id_chuyen_khoa,
+        id_khung_gio: selectedTimeSlot.id_khung_gio,
+        ngay_kham: dateStr,
+        loai_hen: "truc_tiep",
+        ly_do_kham: values.ly_do_kham || "",
+        trieu_chung: values.trieu_chung || null,
+      };
 
-        await apiCuocHenKhamBenh.create(payload);
-        message.success("Đặt lịch khám bệnh thành công!");
-      } else if (loaiHen === "tu_van_dinh_duong") {
-        // Đặt lịch tư vấn dinh dưỡng - giống AutoBookingModal
-        const payload = {
-          id_benh_nhan: values.id_benh_nhan,
-          id_chuyen_gia: selectedTimeSlot.id_chuyen_gia,
-          id_khung_gio: selectedTimeSlot.id_khung_gio,
-          ngay_kham: dateStr,
-          loai_hen: "truc_tiep",
-          loai_dinh_duong: selectedTimeSlot.ten_chuyen_nganh || "",
-          ly_do_tu_van: values.ly_do_tu_van || "",
-        };
-
-        await apiCuocHenTuVan.create(payload);
-        message.success("Đặt lịch tư vấn dinh dưỡng thành công!");
-      }
+      await apiCuocHenKhamBenh.create(payload);
+      message.success("Đặt lịch khám bệnh thành công!");
 
       // Reset form
       form.resetFields();
-      setLoaiHen("kham_benh");
       setAvailableTimeSlots([]);
       setIsModalVisible(false);
       fetchData();
@@ -380,57 +297,16 @@ const AppointmentManagement = () => {
     }
   };
 
-  // Xử lý khi thay đổi loại hẹn
-  const handleLoaiHenChange = (value) => {
-    setLoaiHen(value);
-    form.setFieldsValue({
-      id_chuyen_khoa: undefined,
-      id_chuyen_nganh: undefined,
-      id_khung_gio: undefined,
-      ngay_hen: form.getFieldValue("ngay_hen"),
-    });
-    setAvailableTimeSlots([]);
-    
-    // Nếu đã chọn ngày, tự động tìm lại khung giờ
-    const ngayHen = form.getFieldValue("ngay_hen");
-    const idChuyenKhoaOrNganh = form.getFieldValue(
-      value === "kham_benh" ? "id_chuyen_khoa" : "id_chuyen_nganh"
-    );
-    if (ngayHen && idChuyenKhoaOrNganh) {
-      fetchAvailableTimeSlots(ngayHen, value, idChuyenKhoaOrNganh);
-    }
-  };
-
-  // Xử lý khi thay đổi chuyên khoa/chuyên ngành
-  const handleSpecialtyChange = (value, type) => {
-    if (type === "kham_benh") {
-      form.setFieldsValue({ id_chuyen_khoa: value });
-    } else {
-      form.setFieldsValue({ id_chuyen_nganh: value });
-    }
-    form.setFieldsValue({ id_khung_gio: undefined });
-    setAvailableTimeSlots([]);
-    
-    // Nếu đã chọn ngày, tìm khung giờ available
-    const ngayHen = form.getFieldValue("ngay_hen");
-    if (ngayHen && value) {
-      fetchAvailableTimeSlots(ngayHen, loaiHen, value);
-    }
+  // Xử lý khi thay đổi chuyên khoa
+  const handleSpecialtyChange = (value) => {
+    form.setFieldsValue({ id_chuyen_khoa: value, id_khung_gio: undefined });
+    // useEffect sẽ tự động fetch khi idChuyenKhoa thay đổi
   };
 
   // Xử lý khi thay đổi ngày
   const handleDateChange = (date) => {
     form.setFieldsValue({ ngay_hen: date, id_khung_gio: undefined });
-    setAvailableTimeSlots([]);
-    
-    const currentLoaiHen = form.getFieldValue("loai_hen") || loaiHen;
-    const idChuyenKhoaOrNganh = form.getFieldValue(
-      currentLoaiHen === "kham_benh" ? "id_chuyen_khoa" : "id_chuyen_nganh"
-    );
-    
-    if (date && idChuyenKhoaOrNganh) {
-      fetchAvailableTimeSlots(date, currentLoaiHen, idChuyenKhoaOrNganh);
-    }
+    // useEffect sẽ tự động fetch khi ngayHen thay đổi
   };
 
   const handleConfirm = async (record) => {
@@ -1013,62 +889,25 @@ const AppointmentManagement = () => {
             </Col>
             <Col span={12}>
               <Form.Item
-                name="loai_hen"
-                label="Loại hẹn"
-                rules={[{ required: true, message: "Vui lòng chọn loại hẹn!" }]}
-                initialValue="kham_benh"
+                name="id_chuyen_khoa"
+                label="Chuyên khoa"
+                rules={[{ required: true, message: "Vui lòng chọn chuyên khoa!" }]}
               >
                 <Select 
-                  placeholder="Chọn loại hẹn"
-                  onChange={handleLoaiHenChange}
+                  placeholder="Chọn chuyên khoa"
+                  onChange={handleSpecialtyChange}
                 >
-                  <Option value="kham_benh">Khám bệnh</Option>
-                  <Option value="tu_van_dinh_duong">Tư vấn dinh dưỡng</Option>
+                  {specialties.map((specialty) => (
+                    <Option key={specialty.id_chuyen_khoa} value={specialty.id_chuyen_khoa}>
+                      {specialty.ten_chuyen_khoa}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
           </Row>
 
           <Row gutter={16}>
-            {loaiHen === "kham_benh" ? (
-              <Col span={12}>
-                <Form.Item
-                  name="id_chuyen_khoa"
-                  label="Chuyên khoa"
-                  rules={[{ required: true, message: "Vui lòng chọn chuyên khoa!" }]}
-                >
-                  <Select 
-                    placeholder="Chọn chuyên khoa"
-                    onChange={(value) => handleSpecialtyChange(value, "kham_benh")}
-                  >
-                    {specialties.map((specialty) => (
-                      <Option key={specialty.id_chuyen_khoa} value={specialty.id_chuyen_khoa}>
-                        {specialty.ten_chuyen_khoa}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            ) : (
-              <Col span={12}>
-                <Form.Item
-                  name="id_chuyen_nganh"
-                  label="Chuyên ngành dinh dưỡng"
-                  rules={[{ required: true, message: "Vui lòng chọn chuyên ngành dinh dưỡng!" }]}
-                >
-                  <Select 
-                    placeholder="Chọn chuyên ngành dinh dưỡng"
-                    onChange={(value) => handleSpecialtyChange(value, "tu_van")}
-                  >
-                    {nutritionSpecialties.map((specialty) => (
-                      <Option key={specialty.id_chuyen_nganh} value={specialty.id_chuyen_nganh}>
-                        {specialty.ten_chuyen_nganh}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            )}
             <Col span={12}>
               <Form.Item
                 name="ngay_hen"
@@ -1095,23 +934,24 @@ const AppointmentManagement = () => {
               >
                 <Select 
                   placeholder={
-                    availableTimeSlots.length === 0 
-                      ? "Vui lòng chọn ngày và chuyên khoa/chuyên ngành trước" 
+                    !ngayHen || !idChuyenKhoa
+                      ? "Vui lòng chọn ngày và chuyên khoa trước" 
+                      : loading
+                      ? "Đang tải khung giờ..."
+                      : availableTimeSlots.length === 0
+                      ? "Không có khung giờ trống"
                       : "Chọn khung giờ"
                   }
-                  disabled={availableTimeSlots.length === 0}
+                  disabled={availableTimeSlots.length === 0 || loading}
+                  loading={loading}
+                  notFoundContent={loading ? "Đang tải..." : "Không có khung giờ trống"}
                 >
                   {availableTimeSlots.map((slot) => (
                     <Option key={slot.id_khung_gio} value={slot.id_khung_gio}>
                       {slot.gio_bat_dau} - {slot.gio_ket_thuc}
-                      {loaiHen === "kham_benh" && slot.ten_bac_si && (
+                      {slot.ten_bac_si && (
                         <span style={{ color: "#096dd9", marginLeft: "8px" }}>
                           (BS. {slot.ten_bac_si})
-                        </span>
-                      )}
-                      {loaiHen === "tu_van_dinh_duong" && slot.ten_chuyen_gia && (
-                        <span style={{ color: "#096dd9", marginLeft: "8px" }}>
-                          (CG. {slot.ten_chuyen_gia})
                         </span>
                       )}
                     </Option>
@@ -1121,49 +961,69 @@ const AppointmentManagement = () => {
             </Col>
           </Row>
 
-          <Form.Item 
-            name={loaiHen === "kham_benh" ? "ly_do_kham" : "ly_do_tu_van"} 
-            label={loaiHen === "kham_benh" ? "Lý do khám" : "Lý do tư vấn"}
-          >
-            <Input.TextArea 
-              rows={3} 
-              placeholder={loaiHen === "kham_benh" ? "Nhập lý do khám bệnh" : "Nhập lý do tư vấn"} 
-            />
-          </Form.Item>
-
-          {loaiHen === "kham_benh" && (
-            <Form.Item 
-              name="trieu_chung" 
-              label="Triệu chứng"
-            >
-              <Input.TextArea 
-                rows={3} 
-                placeholder="Nhập triệu chứng bệnh (nếu có)" 
-              />
-            </Form.Item>
-          )}
-
-          {loading && availableTimeSlots.length === 0 && ngayHen && (
-            <div style={{ textAlign: "center", padding: "20px", color: "#8c8c8c" }}>
+          {/* Thông báo trạng thái */}
+          {loading && ngayHen && idChuyenKhoa && (
+            <div style={{ 
+              textAlign: "center", 
+              padding: "12px", 
+              color: "#1890ff",
+              background: "#e6f7ff",
+              borderRadius: "6px",
+              marginBottom: "16px",
+              border: "1px solid #91d5ff"
+            }}>
+              <Spin size="small" style={{ marginRight: "8px" }} />
               Đang tải khung giờ trống...
             </div>
           )}
 
-          {!loading && ngayHen && availableTimeSlots.length === 0 && 
-           (idChuyenKhoa || idChuyenNganh) && (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "20px",
-                color: "#8c8c8c",
-                background: "#fafafa",
-                borderRadius: "8px",
-                marginBottom: "16px",
-              }}
-            >
-              Không có khung giờ trống trong ngày này
+          {!loading && ngayHen && idChuyenKhoa && availableTimeSlots.length > 0 && (
+            <div style={{ 
+              textAlign: "center", 
+              padding: "12px", 
+              color: "#52c41a",
+              background: "#f6ffed",
+              borderRadius: "6px",
+              marginBottom: "16px",
+              border: "1px solid #b7eb8f"
+            }}>
+              ✓ Tìm thấy {availableTimeSlots.length} khung giờ trống. Vui lòng chọn khung giờ phía trên.
             </div>
           )}
+
+          {!loading && ngayHen && idChuyenKhoa && availableTimeSlots.length === 0 && (
+            <div style={{ 
+              textAlign: "center", 
+              padding: "12px", 
+              color: "#ff4d4f",
+              background: "#fff2f0",
+              borderRadius: "6px",
+              marginBottom: "16px",
+              border: "1px solid #ffccc7"
+            }}>
+              ⚠ Không có khung giờ trống trong ngày này. Vui lòng chọn ngày khác hoặc chuyên khoa khác.
+            </div>
+          )}
+
+          <Form.Item 
+            name="ly_do_kham" 
+            label="Lý do khám"
+          >
+            <Input.TextArea 
+              rows={3} 
+              placeholder="Nhập lý do khám bệnh" 
+            />
+          </Form.Item>
+
+          <Form.Item 
+            name="trieu_chung" 
+            label="Triệu chứng"
+          >
+            <Input.TextArea 
+              rows={3} 
+              placeholder="Nhập triệu chứng bệnh (nếu có)" 
+            />
+          </Form.Item>
 
           <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
             <Space>

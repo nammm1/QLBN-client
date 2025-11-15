@@ -31,6 +31,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import "../Appointments/NutritionistAppointments.css";
+import apiBenhNhan from "../../../api/BenhNhan";
+import apiKhungGioKham from "../../../api/KhungGioKham";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -53,8 +55,60 @@ const NutritionistAppointments = () => {
     const fetchAppointments = async () => {
       try {
         const data = await apiCuocHenTuVan.getByChuyenGia(userInfo.user.id_nguoi_dung);
-        setAppointments(data);
-        setFilteredAppointments(data);
+
+        // Lấy danh sách id_benh_nhan và hydrate thông tin bệnh nhân từ API
+        const ids = Array.from(
+          new Set(
+            (data || [])
+              .map((it) => it.id_benh_nhan)
+              .filter(Boolean)
+          )
+        );
+
+        const pairs = await Promise.all(
+          ids.map(async (id) => {
+            try {
+              const bn = await apiBenhNhan.getById(id);
+              return [id, bn];
+            } catch {
+              return [id, null];
+            }
+          })
+        );
+        const idToBenhNhan = Object.fromEntries(pairs);
+
+        // Lấy danh sách id_khung_gio và hydrate thông tin khung giờ từ API
+        const khungGioIds = Array.from(
+          new Set(
+            (data || [])
+              .map((it) => it.id_khung_gio || it.khungGio?.id_khung_gio || it.khung_gio?.id_khung_gio)
+              .filter(Boolean)
+          )
+        );
+
+        const kgPairs = await Promise.all(
+          khungGioIds.map(async (id) => {
+            try {
+              const kg = await apiKhungGioKham.getById(id);
+              return [id, kg];
+            } catch {
+              return [id, null];
+            }
+          })
+        );
+        const idToKhungGio = Object.fromEntries(kgPairs);
+
+        const normalized = (data || []).map((item) => {
+          const id_khung_gio = item.id_khung_gio || item.khungGio?.id_khung_gio || item.khung_gio?.id_khung_gio || null;
+          return {
+            ...item,
+            benhNhan: idToBenhNhan[item.id_benh_nhan] || null,
+            khungGio: item.khungGio || item.khung_gio || (id_khung_gio ? idToKhungGio[id_khung_gio] : null),
+          };
+        });
+
+        setAppointments(normalized);
+        setFilteredAppointments(normalized);
       } catch (error) {
         console.error("Error fetching appointments:", error);
       }
@@ -395,23 +449,33 @@ const NutritionistAppointments = () => {
             }))}
             pagination={false}
             size="middle"
-            onRow={(record) => ({
-              onClick: () => handleSelect(record.id_cuoc_hen),
-              style: { 
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              },
-              onMouseEnter: (e) => {
-                e.currentTarget.style.backgroundColor = '#e6f7ff';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(9, 109, 217, 0.15)';
-              },
-              onMouseLeave: (e) => {
-                e.currentTarget.style.backgroundColor = '';
-                e.currentTarget.style.transform = '';
-                e.currentTarget.style.boxShadow = '';
-              },
-            })}
+            onRow={(record) => {
+              const isCancelled = record.trang_thai === "da_huy";
+              return {
+                onClick: () => {
+                  if (!isCancelled) {
+                    handleSelect(record.id_cuoc_hen);
+                  }
+                },
+                style: { 
+                  cursor: isCancelled ? 'not-allowed' : 'pointer',
+                  opacity: isCancelled ? 0.6 : 1,
+                  transition: 'all 0.2s'
+                },
+                onMouseEnter: (e) => {
+                  if (isCancelled) return;
+                  e.currentTarget.style.backgroundColor = '#e6f7ff';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(9, 109, 217, 0.15)';
+                },
+                onMouseLeave: (e) => {
+                  if (isCancelled) return;
+                  e.currentTarget.style.backgroundColor = '';
+                  e.currentTarget.style.transform = '';
+                  e.currentTarget.style.boxShadow = '';
+                },
+              };
+            }}
             scroll={{ x: 1200 }}
           />
         </Card>

@@ -55,8 +55,8 @@ const AdminPhongKham = () => {
       if (selectedTrangThai) params.trang_thai = selectedTrangThai;
       if (searchName) params.search = searchName;
       
-      const res = await apiPhongKham.getAll(params);
-      const data = res.data || res;
+      const res = await apiPhongKham.getAllAdmin(params);
+      const data = res.data || res; 
       setPhongKhams(data);
       setFilteredPhongKhams(data);
     } catch (error) {
@@ -93,6 +93,20 @@ const AdminPhongKham = () => {
     startIndex + pageSize
   );
   const totalPages = Math.ceil(filteredPhongKhams.length / pageSize);
+
+  // Cập nhật trạng thái cục bộ để không bị biến mất trên bảng
+  const applyLocalStatusUpdate = (id_phong_kham, newStatus) => {
+    setPhongKhams((prev) =>
+      prev.map((pk) =>
+        pk.id_phong_kham === id_phong_kham ? { ...pk, trang_thai: newStatus } : pk
+      )
+    );
+    setFilteredPhongKhams((prev) =>
+      prev.map((pk) =>
+        pk.id_phong_kham === id_phong_kham ? { ...pk, trang_thai: newStatus } : pk
+      )
+    );
+  };
 
   // Thêm phòng khám
   const handleAddPhongKham = async (values) => {
@@ -183,7 +197,7 @@ const AdminPhongKham = () => {
       title: "TRẠNG THÁI",
       dataIndex: "trang_thai",
       key: "trang_thai",
-      render: (status) => {
+      render: (status, record) => {
         const colorMap = {
           HoatDong: "green",
           BaoTri: "orange",
@@ -194,7 +208,30 @@ const AdminPhongKham = () => {
           BaoTri: "Bảo trì",
           Ngung: "Ngừng",
         };
-        return <Tag color={colorMap[status]}>{textMap[status] || status}</Tag>;
+        return (
+          <Space>
+            <Tag color={colorMap[status]}>{textMap[status] || status}</Tag>
+            <Select
+              size="small"
+              value={status}
+              onChange={async (value) => {
+                try {
+                  await apiPhongKham.update(record.id_phong_kham, { trang_thai: value });
+                  applyLocalStatusUpdate(record.id_phong_kham, value);
+                  message.success("Cập nhật trạng thái thành công!");
+                } catch (error) {
+                  console.error("Lỗi cập nhật trạng thái:", error);
+                  message.error(error?.response?.data?.message || "Không thể cập nhật trạng thái!");
+                }
+              }}
+              style={{ minWidth: 120 }}
+            >
+              <Option value="HoatDong">Hoạt động</Option>
+              <Option value="BaoTri">Bảo trì</Option>
+              <Option value="Ngung">Ngừng</Option>
+            </Select>
+          </Space>
+        );
       },
     },
     {

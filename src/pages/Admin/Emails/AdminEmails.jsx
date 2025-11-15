@@ -83,6 +83,9 @@ const AdminEmails = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 10;
+  const [filterLoaiEmailHistory, setFilterLoaiEmailHistory] = useState("");
+  const [viewEmailModalOpen, setViewEmailModalOpen] = useState(false);
+  const [viewEmailRecord, setViewEmailRecord] = useState(null);
 
   // Lấy danh sách yêu cầu email
   const fetchYeuCauEmails = async () => {
@@ -116,6 +119,7 @@ const AdminEmails = () => {
       const res = await apiYeuCauEmail.getLichSuGuiEmail({
         page: 1,
         pageSize: 50,
+        loai_email: filterLoaiEmailHistory || undefined,
       });
       
       if (res.success) {
@@ -130,6 +134,10 @@ const AdminEmails = () => {
     fetchYeuCauEmails();
     fetchLichSuGuiEmail();
   }, [filterTrangThai, filterLoaiYeuCau, currentPage]);
+
+  useEffect(() => {
+    fetchLichSuGuiEmail();
+  }, [filterLoaiEmailHistory]);
 
   // Lọc theo tìm kiếm
   useEffect(() => {
@@ -400,6 +408,18 @@ const AdminEmails = () => {
       render: (text) => <Tag color="blue">{text}</Tag>,
     },
     {
+      title: 'Nội dung',
+      dataIndex: 'noi_dung',
+      key: 'noi_dung',
+      width: 200,
+      ellipsis: true,
+      render: (_, record) => (
+        <Button size="small" onClick={() => { setViewEmailRecord(record); setViewEmailModalOpen(true); }}>
+          Xem nội dung
+        </Button>
+      ),
+    },
+    {
       title: 'Trạng thái',
       dataIndex: 'trang_thai_gui',
       key: 'trang_thai_gui',
@@ -518,13 +538,31 @@ const AdminEmails = () => {
               key: '2',
               label: <span><HistoryOutlined /> Lịch sử gửi Email</span>,
               children: (
-                <Table
-                  columns={historyColumns}
-                  dataSource={lichSuGuiEmail}
-                  rowKey="id_lich_su"
-                  loading={loading}
-                  pagination={{ pageSize: 10 }}
-                />
+                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                  <Row gutter={16}>
+                    <Col xs={24} sm={12} md={6}>
+                      <Select
+                        placeholder="Lọc theo loại email"
+                        value={filterLoaiEmailHistory || undefined}
+                        onChange={setFilterLoaiEmailHistory}
+                        allowClear
+                        style={{ width: '100%' }}
+                      >
+                        <Option value="tin_tuc_y_te">Tin tức y tế</Option>
+                        <Option value="tu_van">Tư vấn</Option>
+                        <Option value="thong_bao">Thông báo</Option>
+                        <Option value="khac">Khác</Option>
+                      </Select>
+                    </Col>
+                  </Row>
+                  <Table
+                    columns={historyColumns}
+                    dataSource={lichSuGuiEmail}
+                    rowKey="id_lich_su"
+                    loading={loading}
+                    pagination={{ pageSize: 10 }}
+                  />
+                </Space>
               ),
             },
           ]}
@@ -606,6 +644,20 @@ const AdminEmails = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Modal xem nội dung email đã gửi */}
+      <Modal
+        title={viewEmailRecord?.tieu_de || "Nội dung email"}
+        open={viewEmailModalOpen}
+        onCancel={() => { setViewEmailModalOpen(false); setViewEmailRecord(null); }}
+        footer={null}
+        width={800}
+      >
+        <div
+          style={{ background: '#fff', padding: 16, borderRadius: 8, maxHeight: 500, overflow: 'auto' }}
+          dangerouslySetInnerHTML={{ __html: viewEmailRecord?.noi_dung || '' }}
+        />
       </Modal>
 
       {/* Modal gửi email hàng loạt */}

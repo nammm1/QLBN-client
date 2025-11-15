@@ -31,12 +31,13 @@ import {
   UserOutlined,
   CheckCircleOutlined,
   CalendarOutlined,
+  ScanOutlined,
 } from "@ant-design/icons";
 import apiBenhNhan from "../../../api/BenhNhan";
 import apiNguoiDung from "../../../api/NguoiDung";
 import moment from "moment";
 import { checkAgeForAccountCreation } from "../../../utils/checkAgeForAccountCreation";
-import AutoBookingModal from "./AutoBookingModal";
+import QRScannerModal from "../../../components/QRScannerModal";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -48,7 +49,8 @@ const PatientManagement = () => {
   const [searchText, setSearchText] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
-  const [isAutoBookingModalVisible, setIsAutoBookingModalVisible] = useState(false);
+  // Đặt lịch hẹn đã được chuyển sang trang Quản lý lịch hẹn
+  const [isQRModalVisible, setIsQRModalVisible] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [form] = Form.useForm();
 
@@ -314,17 +316,12 @@ const PatientManagement = () => {
           <Col>
             <Space>
               <Button
-                type="primary"
-                icon={<CalendarOutlined />}
+                icon={<ScanOutlined />}
                 size="large"
-                onClick={() => setIsAutoBookingModalVisible(true)}
-                style={{
-                  background: "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
-                  border: "none",
-                  borderRadius: "8px",
-                }}
+                onClick={() => setIsQRModalVisible(true)}
+                style={{ borderRadius: "8px" }}
               >
-                Đặt lịch hẹn
+                Quét QR
               </Button>
               <Button
                 type="primary"
@@ -606,14 +603,18 @@ const PatientManagement = () => {
         )}
       </Modal>
 
-      {/* Auto Booking Modal */}
-      <AutoBookingModal
-        visible={isAutoBookingModalVisible}
-        onCancel={() => setIsAutoBookingModalVisible(false)}
-        onSuccess={() => {
-          fetchPatients();
+      {/* QR Scanner */}
+      <QRScannerModal
+        open={isQRModalVisible}
+        onCancel={() => setIsQRModalVisible(false)}
+        onDetected={(val) => {
+          setIsQRModalVisible(false);
+          setSearchText(val || "");
+          message.success("Đã quét QR");
         }}
+        title="Quét mã QR bệnh nhân/CCCD"
       />
+
     </div>
   );
 };

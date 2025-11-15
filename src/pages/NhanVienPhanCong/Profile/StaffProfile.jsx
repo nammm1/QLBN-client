@@ -24,6 +24,17 @@ import {
 } from "@ant-design/icons";
 import apiNhanVienPhanCong from "../../../api/NhanVienPhanCong";
 
+const formatDateInput = (dateValue) => {
+  try {
+    if (!dateValue) return undefined;
+    const d = new Date(dateValue);
+    if (Number.isNaN(d.getTime())) return undefined;
+    return d.toISOString().slice(0, 10);
+  } catch {
+    return undefined;
+  }
+};
+
 const { Title, Text } = Typography;
 
 const StaffProfile = () => {
@@ -41,7 +52,10 @@ const StaffProfile = () => {
     try {
       const res = await apiNhanVienPhanCong.getById(userInfo.user.id_nguoi_dung);
       setProfileData(res?.data);
-      form.setFieldsValue(res?.data);
+      form.setFieldsValue({
+        ...res?.data,
+        ngay_sinh: formatDateInput(res?.data?.ngay_sinh),
+      });
     } catch (error) {
       console.error("Lỗi khi lấy thông tin:", error);
     }
@@ -53,6 +67,24 @@ const StaffProfile = () => {
       await apiNhanVienPhanCong.update(userInfo.user.id_nguoi_dung, values);
       message.success("✅ Cập nhật thông tin thành công!");
       setEditMode(false);
+
+      // Cập nhật thông tin hiển thị ngay lập tức trong localStorage và phát sự kiện cập nhật
+      try {
+        const stored = JSON.parse(localStorage.getItem("userInfo") || "{}");
+        if (stored?.user) {
+          stored.user = {
+            ...stored.user,
+            ho_ten: values.ho_ten ?? stored.user.ho_ten,
+            email: values.email ?? stored.user.email,
+            so_dien_thoai: values.so_dien_thoai ?? stored.user.so_dien_thoai,
+            dia_chi: values.dia_chi ?? stored.user.dia_chi,
+            ngay_sinh: values.ngay_sinh ?? stored.user.ngay_sinh,
+          };
+          localStorage.setItem("userInfo", JSON.stringify(stored));
+          window.dispatchEvent(new Event("userInfoUpdated"));
+        }
+      } catch {}
+
       fetchProfile();
     } catch (error) {
       console.error("Lỗi khi cập nhật:", error);
@@ -121,7 +153,7 @@ const StaffProfile = () => {
           <Col flex="auto">
             <Space direction="vertical" size={4}>
               <Title level={3} style={{ margin: 0, color: 'white' }}>
-                {userInfo?.user?.ho_ten || 'Nhân viên'}
+                {profileData?.ho_ten || userInfo?.user?.ho_ten || 'Nhân viên'}
               </Title>
               <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: '16px' }}>
                 👥 Nhân viên phân công

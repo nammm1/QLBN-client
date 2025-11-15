@@ -1710,7 +1710,8 @@ const ManageSchedule = () => {
                 onChange={(value) => setFilters({ ...filters, vai_tro: value })}
               >
                 <Option value="nhan_vien_quay">Nhân viên quầy</Option>
-                {/* Thêm các vai trò khác nếu cần */}
+                <Option value="nhan_vien_phan_cong">Nhân viên phân công</Option>
+                <Option value="nhan_vien_xet_nghiem">Nhân viên xét nghiệm</Option>
               </Select>
             </Col>
             <Col xs={24} sm={12} md={6}>

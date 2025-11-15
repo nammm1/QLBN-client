@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
-import {
-  Card,
-  Table,
-  Tag,
-  DatePicker,
-  Typography,
+import { 
+  Card, 
+  Table, 
+  Tag, 
+  DatePicker, 
+  Typography, 
   Space,
+  Badge,
   Row,
   Col,
+  Alert,
   Button,
   Modal,
   Form,
@@ -15,546 +17,517 @@ import {
   Input,
   message,
   Statistic,
-  Badge,
   Segmented,
+  theme
 } from "antd";
-import {
-  CalendarOutlined,
-  ClockCircleOutlined,
+import { 
+  CalendarOutlined, 
+  ClockCircleOutlined, 
+  UserOutlined,
   PlusOutlined,
   HistoryOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  SyncOutlined,
   FileTextOutlined,
-  TableOutlined,
+  CloseCircleOutlined,
+  ReloadOutlined,
+  ScheduleOutlined,
   AppstoreOutlined,
+  TableOutlined
 } from "@ant-design/icons";
+import dayjs from "dayjs";
+import "dayjs/locale/vi";
+import updateLocale from "dayjs/plugin/updateLocale";
+import isBetween from "dayjs/plugin/isBetween";
 import apiLichLamViec from "../../../api/LichLamViec";
 import apiXinNghiPhep from "../../../api/XinNghiPhep";
-import moment from "moment";
+
+dayjs.locale("vi");
+dayjs.extend(updateLocale);
+dayjs.extend(isBetween);
+
+// Cập nhật locale để hiển thị thứ tiếng Việt
+dayjs.updateLocale("vi", {
+  weekdays: ["Chủ nhật", "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy"]
+});
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
+const { RangePicker } = DatePicker;
 const { Option } = Select;
+const { TextArea } = Input;
+const { useToken } = theme;
+
+const caList = [
+  { key: "Sang", label: "Sáng" },
+  { key: "Chieu", label: "Chiều" },
+  { key: "Toi", label: "Tối" }
+];
+
+const dayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
+
+const trangThaiNghiPhep = {
+  cho_duyet: { text: "Chờ duyệt", color: "orange" },
+  da_duyet: { text: "Đã duyệt", color: "green" },
+  tu_choi: { text: "Từ chối", color: "red" }
+};
+
+const formatDate = (date) => {
+  if (!date) return "";
+  return dayjs(date).format("YYYY-MM-DD");
+};
+
+const getMonday = (date) => {
+  const d = dayjs(date);
+  const day = d.day();
+  const diff = day === 0 ? -6 : 1 - day;
+  return d.add(diff, "day").startOf("day");
+};
 
 const ReceptionistWorkSchedule = () => {
-  const [schedules, setSchedules] = useState([]);
-  const [leaveRequests, setLeaveRequests] = useState([]);
+  const { token } = useToken();
+  const [selectedDate, setSelectedDate] = useState(dayjs());
+  const [weekStart, setWeekStart] = useState(getMonday(dayjs()));
+  const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedWeekStart, setSelectedWeekStart] = useState(moment().startOf("week"));
-  const [isLeaveModalVisible, setIsLeaveModalVisible] = useState(false);
-  const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
-  const [viewMode, setViewMode] = useState("table");
-  const [form] = Form.useForm();
-
+  const [modalXinNghiVisible, setModalXinNghiVisible] = useState(false);
+  const [modalLichSuVisible, setModalLichSuVisible] = useState(false);
+  const [nghiPhepData, setNghiPhepData] = useState([]);
+  const [viewMode, setViewMode] = useState("table"); // table, grid
+  const [formNghiPhep] = Form.useForm();
   const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-  const userId = userInfo?.user?.id_nguoi_dung || userInfo?.user?.id || localStorage.getItem("userId") || "NV_quay001";
+  const userId = userInfo?.user?.id_nguoi_dung;
+  const weekRange = [weekStart, weekStart.add(6, 'day')];
 
   useEffect(() => {
-    fetchSchedules();
-    fetchLeaveRequests();
-  }, [selectedWeekStart, userId]);
+    setWeekStart(getMonday(selectedDate));
+  }, [selectedDate]);
 
-  const fetchSchedules = async () => {
+  useEffect(() => {
+    fetchSchedule();
+    fetchNghiPhep();
+  }, [weekStart, userId]);
+
+  const fetchSchedule = async () => {
     setLoading(true);
     try {
-      const weekStartStr = selectedWeekStart.format("YYYY-MM-DD");
+      const weekStartStr = formatDate(weekStart);
       const res = await apiLichLamViec.getByWeek(weekStartStr, userId);
-      const data = res?.data || res || [];
-      setSchedules(Array.isArray(data) ? data : []);
+      const data = res?.data || [];
+      setSchedule(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Lỗi khi lấy lịch làm việc:", error);
-      message.error("Không thể tải lịch làm việc");
-      setSchedules([]);
+      setSchedule([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchLeaveRequests = async () => {
+  const fetchNghiPhep = async () => {
     try {
       const res = await apiXinNghiPhep.getByNhanVien(userId);
-      const data = res?.data || res || [];
-      setLeaveRequests(Array.isArray(data) ? data : []);
+      setNghiPhepData(res?.data || []);
     } catch (error) {
-      console.error("Không thể tải lịch sử nghỉ phép", error);
-      // Không hiển thị message error vì có thể API chưa hỗ trợ nhân viên quầy
-      setLeaveRequests([]);
+      // ignore
     }
   };
 
-  const handlePreviousWeek = () => {
-    setSelectedWeekStart(selectedWeekStart.clone().subtract(1, "week"));
-  };
-
-  const handleNextWeek = () => {
-    setSelectedWeekStart(selectedWeekStart.clone().add(1, "week"));
-  };
-
-  const handleThisWeek = () => {
-    setSelectedWeekStart(moment().startOf("week"));
-  };
-
-  const handleSubmitLeave = async (values) => {
-    try {
-      const leaveData = {
-        id_nguoi_dung: userId,
-        ngay_bat_dau: values.ngay_bat_dau.format("YYYY-MM-DD"),
-        ngay_ket_thuc: values.ngay_ket_thuc.format("YYYY-MM-DD"),
-        loai_nghi: values.loai_nghi,
-        ly_do: values.ly_do,
-        trang_thai: "cho_duyet",
-      };
-
-      await apiXinNghiPhep.create(leaveData);
-      message.success("Đã gửi đơn xin nghỉ phép!");
-      setIsLeaveModalVisible(false);
-      form.resetFields();
-      fetchLeaveRequests();
-    } catch (error) {
-      message.error("Không thể gửi đơn xin nghỉ phép");
-      console.error(error);
+  const handleDateChange = (date) => {
+    if (date) {
+      setSelectedDate(date);
     }
   };
 
-  const getShiftStats = () => {
-    const stats = {
-      sang: 0,
-      chieu: 0,
-      toi: 0,
-      total: 0,
-    };
-
-    if (!Array.isArray(schedules)) {
-      return stats;
+  const handleWeekChange = (dates) => {
+    if (dates && dates[0]) {
+      setSelectedDate(dates[0]);
     }
-
-    stats.total = schedules.length;
-
-    schedules.forEach((schedule) => {
-      const shift = schedule.ca_lam_viec?.toLowerCase();
-      if (shift === "sáng" || shift === "sang") stats.sang++;
-      else if (shift === "chiều" || shift === "chieu") stats.chieu++;
-      else if (shift === "tối" || shift === "toi") stats.toi++;
-    });
-
-    return stats;
   };
 
-  const getStatusConfig = (status) => {
-    const configs = {
-      cho_duyet: { color: "warning", text: "Chờ duyệt", icon: <SyncOutlined spin /> },
-      da_duyet: { color: "success", text: "Đã duyệt", icon: <CheckCircleOutlined /> },
-      tu_choi: { color: "error", text: "Từ chối", icon: <CloseCircleOutlined /> },
-    };
-    return configs[status] || configs.cho_duyet;
-  };
+  const weekDays = Array.from({ length: 7 }, (_, i) => 
+    weekStart.add(i, "day")
+  );
 
-  const renderTableView = () => {
-    const columns = [
-      {
-        title: "Ngày",
-        dataIndex: "ngay_lam_viec",
-        key: "ngay_lam_viec",
-        render: (date) => (
-          <div>
-            <CalendarOutlined style={{ marginRight: "6px", color: "#f39c12" }} />
-            <Text strong>{moment(date).format("DD/MM/YYYY")}</Text>
-            <br />
-            <Text type="secondary" style={{ fontSize: "12px" }}>
-              {moment(date).format("dddd")}
-            </Text>
-          </div>
-        ),
-      },
-      {
-        title: "Ca làm việc",
-        dataIndex: "ca_lam_viec",
-        key: "ca_lam_viec",
-        render: (shift) => {
-          const colors = {
-            Sáng: "gold",
-            Chiều: "blue",
-            Tối: "purple",
-          };
-          return <Tag color={colors[shift] || "default"}>{shift}</Tag>;
-        },
-      },
-      {
-        title: "Giờ làm",
-        key: "time",
-        render: (_, record) => (
-          <div>
-            <ClockCircleOutlined style={{ marginRight: "6px" }} />
-            <Text>
-              {record.gio_bat_dau} - {record.gio_ket_thuc}
-            </Text>
-          </div>
-        ),
-      },
-      {
-        title: "Ghi chú",
-        dataIndex: "ghi_chu",
-        key: "ghi_chu",
-        render: (note) => note || <Text type="secondary">Không có</Text>,
-      },
-    ];
-
-    return (
-      <Table
-        columns={columns}
-        dataSource={schedules}
-        loading={loading}
-        rowKey="id_lich_lam_viec"
-        pagination={false}
-      />
+  const hasSchedulesFor = (d, displayCa) => {
+    const dStr = formatDate(d);
+    const dbCa = displayCa === "Sáng" ? "Sang" : displayCa === "Chiều" ? "Chieu" : displayCa === "Tối" ? "Toi" : displayCa;
+    return schedule.some(
+      (s) => s.ca === dbCa && formatDate(s.ngay_lam_viec) === dStr
     );
   };
 
-  const renderGridView = () => {
-    const weekDays = [];
-    for (let i = 0; i < 7; i++) {
-      weekDays.push(selectedWeekStart.clone().add(i, "days"));
-    }
+  const isNghiPhepDate = (d) => {
+    return nghiPhepData.some(np => 
+      dayjs(d).isBetween(dayjs(np.ngay_bat_dau), dayjs(np.ngay_ket_thuc), null, '[]') &&
+      np.trang_thai === 'da_duyet'
+    );
+  };
 
-    return (
-      <Row gutter={[16, 16]}>
-        {weekDays.map((day) => {
-          const daySchedules = schedules.filter(
-            (s) => moment(s.ngay_lam_viec).format("YYYY-MM-DD") === day.format("YYYY-MM-DD")
-          );
+  // Slot hiển thị chỉ trạng thái: Có lịch / Nghỉ phép / Trống
+  const ScheduleSlot = ({ date, ca }) => {
+    const hasSchedule = hasSchedulesFor(date, ca);
+    const nghi = isNghiPhepDate(date);
 
-          const isToday = day.isSame(moment(), "day");
+    const baseStyle = {
+      minHeight: 100,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: `2px solid ${nghi ? token.colorWarning : hasSchedule ? token.colorSuccess : token.colorBorderSecondary}`,
+      borderRadius: 12,
+      background: nghi ? token.colorWarningBg : hasSchedule ? token.colorSuccessBg : token.colorFillAlter,
+      color: nghi ? token.colorWarning : hasSchedule ? token.colorSuccess : token.colorTextSecondary,
+      fontWeight: 600,
+      cursor: 'default'
+    };
 
+    if (nghi) return <div style={baseStyle}>Nghỉ phép</div>;
+    if (hasSchedule) return <div style={baseStyle}>Có lịch</div>;
+    return <div style={baseStyle}>Trống</div>;
+  };
+
+  // Grid View
+  const GridView = () => (
+    <div style={{ padding: '16px 0' }}>
+      <Row gutter={[20, 20]}>
+        {weekDays.map((date, dayIndex) => {
+          const isToday = date.isSame(dayjs(), 'day');
           return (
-            <Col xs={24} md={12} lg={8} key={day.format("YYYY-MM-DD")}>
+            <Col xs={24} sm={12} md={8} lg={6} key={dayIndex}>
               <Card
+                title={
+                  <div style={{ textAlign: 'center' }}>
+                    <Text strong style={{ color: token.colorPrimary }}>{dayNames[dayIndex]}</Text>
+                    <br />
+                    <Text type="secondary">{date.format("DD/MM/YYYY")}</Text>
+                  </div>
+                }
+                size="small"
                 style={{
-                  borderRadius: "12px",
-                  border: isToday ? "2px solid #f39c12" : "1px solid #e8e8e8",
-                  height: "100%",
+                  borderRadius: 16,
+                  border: `2px solid ${isToday ? token.colorPrimary : token.colorBorderSecondary}`
                 }}
               >
-                <div style={{ marginBottom: "16px" }}>
-                  <Badge status={isToday ? "processing" : "default"} />
-                  <Text strong style={{ fontSize: "16px", color: isToday ? "#f39c12" : "#333" }}>
-                    {day.format("dddd")}
-                  </Text>
-                  <br />
-                  <Text type="secondary">{day.format("DD/MM/YYYY")}</Text>
-                </div>
-
-                {daySchedules.length > 0 ? (
-                  <Space direction="vertical" style={{ width: "100%" }}>
-                    {daySchedules.map((schedule) => (
-                      <Card
-                        key={schedule.id_lich_lam_viec}
-                        size="small"
-                        style={{
-                          backgroundColor: "#f9f9f9",
-                          borderRadius: "8px",
-                        }}
-                      >
-                        <Tag
-                          color={
-                            schedule.ca_lam_viec === "Sáng"
-                              ? "gold"
-                              : schedule.ca_lam_viec === "Chiều"
-                              ? "blue"
-                              : "purple"
-                          }
-                        >
-                          {schedule.ca_lam_viec}
-                        </Tag>
-                        <div style={{ marginTop: "8px" }}>
-                          <ClockCircleOutlined style={{ marginRight: "6px" }} />
-                          <Text style={{ fontSize: "13px" }}>
-                            {schedule.gio_bat_dau} - {schedule.gio_ket_thuc}
-                          </Text>
-                        </div>
-                        {schedule.ghi_chu && (
-                          <div style={{ marginTop: "4px" }}>
-                            <Text type="secondary" style={{ fontSize: "12px" }}>
-                              {schedule.ghi_chu}
-                            </Text>
-                          </div>
-                        )}
-                      </Card>
-                    ))}
-                  </Space>
-                ) : (
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: "20px",
-                      color: "#999",
-                    }}
-                  >
-                    <Text type="secondary">Không có lịch</Text>
-                  </div>
-                )}
+                <Space direction="vertical" style={{ width: '100%' }} size={12}>
+                  {caList.map((ca) => (
+                    <div key={`${date}-${ca.key}`}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>{ca.label}</Text>
+                      <ScheduleSlot date={date} ca={ca.label} />
+                    </div>
+                  ))}
+                </Space>
               </Card>
             </Col>
           );
         })}
       </Row>
-    );
-  };
+    </div>
+  );
 
-  const stats = getShiftStats();
+  // Table View
+  const TableColumns = [
+    {
+      title: (
+        <div style={{ textAlign: 'center' }}>
+          <ClockCircleOutlined style={{ marginRight: 8, color: token.colorPrimary }} />
+          <span style={{ fontWeight: 600 }}>Ca / Ngày</span>
+        </div>
+      ),
+      dataIndex: "ca",
+      key: "ca",
+      width: 140,
+      render: (ca) => (
+        <div style={{ textAlign: 'center', padding: 8, fontWeight: 700 }}>{ca}</div>
+      ),
+    },
+    ...weekDays.map((d, idx) => ({
+      title: (
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontWeight: 700, color: token.colorPrimary }}>{dayNames[idx]}</div>
+          <div style={{ fontSize: 12, color: token.colorTextSecondary }}>{d.format("DD/MM")}</div>
+        </div>
+      ),
+      dataIndex: `day_${idx}`,
+      key: `day_${idx}`,
+      width: 180,
+      render: (_, record) => (
+        <ScheduleSlot date={d} ca={record.ca} />
+      ),
+    })),
+  ];
+
+  const TableDataSource = caList.map(ca => ({
+    key: ca.key,
+    ca: ca.label,
+  }));
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ marginBottom: "24px" }}>
-        <Title level={2} style={{ margin: 0, color: "#2c3e50" }}>
-          📅 Lịch làm việc của tôi
-        </Title>
-        <Text type="secondary">Xem lịch làm việc và xin nghỉ phép</Text>
-      </div>
-
-      {/* Statistics */}
-      <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
-        <Col xs={12} md={6}>
-          <Card style={{ borderRadius: "12px", background: "linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%)" }}>
-            <Statistic
-              title={<span style={{ color: "#fff" }}>Ca sáng</span>}
-              value={stats.sang}
-              valueStyle={{ color: "#fff" }}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} md={6}>
-          <Card style={{ borderRadius: "12px", background: "linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)" }}>
-            <Statistic
-              title={<span style={{ color: "#fff" }}>Ca chiều</span>}
-              value={stats.chieu}
-              valueStyle={{ color: "#fff" }}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} md={6}>
-          <Card style={{ borderRadius: "12px", background: "linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%)" }}>
-            <Statistic
-              title={<span style={{ color: "#fff" }}>Ca tối</span>}
-              value={stats.toi}
-              valueStyle={{ color: "#fff" }}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} md={6}>
-          <Card style={{ borderRadius: "12px", background: "linear-gradient(135deg, #55efc4 0%, #00b894 100%)" }}>
-            <Statistic
-              title={<span style={{ color: "#fff" }}>Tổng ca</span>}
-              value={stats.total}
-              valueStyle={{ color: "#fff" }}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Actions */}
-      <Card style={{ borderRadius: "12px", marginBottom: "24px" }}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col flex="auto">
-            <Space>
-              <Button onClick={handlePreviousWeek} icon={<ClockCircleOutlined />}>
-                Tuần trước
-              </Button>
-              <Button type="primary" onClick={handleThisWeek}>
-                Tuần này
-              </Button>
-              <Button onClick={handleNextWeek} icon={<ClockCircleOutlined />}>
-                Tuần sau
-              </Button>
-              <Text strong style={{ marginLeft: "16px" }}>
-                {selectedWeekStart.format("DD/MM/YYYY")} -{" "}
-                {selectedWeekStart.clone().add(6, "days").format("DD/MM/YYYY")}
+    <div style={{ 
+      padding: 24, 
+      maxWidth: 1400, 
+      margin: '0 auto'
+    }}>
+      <Card 
+        style={{ 
+          borderRadius: 20,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          border: 'none',
+          marginBottom: 24,
+          overflow: 'hidden'
+        }}
+      >
+        <Row justify="space-between" align="middle">
+          <Col>
+            <Space direction="vertical" size={0}>
+              <Title level={2} style={{ color: 'white', marginBottom: 4 }}>
+                <CalendarOutlined style={{ marginRight: 12 }} />
+                Lịch Làm Việc
+              </Title>
+              <Text style={{ color: 'rgba(255,255,255,0.9)' }}>
+                <UserOutlined style={{ marginRight: 8 }} />
+                Nhân viên quầy: <Text strong style={{ color: 'white' }}>{userInfo?.user?.ho_ten || ""}</Text>
               </Text>
             </Space>
           </Col>
           <Col>
-            <Space>
-              <Segmented
-                options={[
-                  { label: "Bảng", value: "table", icon: <TableOutlined /> },
-                  { label: "Lưới", value: "grid", icon: <AppstoreOutlined /> },
-                ]}
-                value={viewMode}
-                onChange={setViewMode}
+            <Segmented
+              options={[
+                { label: <span><TableOutlined /> Bảng</span>, value: 'table' },
+                { label: <span><AppstoreOutlined /> Lưới</span>, value: 'grid' }
+              ]}
+              value={viewMode}
+              onChange={setViewMode}
+              size="large"
+            />
+          </Col>
+        </Row>
+
+        <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+          <Col xs={24} sm={12} md={8}>
+            <Card size="small" style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 12 }}>
+              <Statistic
+                title={<span style={{ color: 'white' }}>📅 Tổng số ca tuần</span>}
+                value={schedule.length}
+                valueStyle={{ color: 'white' }}
               />
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setIsLeaveModalVisible(true)}
-                style={{
-                  background: "linear-gradient(135deg, #f39c12 0%, #e67e22 100%)",
-                  border: "none",
-                }}
-              >
-                Xin nghỉ phép
-              </Button>
-              <Button icon={<HistoryOutlined />} onClick={() => setIsHistoryModalVisible(true)}>
-                Lịch sử
-              </Button>
-            </Space>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <Card size="small" style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 12 }}>
+              <Statistic
+                title={<span style={{ color: 'white' }}>📝 Số đơn nghỉ</span>}
+                value={nghiPhepData.length}
+                valueStyle={{ color: 'white' }}
+              />
+            </Card>
           </Col>
         </Row>
       </Card>
 
-      {/* Schedule */}
-      <Card style={{ borderRadius: "12px" }}>
-        {viewMode === "table" ? renderTableView() : renderGridView()}
+      <Card 
+        style={{ 
+          borderRadius: 16,
+          marginBottom: 24
+        }}
+      >
+        <Row gutter={[16, 16]} align="middle">
+          <Col xs={24} sm={12} md={8}>
+            <Space direction="vertical" style={{ width: "100%" }}>
+              <Text strong>🗓️ Chọn ngày trong tuần:</Text>
+              <DatePicker
+                value={selectedDate}
+                onChange={handleDateChange}
+                format="DD/MM/YYYY"
+                style={{ width: "100%" }}
+                suffixIcon={<CalendarOutlined />}
+              />
+            </Space>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <Space direction="vertical" style={{ width: "100%" }}>
+              <Text strong>📅 Chọn tuần:</Text>
+              <RangePicker
+                value={weekRange}
+                onChange={handleWeekChange}
+                picker="week"
+                format="DD/MM/YYYY"
+                style={{ width: "100%" }}
+              />
+            </Space>
+          </Col>
+          <Col xs={24} md={8}>
+            <Alert
+              message={`Tuần: ${weekStart.format("DD/MM/YYYY")} → ${weekStart.add(6, 'day').format("DD/MM/YYYY")}`}
+              type="info"
+              showIcon
+              style={{ borderRadius: 12 }}
+            />
+          </Col>
+        </Row>
       </Card>
 
-      {/* Leave Request Modal */}
+      <Card style={{ borderRadius: 16 }}>
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+          <Text strong>🗓️ Lịch làm việc tuần này</Text>
+          <Space>
+            <Button 
+              icon={<ReloadOutlined />} 
+              onClick={fetchSchedule}
+              loading={loading}
+            >
+              Làm mới
+            </Button>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={() => setModalXinNghiVisible(true)}
+            >
+              Xin nghỉ phép
+            </Button>
+            <Button 
+              icon={<HistoryOutlined />} 
+              onClick={() => setModalLichSuVisible(true)}
+            >
+              Lịch sử
+            </Button>
+          </Space>
+        </div>
+
+        {viewMode === 'table' ? (
+          <Table
+            columns={TableColumns}
+            dataSource={TableDataSource}
+            pagination={false}
+            loading={loading}
+            bordered={false}
+            size="middle"
+          />
+        ) : (
+          <GridView />
+        )}
+
+        <div style={{ marginTop: 16, textAlign: 'center' }}>
+          <Space size="large" wrap>
+            <Space>
+              <div style={{ width: 16, height: 16, background: token.colorSuccessBg, border: `1px solid ${token.colorSuccessBorder}`, borderRadius: 4 }} />
+              <Text type="secondary">Có lịch</Text>
+            </Space>
+            <Space>
+              <div style={{ width: 16, height: 16, background: token.colorWarningBg, border: `1px solid ${token.colorWarningBorder}`, borderRadius: 4 }} />
+              <Text type="secondary">Nghỉ phép</Text>
+            </Space>
+            <Space>
+              <div style={{ width: 16, height: 16, background: token.colorFillAlter, border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 4 }} />
+              <Text type="secondary">Trống</Text>
+            </Space>
+          </Space>
+        </div>
+      </Card>
+
+      {/* Modal xin nghỉ phép */}
       <Modal
         title={
-          <span style={{ fontSize: "18px", fontWeight: 600 }}>
-            <FileTextOutlined style={{ marginRight: "8px", color: "#f39c12" }} />
-            Xin nghỉ phép
-          </span>
+          <Space>
+            <FileTextOutlined />
+            <span>Xin nghỉ phép</span>
+          </Space>
         }
-        open={isLeaveModalVisible}
-        onCancel={() => setIsLeaveModalVisible(false)}
+        open={modalXinNghiVisible}
+        onCancel={() => setModalXinNghiVisible(false)}
         footer={null}
-        width={600}
+        width={500}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmitLeave}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="ngay_bat_dau"
-                label="Từ ngày"
-                rules={[{ required: true, message: "Vui lòng chọn ngày bắt đầu!" }]}
-              >
-                <DatePicker
-                  placeholder="Chọn ngày bắt đầu"
-                  format="DD/MM/YYYY"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="ngay_ket_thuc"
-                label="Đến ngày"
-                rules={[{ required: true, message: "Vui lòng chọn ngày kết thúc!" }]}
-              >
-                <DatePicker
-                  placeholder="Chọn ngày kết thúc"
-                  format="DD/MM/YYYY"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-
+        <Form
+          form={formNghiPhep}
+          layout="vertical"
+          onFinish={async (values) => {
+            try {
+              await apiXinNghiPhep.create({
+                id_nguoi_dung: userId,
+                ngay_bat_dau: values.ngay_bat_dau.format('YYYY-MM-DD'),
+                ngay_ket_thuc: values.ngay_ket_thuc.format('YYYY-MM-DD'),
+                ly_do: values.ly_do,
+                trang_thai: "cho_duyet"
+              });
+              message.success("Đã gửi đơn xin nghỉ phép!");
+              setModalXinNghiVisible(false);
+              formNghiPhep.resetFields();
+              fetchNghiPhep();
+            } catch (_) {
+              message.error("Không thể gửi đơn xin nghỉ phép");
+            }
+          }}
+        >
           <Form.Item
-            name="loai_nghi"
-            label="Loại nghỉ"
-            rules={[{ required: true, message: "Vui lòng chọn loại nghỉ!" }]}
+            name="ngay_bat_dau"
+            label="📅 Ngày bắt đầu"
+            rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu' }]}
           >
-            <Select placeholder="Chọn loại nghỉ">
-              <Option value="phep_nam">Nghỉ phép năm</Option>
-              <Option value="om">Nghỉ ốm</Option>
-              <Option value="ca_nhan">Nghỉ cá nhân</Option>
-            </Select>
+            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
           </Form.Item>
-
+          <Form.Item
+            name="ngay_ket_thuc"
+            label="📅 Ngày kết thúc"
+            rules={[{ required: true, message: 'Vui lòng chọn ngày kết thúc' }]}
+          >
+            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+          </Form.Item>
           <Form.Item
             name="ly_do"
-            label="Lý do"
-            rules={[{ required: true, message: "Vui lòng nhập lý do!" }]}
+            label="📝 Lý do nghỉ phép"
+            rules={[{ required: true, message: 'Vui lòng nhập lý do' }]}
           >
-            <TextArea rows={4} placeholder="Nhập lý do xin nghỉ phép" />
+            <TextArea rows={4} placeholder="Nhập lý do nghỉ phép..." />
           </Form.Item>
-
-          <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
-            <Space>
-              <Button onClick={() => setIsLeaveModalVisible(false)}>Hủy</Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-                style={{
-                  background: "linear-gradient(135deg, #f39c12 0%, #e67e22 100%)",
-                  border: "none",
-                }}
-              >
-                Gửi đơn
-              </Button>
-            </Space>
-          </Form.Item>
+          <div style={{ textAlign: 'right' }}>
+            <Button onClick={() => setModalXinNghiVisible(false)} style={{ marginRight: 8 }}>
+              Hủy
+            </Button>
+            <Button type="primary" htmlType="submit" icon={<FileTextOutlined />}>
+              Gửi đơn
+            </Button>
+          </div>
         </Form>
       </Modal>
 
-      {/* History Modal */}
+      {/* Modal lịch sử yêu cầu */}
       <Modal
         title={
-          <span style={{ fontSize: "18px", fontWeight: 600 }}>
-            <HistoryOutlined style={{ marginRight: "8px", color: "#f39c12" }} />
-            Lịch sử xin nghỉ phép
-          </span>
+          <Space>
+            <HistoryOutlined />
+            <span>Lịch sử yêu cầu</span>
+          </Space>
         }
-        open={isHistoryModalVisible}
-        onCancel={() => setIsHistoryModalVisible(false)}
+        open={modalLichSuVisible}
+        onCancel={() => setModalLichSuVisible(false)}
         footer={[
-          <Button key="close" onClick={() => setIsHistoryModalVisible(false)}>
+          <Button key="close" onClick={() => setModalLichSuVisible(false)}>
             Đóng
-          </Button>,
+          </Button>
         ]}
-        width={800}
+        width={700}
       >
         <Table
-          dataSource={leaveRequests}
-          rowKey="id_xin_nghi"
-          pagination={{ pageSize: 5 }}
+          rowKey={(r, i) => i}
+          dataSource={nghiPhepData}
+          pagination={{ pageSize: 6 }}
           columns={[
             {
-              title: "Từ ngày",
-              dataIndex: "ngay_bat_dau",
-              key: "ngay_bat_dau",
-              render: (date) => moment(date).format("DD/MM/YYYY"),
+              title: 'Từ ngày',
+              dataIndex: 'ngay_bat_dau',
+              render: (d) => dayjs(d).format('DD/MM/YYYY')
             },
             {
-              title: "Đến ngày",
-              dataIndex: "ngay_ket_thuc",
-              key: "ngay_ket_thuc",
-              render: (date) => moment(date).format("DD/MM/YYYY"),
+              title: 'Đến ngày',
+              dataIndex: 'ngay_ket_thuc',
+              render: (d) => dayjs(d).format('DD/MM/YYYY')
             },
             {
-              title: "Loại nghỉ",
-              dataIndex: "loai_nghi",
-              key: "loai_nghi",
-              render: (type) => {
-                const types = {
-                  phep_nam: "Phép năm",
-                  om: "Nghỉ ốm",
-                  ca_nhan: "Cá nhân",
-                };
-                return types[type] || type;
-              },
+              title: 'Trạng thái',
+              dataIndex: 'trang_thai',
+              render: (s) => <Tag color={trangThaiNghiPhep[s]?.color}>{trangThaiNghiPhep[s]?.text || s}</Tag>
             },
             {
-              title: "Lý do",
-              dataIndex: "ly_do",
-              key: "ly_do",
-              ellipsis: true,
-            },
-            {
-              title: "Trạng thái",
-              dataIndex: "trang_thai",
-              key: "trang_thai",
-              render: (status) => {
-                const { color, text, icon } = getStatusConfig(status);
-                return (
-                  <Tag color={color} icon={icon}>
-                    {text}
-                  </Tag>
-                );
-              },
-            },
+              title: 'Lý do',
+              dataIndex: 'ly_do',
+              ellipsis: true
+            }
           ]}
         />
       </Modal>

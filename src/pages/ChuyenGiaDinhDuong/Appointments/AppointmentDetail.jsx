@@ -165,6 +165,13 @@ const NutritionistAppointmentDetail = () => {
       const appt = await apiCuocHenTuVan.getById(id_cuoc_hen);
       setAppointment(appt);
 
+      // Nếu cuộc hẹn đã hủy, không cho xem chi tiết -> quay lại danh sách
+      if (appt?.trang_thai === "da_huy") {
+        message.warning("Cuộc hẹn tư vấn này đã bị hủy. Bạn không thể xem chi tiết.");
+        navigate("/nutritionist/appointments");
+        return;
+      }
+
       if (appt?.id_benh_nhan) {
         // Bước 1: Lấy thông tin cơ bản của bệnh nhân (từ benhnhan và nguoidung)
         const bnFull = await apiBenhNhan.getById(appt.id_benh_nhan);

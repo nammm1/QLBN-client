@@ -151,14 +151,21 @@ const NutritionistRecords = () => {
       title: "NGÀY TẠO",
       dataIndex: "thoi_gian_tao",
       key: "thoi_gian_tao",
-      render: (date) => (
+      render: (date, record) => {
+        const fallbackDate = date 
+          || record?.ngay_tao 
+          || record?.created_at 
+          || record?.createdAt 
+          || record?.thoiGianTao;
+        return (
         <Space>
           <CalendarOutlined style={{ color: '#faad14' }} />
           <Text>
-            {date ? new Date(date).toLocaleDateString("vi-VN") : "N/A"}
+              {fallbackDate ? new Date(fallbackDate).toLocaleDateString("vi-VN") : "N/A"}
           </Text>
         </Space>
-      ),
+        );
+      },
       width: 120,
     },
   ];

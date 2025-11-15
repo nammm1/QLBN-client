@@ -37,6 +37,8 @@ import {
   Divider
 } from 'antd';
 import apiBacSi from '../../../api/BacSi';
+import apiNguoiDung from '../../../api/NguoiDung';
+import apiUpload from '../../../api/Upload';
 import './DoctorProfile.css';
 
 const { Option } = Select;
@@ -104,13 +106,31 @@ const DoctorProfile = () => {
   const handleAvatarUpload = async (file) => {
     setAvatarLoading(true);
     try {
-      setTimeout(() => {
-        message.success('Cập nhật ảnh đại diện thành công');
-        setAvatarLoading(false);
-        fetchDoctorProfile();
-      }, 1000);
+      const res = await apiUpload.uploadUserImage(file);
+      const imageUrl = res?.data?.imageUrl || res?.data?.url || res?.url;
+      if (!imageUrl) {
+        throw new Error('Không nhận được đường dẫn ảnh');
+      }
+
+      // Cập nhật ảnh trên server (nguoi_dung)
+      if (userInfo?.id_nguoi_dung) {
+        await apiNguoiDung.updateUser(userInfo.id_nguoi_dung, { anh_dai_dien: imageUrl });
+      }
+
+      // Cập nhật localStorage để UI dùng ngay
+      const stored = JSON.parse(localStorage.getItem('userInfo') || '{}');
+      if (stored?.user) {
+        const updated = { ...stored, user: { ...stored.user, anh_dai_dien: imageUrl } };
+        localStorage.setItem('userInfo', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('userInfoUpdated'));
+      }
+
+      message.success('Cập nhật ảnh đại diện thành công');
+      fetchDoctorProfile();
     } catch (error) {
+      console.error(error);
       message.error('Upload ảnh thất bại');
+    } finally {
       setAvatarLoading(false);
     }
   };
@@ -297,6 +317,7 @@ const DoctorProfile = () => {
                       size="large"
                       className="custom-input"
                       prefix={<BookOutlined className="input-icon" />}
+                      disabled
                     />
                   </Form.Item>
                 </Col>
@@ -310,6 +331,7 @@ const DoctorProfile = () => {
                       placeholder="Chọn trình độ" 
                       size="large"
                       className="custom-select"
+                      disabled
                     >
                       <Option value="Bác sĩ đa khoa">Bác sĩ đa khoa</Option>
                       <Option value="Bác sĩ chuyên khoa">Bác sĩ chuyên khoa</Option>
@@ -334,6 +356,7 @@ const DoctorProfile = () => {
                       size="large"
                       className="custom-input"
                       prefix={<SafetyCertificateOutlined className="input-icon" />}
+                      disabled
                     />
                   </Form.Item>
                 </Col>
@@ -349,6 +372,7 @@ const DoctorProfile = () => {
                       size="large"
                       className="custom-input"
                       prefix={<TrophyOutlined className="input-icon" />}
+                      disabled
                     />
                   </Form.Item>
                 </Col>
@@ -365,6 +389,7 @@ const DoctorProfile = () => {
                   showCount
                   maxLength={500}
                   className="custom-textarea"
+                  disabled
                 />
               </Form.Item>
             </div>

@@ -310,7 +310,7 @@ const DoctorAppointments = () => {
         {/* Header */}
         <div className="header-section">
           <Title level={3} className="page-title">
-            📅 Lịch hẹn của bác sĩ
+             Lịch hẹn của bác sĩ
           </Title>
           <Text type="secondary">
             Quản lý và theo dõi các cuộc hẹn khám bệnh
@@ -366,21 +366,31 @@ const DoctorAppointments = () => {
             }))}
             pagination={false}
             size="middle"
-            onRow={(record) => ({
-              onClick: () => handleSelect(record.id_cuoc_hen),
-              style: { 
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              },
-              onMouseEnter: (e) => {
-                e.currentTarget.style.backgroundColor = '#f0f7ff';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              },
-              onMouseLeave: (e) => {
-                e.currentTarget.style.backgroundColor = '';
-                e.currentTarget.style.transform = '';
-              },
-            })}
+            onRow={(record) => {
+              const isCancelled = record.trang_thai === "da_huy";
+              return {
+                onClick: () => {
+                  if (!isCancelled) {
+                    handleSelect(record.id_cuoc_hen);
+                  }
+                },
+                style: {
+                  cursor: isCancelled ? 'not-allowed' : 'pointer',
+                  opacity: isCancelled ? 0.6 : 1,
+                  transition: 'all 0.2s'
+                },
+                onMouseEnter: (e) => {
+                  if (isCancelled) return;
+                  e.currentTarget.style.backgroundColor = '#f0f7ff';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                },
+                onMouseLeave: (e) => {
+                  if (isCancelled) return;
+                  e.currentTarget.style.backgroundColor = '';
+                  e.currentTarget.style.transform = '';
+                },
+              };
+            }}
             scroll={{ x: 1200 }}
           />
         </Card>

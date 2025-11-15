@@ -19,6 +19,7 @@ import {
   Divider,
   Segmented,
   App,
+  Spin,
 } from "antd";
 import {
   CalendarOutlined,
@@ -70,6 +71,15 @@ const ConsultationAppointmentManagement = () => {
     fetchData();
   }, []);
 
+  // Tự động fetch khung giờ khi ngày hoặc chuyên ngành thay đổi
+  useEffect(() => {
+    if (ngayHen && idChuyenNganh) {
+      fetchAvailableTimeSlots(ngayHen, idChuyenNganh);
+    } else {
+      setAvailableTimeSlots([]);
+    }
+  }, [ngayHen, idChuyenNganh]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -81,12 +91,71 @@ const ConsultationAppointmentManagement = () => {
         apiChuyenGiaDinhDuong.getAllChuyenNganh().catch(() => []),
       ]);
 
+      // Ghép dữ liệu chuyên gia với thông tin người dùng để có họ tên hiển thị
+      const mergedNutritionists = await Promise.all(
+        (nutritionistData || []).map(async (cg) => {
+          try {
+            // Backend hiện đang ánh xạ ho_ten từ NguoiDung qua id_chuyen_gia
+            const user = await apiNguoiDung.getUserById(cg.id_chuyen_gia);
+            return { ...cg, ...user };
+          } catch {
+            return cg;
+          }
+        })
+      );
+
       // Chỉ lấy lịch hẹn tư vấn dinh dưỡng
       const tuVanAppointments = (apptTuVanData || []).map(apt => ({ ...apt, loai_hen: 'tu_van_dinh_duong' }));
 
-      setAppointments(tuVanAppointments);
+      // Tạo map cho chuyên gia để tra cứu nhanh theo nhiều khóa khác nhau
+      const nList = mergedNutritionists || [];
+      const nutritionistByChuyenGiaId = Object.fromEntries(
+        nList.filter(n => n?.id_chuyen_gia).map(n => [n.id_chuyen_gia, n])
+      );
+      const nutritionistByUserId = Object.fromEntries(
+        nList.filter(n => n?.id_nguoi_dung).map(n => [n.id_nguoi_dung, n])
+      );
+
+      // Chuẩn hóa dữ liệu cuộc hẹn, gán object chuyên gia và khung giờ nếu tìm được
+      const normalizedApts = (tuVanAppointments || []).map(appt => {
+        const cgId =
+          appt.id_chuyen_gia ||
+          appt.id_chuyen_gia_dinh_duong ||
+          appt.chuyenGia?.id_chuyen_gia ||
+          appt.nutritionist?.id_chuyen_gia ||
+          null;
+        const userId =
+          appt.id_nguoi_dung ||
+          appt.chuyenGia?.id_nguoi_dung ||
+          appt.nutritionist?.id_nguoi_dung ||
+          null;
+        const cg =
+          (cgId ? nutritionistByChuyenGiaId[cgId] : null) ||
+          (userId ? nutritionistByUserId[userId] : null) ||
+          null;
+
+        const id_khung_gio =
+          appt.id_khung_gio ||
+          appt.khungGio?.id_khung_gio ||
+          appt.khung_gio?.id_khung_gio ||
+          null;
+        const kg =
+          appt.khungGio ||
+          appt.khung_gio ||
+          (id_khung_gio ? (timeSlotData || []).find(ts => ts.id_khung_gio === id_khung_gio) : null);
+
+        return { 
+          ...appt, 
+          chuyenGiaObj: cg,
+          khungGio: kg || null,
+          gio_bat_dau: appt.gio_bat_dau || kg?.gio_bat_dau || null,
+          gio_ket_thuc: appt.gio_ket_thuc || kg?.gio_ket_thuc || null,
+        };
+      });
+
+      setAppointments(normalizedApts);
       setPatients(patientData || []);
-      setNutritionists(nutritionistData || []);
+      setNutritionists(nList);
       setTimeSlots(timeSlotData || []);
       setNutritionSpecialties(nutritionSpecialtyData || []);
     } catch (error) {
@@ -257,24 +326,13 @@ const ConsultationAppointmentManagement = () => {
   };
 
   const handleSpecialtyChange = (value) => {
-    form.setFieldsValue({ id_chuyen_nganh: value });
-    form.setFieldsValue({ id_khung_gio: undefined });
-    setAvailableTimeSlots([]);
-    
-    const ngayHen = form.getFieldValue("ngay_hen");
-    if (ngayHen && value) {
-      fetchAvailableTimeSlots(ngayHen, value);
-    }
+    form.setFieldsValue({ id_chuyen_nganh: value, id_khung_gio: undefined });
+    // useEffect sẽ tự động fetch khi idChuyenNganh thay đổi
   };
 
   const handleDateChange = (date) => {
     form.setFieldsValue({ ngay_hen: date, id_khung_gio: undefined });
-    setAvailableTimeSlots([]);
-    
-    const idChuyenNganh = form.getFieldValue("id_chuyen_nganh");
-    if (date && idChuyenNganh) {
-      fetchAvailableTimeSlots(date, idChuyenNganh);
-    }
+    // useEffect sẽ tự động fetch khi ngayHen thay đổi
   };
 
   const handleConfirm = async (record) => {
@@ -349,6 +407,15 @@ const ConsultationAppointmentManagement = () => {
     return configs[status] || configs.cho_xac_nhan;
   };
 
+  // Helper: tìm chuyên gia cho 1 bản ghi
+  const resolveNutritionist = (record) => {
+    if (record?.chuyenGiaObj) return record.chuyenGiaObj;
+    const byCg = nutritionists.find((n) => n.id_chuyen_gia === record.id_chuyen_gia || n.id_chuyen_gia === record?.chuyenGia?.id_chuyen_gia || n.id_chuyen_gia === record?.nutritionist?.id_chuyen_gia || n.id_chuyen_gia === record?.id_chuyen_gia_dinh_duong);
+    if (byCg) return byCg;
+    const byUser = nutritionists.find((n) => n.id_nguoi_dung === record.id_nguoi_dung || n.id_nguoi_dung === record?.chuyenGia?.id_nguoi_dung || n.id_nguoi_dung === record?.nutritionist?.id_nguoi_dung);
+    return byUser || null;
+  };
+
   const columns = [
     {
       title: "Mã cuộc hẹn",
@@ -404,7 +471,7 @@ const ConsultationAppointmentManagement = () => {
       title: "Chuyên gia",
       key: "nutritionist",
       render: (_, record) => {
-        const nutritionist = nutritionists.find((n) => n.id_chuyen_gia === record.id_chuyen_gia);
+        const nutritionist = resolveNutritionist(record);
         return <Text>CG. {nutritionist?.ho_ten || "N/A"}</Text>;
       },
     },
@@ -475,7 +542,7 @@ const ConsultationAppointmentManagement = () => {
       filtered = filtered.filter((appt) => {
         const patient = patients.find((p) => p.id_benh_nhan === appt.id_benh_nhan);
         const patientName = patient?.ho_ten?.toLowerCase() || "";
-        const nutritionist = nutritionists.find((n) => n.id_chuyen_gia === appt.id_chuyen_gia);
+        const nutritionist = appt.chuyenGiaObj || nutritionists.find((n) => n.id_chuyen_gia === appt.id_chuyen_gia || n.id_nguoi_dung === appt.id_nguoi_dung);
         const providerName = nutritionist?.ho_ten?.toLowerCase() || "";
         const searchLower = searchText.toLowerCase().trim();
         return patientName.includes(searchLower) || providerName.includes(searchLower);
@@ -569,7 +636,7 @@ const ConsultationAppointmentManagement = () => {
                     {dayAppointments.length > 0 ? (
                       dayAppointments.map((appt) => {
                         const patient = patients.find(p => p.id_benh_nhan === appt.id_benh_nhan);
-                        const nutritionist = nutritionists.find(n => n.id_chuyen_gia === appt.id_chuyen_gia);
+                        const nutritionist = appt.chuyenGiaObj || nutritionists.find(n => n.id_chuyen_gia === appt.id_chuyen_gia || n.id_nguoi_dung === appt.id_nguoi_dung);
                         const { color, text, icon } = getStatusConfig(appt.trang_thai);
                         
                         return (
@@ -856,11 +923,17 @@ const ConsultationAppointmentManagement = () => {
               >
                 <Select 
                   placeholder={
-                    availableTimeSlots.length === 0 
+                    !ngayHen || !idChuyenNganh
                       ? "Vui lòng chọn ngày và chuyên ngành trước" 
+                      : loading
+                      ? "Đang tải khung giờ..."
+                      : availableTimeSlots.length === 0
+                      ? "Không có khung giờ trống"
                       : "Chọn khung giờ"
                   }
-                  disabled={availableTimeSlots.length === 0}
+                  disabled={availableTimeSlots.length === 0 || loading}
+                  loading={loading}
+                  notFoundContent={loading ? "Đang tải..." : "Không có khung giờ trống"}
                 >
                   {availableTimeSlots.map((slot) => (
                     <Option key={slot.id_khung_gio} value={slot.id_khung_gio}>
@@ -877,6 +950,50 @@ const ConsultationAppointmentManagement = () => {
             </Col>
           </Row>
 
+          {/* Thông báo trạng thái */}
+          {loading && ngayHen && idChuyenNganh && (
+            <div style={{ 
+              textAlign: "center", 
+              padding: "12px", 
+              color: "#1890ff",
+              background: "#e6f7ff",
+              borderRadius: "6px",
+              marginBottom: "16px",
+              border: "1px solid #91d5ff"
+            }}>
+              <Spin size="small" style={{ marginRight: "8px" }} />
+              Đang tải khung giờ trống...
+            </div>
+          )}
+
+          {!loading && ngayHen && idChuyenNganh && availableTimeSlots.length > 0 && (
+            <div style={{ 
+              textAlign: "center", 
+              padding: "12px", 
+              color: "#52c41a",
+              background: "#f6ffed",
+              borderRadius: "6px",
+              marginBottom: "16px",
+              border: "1px solid #b7eb8f"
+            }}>
+              ✓ Tìm thấy {availableTimeSlots.length} khung giờ trống. Vui lòng chọn khung giờ phía trên.
+            </div>
+          )}
+
+          {!loading && ngayHen && idChuyenNganh && availableTimeSlots.length === 0 && (
+            <div style={{ 
+              textAlign: "center", 
+              padding: "12px", 
+              color: "#ff4d4f",
+              background: "#fff2f0",
+              borderRadius: "6px",
+              marginBottom: "16px",
+              border: "1px solid #ffccc7"
+            }}>
+              ⚠ Không có khung giờ trống trong ngày này. Vui lòng chọn ngày khác hoặc chuyên ngành khác.
+            </div>
+          )}
+
           <Form.Item 
             name="ly_do_tu_van" 
             label="Lý do tư vấn"
@@ -886,27 +1003,6 @@ const ConsultationAppointmentManagement = () => {
               placeholder="Nhập lý do tư vấn" 
             />
           </Form.Item>
-
-          {loading && availableTimeSlots.length === 0 && ngayHen && idChuyenNganh && (
-            <div style={{ textAlign: "center", padding: "20px", color: "#8c8c8c" }}>
-              Đang tải khung giờ trống...
-            </div>
-          )}
-
-          {!loading && ngayHen && availableTimeSlots.length === 0 && idChuyenNganh && (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "20px",
-                color: "#8c8c8c",
-                background: "#fafafa",
-                borderRadius: "8px",
-                marginBottom: "16px",
-              }}
-            >
-              Không có khung giờ trống trong ngày này
-            </div>
-          )}
 
           <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
             <Space>
@@ -984,7 +1080,10 @@ const ConsultationAppointmentManagement = () => {
                 </Text>
                 <Text strong>
                   {(() => {
-                    const nutritionist = nutritionists.find((n) => n.id_chuyen_gia === selectedAppointment.id_chuyen_gia);
+                    const nutritionist = selectedAppointment.chuyenGiaObj || nutritionists.find((n) =>
+                      n.id_chuyen_gia === selectedAppointment.id_chuyen_gia ||
+                      n.id_nguoi_dung === selectedAppointment.id_nguoi_dung
+                    );
                     return nutritionist?.ho_ten || "N/A";
                   })()}
                 </Text>

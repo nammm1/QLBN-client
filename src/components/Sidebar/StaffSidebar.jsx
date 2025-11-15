@@ -80,11 +80,27 @@ const StaffSidebar = ({ collapsed = false }) => {
     }
   ];
 
-  const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+  const initialStored = JSON.parse(localStorage.getItem("userInfo") || "{}");
+  const [currentUserInfo, setCurrentUserInfo] = useState(initialStored);
 
   const getInitials = (name) => {
     return name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : 'NV';
   };
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      try {
+        const updated = JSON.parse(localStorage.getItem("userInfo") || "{}");
+        setCurrentUserInfo(updated);
+      } catch {}
+    };
+    window.addEventListener("userInfoUpdated", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    return () => {
+      window.removeEventListener("userInfoUpdated", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
+  }, []);
 
   // Fetch badge counts
   useEffect(() => {
@@ -177,7 +193,7 @@ const StaffSidebar = ({ collapsed = false }) => {
                 transition: 'all 0.2s ease'
               }}
             >
-              {getInitials(userInfo?.user?.ho_ten)}
+              {getInitials(currentUserInfo?.user?.ho_ten)}
             </Avatar>
           </Badge>
           
@@ -192,7 +208,7 @@ const StaffSidebar = ({ collapsed = false }) => {
                   textShadow: '0 2px 4px rgba(0,0,0,0.2)'
                 }}
               >
-                {userInfo?.user?.ho_ten || 'Nhân viên'}
+                {currentUserInfo?.user?.ho_ten || 'Nhân viên'}
               </Title>
               <Text 
                 style={{ 

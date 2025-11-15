@@ -297,14 +297,14 @@ const UpdateProfile = () => {
           ...userInfo,
           user: {
             ...userInfo.user,
-            ho_ten: values.ho_ten,
-            email: values.email,
-            so_dien_thoai: values.so_dien_thoai,
-            anh_dai_dien: image || values.anh_dai_dien,
-          }
+            ho_ten: values?.ho_ten ?? userInfo.user.ho_ten,
+            email: values?.email ?? userInfo.user.email,
+            so_dien_thoai: values?.so_dien_thoai ?? userInfo.user.so_dien_thoai,
+            anh_dai_dien:
+              (image || values?.anh_dai_dien) ?? userInfo.user.anh_dai_dien,
+          },
         };
         localStorage.setItem("userInfo", JSON.stringify(updatedUserInfo));
-        
         // Dispatch custom event để Header có thể cập nhật
         window.dispatchEvent(new CustomEvent("userInfoUpdated"));
       }

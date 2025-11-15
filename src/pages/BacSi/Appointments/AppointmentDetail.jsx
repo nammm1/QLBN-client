@@ -137,6 +137,13 @@ const DoctorAppointmentDetail = () => {
       const appt = await apiCuocHenKham.getById(id_cuoc_hen);
       setAppointment(appt);
 
+      // Nếu cuộc hẹn đã hủy, không cho xem chi tiết -> quay lại danh sách
+      if (appt?.trang_thai === "da_huy") {
+        message.warning("Cuộc hẹn này đã bị hủy. Bạn không thể xem chi tiết.");
+        navigate("/doctor/appointments");
+        return;
+      }
+
       if (appt?.id_benh_nhan) {
         const bnFull = await apiBenhNhan.getById(appt.id_benh_nhan);
         setBenhNhanFull(bnFull);
@@ -256,17 +263,17 @@ const DoctorAppointmentDetail = () => {
           ma_BHYT: hoSo.ma_BHYT || '',
           dia_chi: hoSo.dia_chi || ''
         });
-      } else if (benhNhanFull?.data) {
+      } else if (benhNhanFull) {
         // Nếu chưa có hồ sơ, load dữ liệu từ bệnh nhân
-        const tuoiCalculated = calculateAge(benhNhanFull.data.ngay_sinh);
+        const tuoiCalculated = calculateAge(benhNhanFull.ngay_sinh);
         formHoSo.setFieldsValue({
-          ho_ten: benhNhanFull.data.ho_ten || '',
-          so_dien_thoai: benhNhanFull.data.so_dien_thoai || '',
-          gioi_tinh: benhNhanFull.data.gioi_tinh || '',
+          ho_ten: benhNhanFull.ho_ten || '',
+          so_dien_thoai: benhNhanFull.so_dien_thoai || '',
+          gioi_tinh: benhNhanFull.gioi_tinh || '',
           tuoi: tuoiCalculated ? Number(tuoiCalculated) : '',
-          dan_toc: benhNhanFull.data.dan_toc || '',
-          ma_BHYT: benhNhanFull.data.ma_BHYT || '',
-          dia_chi: benhNhanFull.data.dia_chi || ''
+          dan_toc: benhNhanFull.dan_toc || '',
+          ma_BHYT: benhNhanFull.ma_BHYT || '',
+          dia_chi: benhNhanFull.dia_chi || ''
         });
       }
     }
@@ -306,14 +313,14 @@ const DoctorAppointmentDetail = () => {
   // Các hàm xử lý cũ giữ nguyên
   const handleSubmitHoSo = async (values) => {
     try {
-      if (!benhNhanFull?.data?.id_benh_nhan) {
+      if (!benhNhanFull?.id_benh_nhan) {
         message.error("Không tìm thấy thông tin bệnh nhân");
         return;
       }
 
       if (!hoSo) {
         const newHoSo = await apiHoSoKhamBenh.create({
-          id_benh_nhan: benhNhanFull.data.id_benh_nhan,
+          id_benh_nhan: benhNhanFull.id_benh_nhan,
           id_bac_si_tao: userInfo.user.id_nguoi_dung,
           ...values
         });
@@ -321,7 +328,7 @@ const DoctorAppointmentDetail = () => {
         message.success("Tạo hồ sơ thành công");
       } else {
         await apiHoSoKhamBenh.update(hoSo.id_ho_so, values);
-        const updated = await apiHoSoKhamBenh.getByBenhNhan(benhNhanFull.data.id_benh_nhan);
+        const updated = await apiHoSoKhamBenh.getByBenhNhan(benhNhanFull.id_benh_nhan);
         setHoSo(updated);
         message.success("Cập nhật hồ sơ thành công");
       }
@@ -334,14 +341,14 @@ const DoctorAppointmentDetail = () => {
 
   const handleSubmitLichSuKham = async (values) => {
     try {
-      if (!benhNhanFull?.data?.id_benh_nhan) {
+      if (!benhNhanFull?.id_benh_nhan) {
         message.error("Không tìm thấy thông tin bệnh nhân");
         return;
       }
 
       if (!lichSuKhamHienTai) {
         const newLichSu = await apiLichSuKham.createLichSuKham({
-          id_benh_nhan: benhNhanFull.data.id_benh_nhan,
+          id_benh_nhan: benhNhanFull.id_benh_nhan,
           id_bac_si: userInfo.user.id_nguoi_dung,
           id_cuoc_hen: id_cuoc_hen,
           id_ho_so: hoSo?.id_ho_so,
