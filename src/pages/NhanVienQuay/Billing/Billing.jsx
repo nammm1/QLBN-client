@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Card,
   Table,
@@ -16,7 +17,6 @@ import {
   Descriptions,
   Divider,
   Statistic,
-  InputNumber,
   DatePicker,
   Drawer,
   Empty,
@@ -36,19 +36,51 @@ import {
   ScanOutlined,
   CloseOutlined,
 } from "@ant-design/icons";
-import { QRCodeSVG } from "qrcode.react";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import apiHoaDon from "../../../api/HoaDon";
 import apiChiTietHoaDon from "../../../api/ChiTietHoaDon";
 import moment from "moment";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { generateMomoQR, generateVNPayQR, generateBankQR } from "../../../utils/paymentQR";
 import apiPayment from "../../../api/Payment";
+import { InvoiceHeader, InvoiceSignatureSection } from "../../../components/Invoice/InvoiceBranding";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
+
+const deriveCareStaffInfo = (invoice) => {
+  if (!invoice) return { type: null, label: "", info: null };
+  if (invoice.id_cuoc_hen_kham) {
+    return {
+      type: "medical",
+      label: "Bác sĩ khám bệnh",
+      info: invoice.bac_si_kham || null,
+    };
+  }
+  if (invoice.id_cuoc_hen_tu_van) {
+    return {
+      type: "nutrition",
+      label: "Chuyên gia dinh dưỡng",
+      info: invoice.chuyen_gia_tu_van || null,
+    };
+  }
+  return { type: null, label: "", info: null };
+};
+
+const PAYMENT_METHOD_LABELS = {
+  tien_mat: "Tiền mặt",
+  chuyen_khoan: "Chuyển khoản",
+  momo: "Momo",
+  vnpay: "VNPay",
+  the: "Thẻ",
+  vi_dien_tu: "Ví điện tử",
+};
+
+const formatVnd = (value) => {
+  const amount = Number(value || 0);
+  return `${amount.toLocaleString("vi-VN")} đ`;
+};
 
 const Billing = () => {
   const [invoices, setInvoices] = useState([]);
@@ -62,9 +94,85 @@ const Billing = () => {
   const qrScannerRef = useRef(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [invoiceDetails, setInvoiceDetails] = useState([]);
-  const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [cashProcessing, setCashProcessing] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const staffInfo = deriveCareStaffInfo(selectedInvoice);
+
+  const invoiceSubtitle = selectedInvoice
+    ? selectedInvoice.id_cuoc_hen_kham
+      ? "Hóa đơn khám bệnh"
+      : selectedInvoice.id_cuoc_hen_tu_van
+      ? "Hóa đơn tư vấn dinh dưỡng"
+      : "Hóa đơn dịch vụ y tế"
+    : "Hóa đơn dịch vụ y tế";
+
+  const invoiceCreatedAt = selectedInvoice
+    ? moment(selectedInvoice.thoi_gian_tao || selectedInvoice.ngay_tao).format("DD/MM/YYYY HH:mm")
+    : null;
+
+  const invoiceMetadata = selectedInvoice
+    ? [
+        invoiceCreatedAt && { label: "Ngày lập", value: invoiceCreatedAt },
+        selectedInvoice.phuong_thuc_thanh_toan && {
+          label: "Phương thức",
+          value: PAYMENT_METHOD_LABELS[selectedInvoice.phuong_thuc_thanh_toan] ||
+            selectedInvoice.phuong_thuc_thanh_toan,
+        },
+        {
+          label: "Trạng thái",
+          value: selectedInvoice.trang_thai === "da_thanh_toan" ? "Đã thanh toán" : "Chưa thanh toán",
+        },
+      ].filter(Boolean)
+    : [];
+
+  const patientName =
+    selectedInvoice?.nguoi_dung?.ho_ten ||
+    selectedInvoice?.benh_nhan?.ho_ten ||
+    "................................";
+
+  const cashierName =
+    selectedInvoice?.nhan_vien_thanh_toan?.ho_ten ||
+    selectedInvoice?.nhan_vien_quay?.ho_ten ||
+    selectedInvoice?.nguoi_tao?.ho_ten ||
+    null;
+
+  const cashierTitle =
+    selectedInvoice?.nhan_vien_thanh_toan?.chuc_danh ||
+    selectedInvoice?.nhan_vien_quay?.chuc_danh ||
+    "Thu ngân";
+
+  const specialization =
+    staffInfo.type === "medical"
+      ? staffInfo.info?.chuc_danh || staffInfo.info?.chuyen_mon
+      : staffInfo.info?.chuyen_nganh;
+
+  const signatureSlots = [
+    {
+      label: "Nhân viên thu ngân",
+      name: cashierName || "................................",
+      title: cashierTitle,
+      note: "Ký, ghi rõ họ tên",
+    },
+    {
+      label:
+        staffInfo.type === "medical"
+          ? "Bác sĩ phụ trách"
+          : staffInfo.type === "nutrition"
+          ? "Chuyên gia dinh dưỡng"
+          : "Nhân sự phụ trách chuyên môn",
+      name: staffInfo.info?.ho_ten || "................................",
+      title: specialization,
+      note: "Ký, ghi rõ họ tên & đóng dấu (nếu có)",
+    },
+    {
+      label: "Bệnh nhân/Người thanh toán",
+      name: patientName,
+      note: "Ký, ghi rõ họ tên",
+    },
+  ];
 
   const [filters, setFilters] = useState({
     trang_thai: undefined,
@@ -145,6 +253,20 @@ const Billing = () => {
     }
   };
 
+  useEffect(() => {
+    if (!location.state?.paymentSuccess) {
+      return;
+    }
+
+    const successMessage = location.state.orderId
+      ? `Hóa đơn ${location.state.orderId} đã thanh toán thành công`
+      : "Thanh toán Momo thành công";
+    message.success(successMessage);
+    fetchData();
+    navigate(location.pathname, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, location.pathname, navigate]);
+
   const handleViewDetail = async (record) => {
     try {
       setSelectedInvoice(record);
@@ -161,10 +283,6 @@ const Billing = () => {
 
   const handlePayment = (record) => {
     setSelectedInvoice(record);
-    form.setFieldsValue({
-      so_tien_nhan: record.tong_tien,
-      phuong_thuc_thanh_toan: "tien_mat",
-    });
     setIsPaymentModalVisible(true);
   };
 
@@ -272,31 +390,12 @@ const Billing = () => {
     
     setPaymentLoading(true);
     try {
-      const response = await apiPayment.createMomoPayment(selectedInvoice.id_hoa_don);
+      const response = await apiPayment.createMomoPayment(selectedInvoice.id_hoa_don, {
+        source: "cashier",
+        redirectPath: "/receptionist/billing",
+      });
       if (response.success && response.data.paymentUrl) {
-        // Mở payment URL trong tab mới
-        window.open(response.data.paymentUrl, '_blank');
         message.success("Đang chuyển đến trang thanh toán Momo...");
-      } else {
-        message.error(response.message || "Không thể tạo payment URL");
-      }
-    } catch (error) {
-      message.error("Có lỗi xảy ra. Vui lòng thử lại!");
-      console.error(error);
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
-
-  // Tạo payment URL cho VNPay
-  const handleCreateVNPayPayment = async () => {
-    if (!selectedInvoice) return;
-    
-    setPaymentLoading(true);
-    try {
-      const response = await apiPayment.createVNPayPayment(selectedInvoice.id_hoa_don);
-      if (response.success && response.data.paymentUrl) {
-        // Redirect đến payment URL
         window.location.href = response.data.paymentUrl;
       } else {
         message.error(response.message || "Không thể tạo payment URL");
@@ -309,26 +408,24 @@ const Billing = () => {
     }
   };
 
-  const handleSubmitPayment = async (values) => {
-    try {
-      // Nếu là Momo hoặc VNPay, không cập nhật trạng thái ngay (sẽ cập nhật qua callback)
-      if (values.phuong_thuc_thanh_toan === "momo" || values.phuong_thuc_thanh_toan === "vnpay") {
-        message.info("Vui lòng hoàn tất thanh toán trên trang thanh toán");
-        return;
-      }
+  const handleCashPayment = async () => {
+    if (!selectedInvoice) return;
 
+    setCashProcessing(true);
+    try {
       await apiHoaDon.updateThanhToan(selectedInvoice.id_hoa_don, {
-        phuong_thuc_thanh_toan: values.phuong_thuc_thanh_toan,
+        phuong_thuc_thanh_toan: "tien_mat",
         trang_thai: "da_thanh_toan",
       });
 
-      message.success("Thu tiền thành công!");
+      message.success("Đã cập nhật thanh toán tiền mặt");
       setIsPaymentModalVisible(false);
-      form.resetFields();
       fetchData();
     } catch (error) {
-      message.error("Có lỗi xảy ra. Vui lòng thử lại!");
+      message.error("Không thể cập nhật thanh toán tiền mặt. Vui lòng thử lại!");
       console.error(error);
+    } finally {
+      setCashProcessing(false);
     }
   };
 
@@ -504,16 +601,8 @@ const Billing = () => {
       key: "phuong_thuc_thanh_toan",
       width: 150,
       render: (method) => {
-        const methods = {
-          tien_mat: "Tiền mặt",
-          chuyen_khoan: "Chuyển khoản",
-          momo: "Momo",
-          vnpay: "VNPay",
-          the: "Thẻ",
-          vi_dien_tu: "Ví điện tử",
-        };
         return method ? (
-          <Tag color="blue">{methods[method] || method}</Tag>
+          <Tag color="blue">{PAYMENT_METHOD_LABELS[method] || method}</Tag>
         ) : (
           <Text type="secondary">-</Text>
         );
@@ -766,13 +855,7 @@ const Billing = () => {
               key="payment"
               type="primary"
               icon={<DollarOutlined />}
-              onClick={() => {
-                form.setFieldsValue({
-                  so_tien_nhan: selectedInvoice.tong_tien,
-                  phuong_thuc_thanh_toan: "tien_mat",
-                });
-                setIsPaymentModalVisible(true);
-              }}
+              onClick={() => setIsPaymentModalVisible(true)}
               style={{
                 background: "linear-gradient(135deg, #096dd9 0%, #40a9ff 100%)",
                 border: "none",
@@ -861,6 +944,27 @@ const Billing = () => {
                   )}
                 </>
               )}
+              {staffInfo.info && (
+                <>
+                  <Divider orientation="left">
+                    Thông tin {staffInfo.type === "medical" ? "bác sĩ khám" : "chuyên gia dinh dưỡng"}
+                  </Divider>
+                  <Descriptions.Item label="Họ tên" span={2}>
+                    {staffInfo.info.ho_ten || "N/A"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Email">
+                    {staffInfo.info.email || "N/A"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Số điện thoại">
+                    {staffInfo.info.so_dien_thoai || "N/A"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={staffInfo.type === "medical" ? "Chuyên môn" : "Chuyên ngành"} span={2}>
+                    {staffInfo.type === "medical"
+                      ? staffInfo.info.chuyen_mon || staffInfo.info.chuc_danh || "N/A"
+                      : staffInfo.info.chuyen_nganh || "N/A"}
+                  </Descriptions.Item>
+                </>
+              )}
             </Descriptions>
 
             <Divider />
@@ -937,356 +1041,241 @@ const Billing = () => {
         open={isPaymentModalVisible}
         onCancel={() => setIsPaymentModalVisible(false)}
         footer={null}
-        width={500}
+        width={860}
+        bodyStyle={{ paddingTop: 12 }}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmitPayment}>
-          {/* Thông tin bệnh nhân */}
-          {(selectedInvoice?.nguoi_dung || selectedInvoice?.benh_nhan) && (
+        {selectedInvoice ? (
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
             <Card
               size="small"
               style={{
-                backgroundColor: "#e6f7ff",
-                marginBottom: "16px",
-                borderRadius: "8px",
+                borderRadius: 12,
+                background: "linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%)",
+                boxShadow: "0 12px 24px rgba(0,0,0,0.04)",
               }}
+              bodyStyle={{ padding: 20 }}
             >
-              <Title level={5} style={{ marginBottom: "12px" }}>
-                <UserOutlined style={{ marginRight: "8px" }} />
-                Thông tin bệnh nhân
-              </Title>
-              <Row gutter={[16, 8]}>
-                <Col span={24}>
-                  <Text strong>Họ tên: </Text>
-                  <Text>{selectedInvoice.nguoi_dung?.ho_ten || "N/A"}</Text>
+              <Row gutter={[24, 16]} align="middle">
+                <Col xs={24} md={12}>
+                  <Statistic
+                    title={<Text type="secondary">Tổng tiền cần thanh toán</Text>}
+                    value={Number(selectedInvoice?.tong_tien || 0)}
+                    formatter={(value) => formatVnd(value)}
+                    valueStyle={{ fontSize: 34, color: "#fa8c16", fontWeight: 700 }}
+                  />
+                  <Space direction="vertical" size={4} style={{ marginTop: 16 }}>
+                    <Text type="secondary">Mã hóa đơn</Text>
+                    <Text strong style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 16 }}>
+                      {selectedInvoice?.id_hoa_don}
+                    </Text>
+                  </Space>
+                  <Space direction="horizontal" size="middle" style={{ marginTop: 16, flexWrap: "wrap" }}>
+                    <Tag color="blue">
+                      {invoiceSubtitle}
+                    </Tag>
+                    <Tag color={selectedInvoice?.trang_thai === "da_thanh_toan" ? "green" : "orange"}>
+                      {selectedInvoice?.trang_thai === "da_thanh_toan" ? "Đã thanh toán" : "Chưa thanh toán"}
+                    </Tag>
+                    {selectedInvoice?.phuong_thuc_thanh_toan && (
+                      <Tag color="geekblue">
+                        {PAYMENT_METHOD_LABELS[selectedInvoice?.phuong_thuc_thanh_toan] || "Chưa xác định"}
+                      </Tag>
+                    )}
+                  </Space>
                 </Col>
-                <Col span={12}>
-                  <Text strong>Số điện thoại: </Text>
-                  <Text>{selectedInvoice.nguoi_dung?.so_dien_thoai || "N/A"}</Text>
-                </Col>
-                <Col span={12}>
-                  <Text strong>Mã BHYT: </Text>
-                  {selectedInvoice.benh_nhan?.ma_BHYT ? (
-                    <Tag color="green">{selectedInvoice.benh_nhan.ma_BHYT}</Tag>
-                  ) : (
-                    <Text type="secondary">Không có</Text>
-                  )}
+                <Col xs={24} md={12}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 12,
+                        backgroundColor: "#e6f7ff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <UserOutlined style={{ color: "#1890ff", fontSize: 22 }} />
+                    </div>
+                    <div>
+                      <Text type="secondary">Bệnh nhân</Text>
+                      <div style={{ fontSize: 18, fontWeight: 600 }}>
+                        {selectedInvoice?.nguoi_dung?.ho_ten || selectedInvoice?.benh_nhan?.ho_ten || "Chưa cập nhật"}
+                      </div>
+                    </div>
+                  </div>
+                  <Descriptions column={1} size="small">
+                    <Descriptions.Item label="Số điện thoại">
+                      {selectedInvoice?.nguoi_dung?.so_dien_thoai || "N/A"}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Mã BHYT">
+                      {selectedInvoice?.benh_nhan?.ma_BHYT ? (
+                        <Tag color="green">{selectedInvoice?.benh_nhan?.ma_BHYT}</Tag>
+                      ) : (
+                        <Text type="secondary">Không có</Text>
+                      )}
+                    </Descriptions.Item>
+                  </Descriptions>
                 </Col>
               </Row>
             </Card>
-          )}
 
-          <Card
-            size="small"
-            style={{
-              backgroundColor: "#f9f9f9",
-              marginBottom: "24px",
-              borderRadius: "8px",
-            }}
-          >
-            <div style={{ textAlign: "center" }}>
-              <Text type="secondary">Tổng tiền cần thanh toán</Text>
-              <div style={{ fontSize: "32px", fontWeight: "bold", color: "#f39c12", margin: "12px 0" }}>
-                {parseFloat(selectedInvoice?.tong_tien || 0).toLocaleString("vi-VN")} đ
-              </div>
-            </div>
-          </Card>
-
-          <Form.Item
-            name="phuong_thuc_thanh_toan"
-            label="Phương thức thanh toán"
-            rules={[{ required: true, message: "Vui lòng chọn phương thức!" }]}
-          >
-            <Select placeholder="Chọn phương thức" size="large">
-              <Option value="tien_mat">💵 Tiền mặt</Option>
-              <Option value="chuyen_khoan">🏦 Chuyển khoản ngân hàng</Option>
-              <Option value="momo">💜 Momo</Option>
-              <Option value="vnpay">💙 VNPay</Option>
-              <Option value="the">💳 Thẻ</Option>
-              <Option value="vi_dien_tu">📱 Ví điện tử khác</Option>
-            </Select>
-          </Form.Item>
-
-          {/* Hiển thị mã thanh toán khi chọn các phương thức */}
-          <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) =>
-              prevValues.phuong_thuc_thanh_toan !== currentValues.phuong_thuc_thanh_toan
-            }
-          >
-            {({ getFieldValue }) => {
-              const phuongThuc = getFieldValue("phuong_thuc_thanh_toan");
-              const amount = parseFloat(selectedInvoice?.tong_tien || 0);
-              const invoiceId = selectedInvoice?.id_hoa_don || "";
-              
-              // Chuyển khoản ngân hàng
-              if (phuongThuc === "chuyen_khoan") {
-                const bankQR = generateBankQR("VCB", "0123456789", "PHONG KHAM MEDPRO", amount, invoiceId);
-                return (
-                  <Card
-                    size="small"
-                    style={{
-                      backgroundColor: "#f0f9ff",
-                      border: "2px solid #1890ff",
-                      marginBottom: "16px",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    <div style={{ textAlign: "center" }}>
-                      <Title level={5} style={{ color: "#1890ff", marginBottom: "12px" }}>
-                        🏦 Thông tin chuyển khoản
-                      </Title>
-                      <div style={{ marginBottom: "12px" }}>
-                        <Text strong>Ngân hàng: </Text>
-                        <Text style={{ fontSize: "16px", color: "#1890ff" }}>Vietcombank</Text>
-                      </div>
-                      <div style={{ marginBottom: "12px" }}>
-                        <Text strong>Số tài khoản: </Text>
-                        <Text
-                          copyable
-                          style={{
-                            fontSize: "18px",
-                            fontWeight: "bold",
-                            color: "#1890ff",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          0123456789
-                        </Text>
-                      </div>
-                      <div style={{ marginBottom: "12px" }}>
-                        <Text strong>Chủ tài khoản: </Text>
-                        <Text style={{ fontSize: "16px" }}>PHÒNG KHÁM MEDPRO</Text>
-                      </div>
-                      <div style={{ marginBottom: "12px" }}>
-                        <Text strong>Số tiền: </Text>
-                        <Text style={{ fontSize: "18px", fontWeight: "bold", color: "#f39c12" }}>
-                          {amount.toLocaleString("vi-VN")} đ
-                        </Text>
-                      </div>
-                      <div style={{ marginBottom: "12px" }}>
-                        <Text strong>Nội dung chuyển khoản: </Text>
-                        <Text
-                          copyable
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "bold",
-                            color: "#f39c12",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {invoiceId}
-                        </Text>
-                      </div>
-                      <div style={{ marginTop: "16px", padding: "12px", backgroundColor: "#fff", borderRadius: "8px" }}>
-                        <QRCodeSVG
-                          value={bankQR}
-                          size={180}
-                          level="H"
-                          includeMargin={true}
-                        />
-                        <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
-                          Quét mã QR để chuyển khoản (số tiền: {amount.toLocaleString("vi-VN")} đ)
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              }
-              
-              // Momo
-              if (phuongThuc === "momo") {
-                return (
-                  <Card
-                    size="small"
-                    style={{
-                      backgroundColor: "#fff0f6",
-                      border: "2px solid #eb2f96",
-                      marginBottom: "16px",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    <div style={{ textAlign: "center" }}>
-                      <Title level={5} style={{ color: "#eb2f96", marginBottom: "12px" }}>
-                        💜 Thanh toán qua Momo
-                      </Title>
-                      <div style={{ marginBottom: "16px" }}>
-                        <Text strong>Số tiền: </Text>
-                        <Text style={{ fontSize: "24px", fontWeight: "bold", color: "#f39c12" }}>
-                          {amount.toLocaleString("vi-VN")} đ
-                        </Text>
-                      </div>
-                      <div style={{ marginBottom: "16px" }}>
-                        <Text strong>Mã hóa đơn: </Text>
-                        <Text
-                          copyable
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "bold",
-                            color: "#eb2f96",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {invoiceId}
-                        </Text>
-                      </div>
-                      <Button
-                        type="primary"
-                        size="large"
-                        loading={paymentLoading}
-                        onClick={handleCreateMomoPayment}
-                        style={{
-                          backgroundColor: "#eb2f96",
-                          borderColor: "#eb2f96",
-                          height: "50px",
-                          fontSize: "16px",
-                          fontWeight: "bold",
-                          width: "100%",
-                          marginTop: "16px",
-                        }}
-                        icon={<QrcodeOutlined />}
-                      >
-                        Thanh toán qua Momo
-                      </Button>
-                      <div style={{ marginTop: "12px", fontSize: "12px", color: "#666" }}>
-                        Bạn sẽ được chuyển đến trang thanh toán Momo
-                      </div>
-                    </div>
-                  </Card>
-                );
-              }
-              
-              // VNPay
-              if (phuongThuc === "vnpay") {
-                return (
-                  <Card
-                    size="small"
-                    style={{
-                      backgroundColor: "#e6f7ff",
-                      border: "2px solid #1890ff",
-                      marginBottom: "16px",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    <div style={{ textAlign: "center" }}>
-                      <Title level={5} style={{ color: "#1890ff", marginBottom: "12px" }}>
-                        💙 Thanh toán qua VNPay
-                      </Title>
-                      <div style={{ marginBottom: "16px" }}>
-                        <Text strong>Số tiền: </Text>
-                        <Text style={{ fontSize: "24px", fontWeight: "bold", color: "#f39c12" }}>
-                          {amount.toLocaleString("vi-VN")} đ
-                        </Text>
-                      </div>
-                      <div style={{ marginBottom: "16px" }}>
-                        <Text strong>Mã hóa đơn: </Text>
-                        <Text
-                          copyable
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "bold",
-                            color: "#1890ff",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {invoiceId}
-                        </Text>
-                      </div>
-                      <Button
-                        type="primary"
-                        size="large"
-                        loading={paymentLoading}
-                        onClick={handleCreateVNPayPayment}
-                        style={{
-                          backgroundColor: "#1890ff",
-                          borderColor: "#1890ff",
-                          height: "50px",
-                          fontSize: "16px",
-                          fontWeight: "bold",
-                          width: "100%",
-                          marginTop: "16px",
-                        }}
-                        icon={<QrcodeOutlined />}
-                      >
-                        Thanh toán qua VNPay
-                      </Button>
-                      <div style={{ marginTop: "12px", fontSize: "12px", color: "#666" }}>
-                        Bạn sẽ được chuyển đến trang thanh toán VNPay
-                      </div>
-                    </div>
-                  </Card>
-                );
-              }
-              
-              return null;
-            }}
-          </Form.Item>
-
-          <Form.Item
-            name="so_tien_nhan"
-            label="Số tiền nhận"
-            rules={[{ required: true, message: "Vui lòng nhập số tiền!" }]}
-          >
-            <InputNumber
-              style={{ width: "100%" }}
-              size="large"
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-              parser={(value) => value.replace(/\$\s?|(,*)/g, "")}
-              suffix="đ"
-              min={0}
-            />
-          </Form.Item>
-
-          <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) =>
-              prevValues.so_tien_nhan !== currentValues.so_tien_nhan
-            }
-          >
-            {({ getFieldValue }) => {
-              const received = parseFloat(getFieldValue("so_tien_nhan") || 0);
-              const total = parseFloat(selectedInvoice?.tong_tien || 0);
-              const change = received - total;
-
-              return change > 0 ? (
-                <Card size="small" style={{ backgroundColor: "#e6f7ff", marginTop: "-16px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <Text>Tiền thừa trả khách:</Text>
-                    <Text strong style={{ fontSize: "18px", color: "#096dd9" }}>
-                      {change.toLocaleString("vi-VN")} đ
+            <Card
+              size="small"
+              style={{
+                borderRadius: 10,
+                border: "1px solid #f0f0f0",
+              }}
+            >
+              <Row gutter={[16, 16]}>
+                <Col span={12}>
+                  <Space direction="vertical" size={4}>
+                    <Text type="secondary">
+                      <CalendarOutlined style={{ marginRight: 8, color: "#1890ff" }} />
+                      Nhân sự phụ trách
                     </Text>
-                  </div>
-                </Card>
-              ) : received < total ? (
-                <Card size="small" style={{ backgroundColor: "#fff7e6", marginTop: "-16px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <Text>Còn thiếu:</Text>
-                    <Text strong style={{ fontSize: "18px", color: "#faad14" }}>
-                      {Math.abs(change).toLocaleString("vi-VN")} đ
+                    <Text strong>
+                      {selectedInvoice?.id_cuoc_hen_kham
+                        ? selectedInvoice?.bac_si_kham?.ho_ten || "Đang cập nhật"
+                        : selectedInvoice?.chuyen_gia_tu_van?.ho_ten || "Đang cập nhật"}
                     </Text>
-                  </div>
-                </Card>
-              ) : null;
-            }}
-          </Form.Item>
+                  </Space>
+                </Col>
+                <Col span={12}>
+                  <Space direction="vertical" size={4}>
+                    <Text type="secondary">
+                      <RiseOutlined style={{ marginRight: 8, color: "#fa8c16" }} />
+                      Ngày tạo hóa đơn
+                    </Text>
+                    <Text strong>
+                      {selectedInvoice?.thoi_gian_tao
+                        ? moment(selectedInvoice.thoi_gian_tao).format("DD/MM/YYYY HH:mm")
+                        : "--"}
+                    </Text>
+                  </Space>
+                </Col>
+              </Row>
+            </Card>
 
-          <Form.Item style={{ marginBottom: 0, marginTop: "24px", textAlign: "right" }}>
-            <Space>
-              <Button onClick={() => setIsPaymentModalVisible(false)}>Hủy</Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-                icon={<CheckCircleOutlined />}
-                size="large"
-                style={{
-                  background: "linear-gradient(135deg, #f39c12 0%, #e67e22 100%)",
-                  border: "none",
-                }}
-              >
-                Xác nhận thanh toán
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
+            <Divider plain style={{ margin: "12px 0" }}>
+              Chọn phương thức thanh toán
+            </Divider>
+
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={12}>
+                <Card
+                  hoverable
+                  style={{
+                    height: "100%",
+                    borderRadius: 12,
+                    border: "1px solid #b7eb8f",
+                    background:
+                      "linear-gradient(145deg, rgba(246,255,237,1) 0%, rgba(255,255,255,1) 100%)",
+                  }}
+                  bodyStyle={{ display: "flex", flexDirection: "column", height: "100%" }}
+                >
+                  <Space direction="vertical" size={12}>
+                    <Title level={5} style={{ color: "#389e0d", margin: 0 }}>
+                      💵 Thanh toán tiền mặt
+                    </Title>
+                    <Text type="secondary">
+                      Xác nhận ngay sau khi đã nhận tiền từ khách hàng. Hệ thống sẽ cập nhật phương thức là "Tiền mặt".
+                    </Text>
+                    <Space direction="vertical" size={4} style={{ marginTop: 8 }}>
+                      <Text strong>Ghi nhớ</Text>
+                      <Text>- In và bàn giao biên nhận cho khách</Text>
+                      <Text>- Kiểm tra số tiền đã thu trước khi xác nhận</Text>
+                    </Space>
+                  </Space>
+                  <Divider style={{ margin: "12px 0" }} />
+                  <Button
+                    type="primary"
+                    icon={<CheckCircleOutlined />}
+                    loading={cashProcessing}
+                    onClick={handleCashPayment}
+                    style={{
+                      width: "100%",
+                      height: 50,
+                      marginTop: "auto",
+                      background: "linear-gradient(135deg, #52c41a 0%, #73d13d 100%)",
+                      border: "none",
+                      fontWeight: 600,
+                      letterSpacing: 0.3,
+                    }}
+                  >
+                    Xác nhận đã thu tiền mặt
+                  </Button>
+                </Card>
+              </Col>
+              <Col xs={24} md={12}>
+                <Card
+                  hoverable
+                  style={{
+                    height: "100%",
+                    borderRadius: 12,
+                    border: "1px solid #ffadd2",
+                    background:
+                      "linear-gradient(145deg, rgba(255,240,246,1) 0%, rgba(255,255,255,1) 100%)",
+                  }}
+                  bodyStyle={{ display: "flex", flexDirection: "column", height: "100%" }}
+                >
+                  <Space direction="vertical" size={12}>
+                    <Title level={5} style={{ color: "#c41d7f", margin: 0 }}>
+                      💜 Thanh toán qua Momo
+                    </Title>
+                    <Text type="secondary">
+                      Thu ngân sẽ được chuyển sang cổng Momo để hoàn tất giao dịch, sau đó hệ thống tự quay lại và làm
+                      mới danh sách.
+                    </Text>
+                    <Descriptions
+                      size="small"
+                      column={1}
+                      colon={false}
+                      style={{ marginTop: 8 }}
+                      labelStyle={{ fontWeight: 500 }}
+                    >
+                      <Descriptions.Item label="Số tiền">
+                        <Text strong style={{ fontSize: 20, color: "#fa8c16" }}>
+                          {formatVnd(selectedInvoice?.tong_tien)}
+                        </Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Mã hóa đơn">
+                        <Text strong style={{ fontFamily: "JetBrains Mono, monospace" }}>
+                          {selectedInvoice?.id_hoa_don}
+                        </Text>
+                      </Descriptions.Item>
+                    </Descriptions>
+                  </Space>
+                  <Divider style={{ margin: "12px 0" }} />
+                  <Button
+                    type="primary"
+                    size="large"
+                    loading={paymentLoading}
+                    onClick={handleCreateMomoPayment}
+                    style={{
+                      width: "100%",
+                      height: 50,
+                      marginTop: "auto",
+                      background: "#eb2f96",
+                      borderColor: "#eb2f96",
+                      fontWeight: 600,
+                    }}
+                    icon={<QrcodeOutlined />}
+                  >
+                    Chuyển sang Momo
+                  </Button>
+                  <Text type="secondary" style={{ fontSize: 12, marginTop: 8 }}>
+                    Nếu gặp sự cố với cổng thanh toán, vui lòng thử lại hoặc hướng dẫn khách đổi sang phương thức tiền
+                    mặt.
+                  </Text>
+                </Card>
+              </Col>
+            </Row>
+          </Space>
+        ) : (
+          <Empty description="Chưa chọn hóa đơn để thanh toán" />
+        )}
       </Modal>
 
       {/* QR Scanner Modal */}
@@ -1357,26 +1346,10 @@ const Billing = () => {
       >
         {selectedInvoice && (
           <div id="invoicePrintPreview" style={{ padding: 20, background: 'white', border: '1px solid #f0f0f0' }}>
-            {/* Header */}
-            <div style={{ textAlign: 'center', marginBottom: 30, borderBottom: '2px solid #1890ff', paddingBottom: 20, position: 'relative' }}>
-              <Title level={2} style={{ color: '#1890ff', margin: 0 }}>PHÒNG KHÁM MEDPRO</Title>
-              <Text style={{ fontSize: 16, color: '#666' }}>Địa chỉ: 123 Đường ABC, Quận XYZ, TP.HCM</Text>
-              <br />
-              <Text style={{ fontSize: 16, color: '#666' }}>Điện thoại: 028 1234 5678</Text>
-              
-              {/* QR Code */}
-              <div style={{ position: 'absolute', top: 0, right: 0, textAlign: 'center' }}>
-                <QRCodeSVG 
-                  value={selectedInvoice.id_hoa_don?.toString() || ''}
-                  size={120}
-                  level="H"
-                  includeMargin={true}
-                />
-                <div style={{ fontSize: '10px', marginTop: '4px', color: '#666' }}>
-                  Mã: {selectedInvoice.id_hoa_don}
-                </div>
-              </div>
-            </div>
+            <InvoiceHeader
+              subtitle={invoiceSubtitle}
+              qrValue={selectedInvoice.id_hoa_don?.toString() || ""}
+            />
 
             {/* Thông tin hóa đơn */}
             <Card title="THÔNG TIN HÓA ĐƠN" size="small" style={{ marginBottom: 20 }}>
@@ -1408,6 +1381,27 @@ const Billing = () => {
                   <Col span={12}><Text strong>Số điện thoại:</Text> {selectedInvoice.nguoi_dung?.so_dien_thoai || "N/A"}</Col>
                   <Col span={12}><Text strong>Email:</Text> {selectedInvoice.nguoi_dung?.email || "N/A"}</Col>
                   <Col span={12}><Text strong>Mã BHYT:</Text> {selectedInvoice.benh_nhan?.ma_BHYT || "Không có"}</Col>
+                </Row>
+              </Card>
+            )}
+
+            {/* Nhân sự phụ trách */}
+            {staffInfo.info && (
+              <Card
+                title={staffInfo.type === "medical" ? "BÁC SĨ PHỤ TRÁCH" : "CHUYÊN GIA DINH DƯỠNG"}
+                size="small"
+                style={{ marginBottom: 20 }}
+              >
+                <Row gutter={[16, 8]}>
+                  <Col span={12}><Text strong>Họ tên:</Text> {staffInfo.info.ho_ten || "N/A"}</Col>
+                  <Col span={12}><Text strong>Email:</Text> {staffInfo.info.email || "N/A"}</Col>
+                  <Col span={12}><Text strong>Số điện thoại:</Text> {staffInfo.info.so_dien_thoai || "N/A"}</Col>
+                  <Col span={12}>
+                    <Text strong>{staffInfo.type === "medical" ? "Chuyên môn:" : "Chuyên ngành:"}</Text>{" "}
+                    {staffInfo.type === "medical"
+                      ? staffInfo.info.chuyen_mon || staffInfo.info.chuc_danh || "N/A"
+                      : staffInfo.info.chuyen_nganh || "N/A"}
+                  </Col>
                 </Row>
               </Card>
             )}
@@ -1445,14 +1439,32 @@ const Billing = () => {
               </Row>
             </Card>
 
-            {/* Footer */}
-            <div style={{ textAlign: 'center', marginTop: 40, color: '#666' }}>
-              <Text style={{ display: 'block', marginBottom: 8 }}>
-                Cảm ơn quý khách đã sử dụng dịch vụ của chúng tôi!
-              </Text>
-              <Text style={{ fontSize: 12 }}>
-                Hóa đơn được tạo tự động vào lúc {moment(selectedInvoice.thoi_gian_tao || selectedInvoice.ngay_tao).format("DD/MM/YYYY HH:mm:ss")}
-              </Text>
+            <InvoiceSignatureSection slots={signatureSlots} />
+
+            {/* Footer - Thông tin liên hệ */}
+            <div style={{ marginTop: 40, paddingTop: 20, borderTop: '1px solid #e8e8e8' }}>
+              <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                <Text style={{ display: 'block', marginBottom: 4, fontSize: 14, color: '#333' }}>
+                  123 Đường ABC, Quận XYZ, TP.HCM
+                </Text>
+                <Text style={{ display: 'block', marginBottom: 4, fontSize: 14, color: '#333' }}>
+                  Điện thoại: 028 1234 5678 • Email: support@medpro.vn
+                </Text>
+                <Text style={{ display: 'block', marginBottom: 4, fontSize: 14, color: '#333' }}>
+                  Website: www.medpro.vn
+                </Text>
+                <Text style={{ display: 'block', marginBottom: 8, fontSize: 14, color: '#333' }}>
+                  MST: 0312345678
+                </Text>
+                <Text style={{ display: 'block', fontSize: 13, color: '#666', fontStyle: 'italic' }}>
+                  Nếu quý khách có nhu cầu hỗ trợ, vui lòng liên hệ theo địa chỉ trên hoặc đến quầy nhân viên quầy
+                </Text>
+              </div>
+              <div style={{ textAlign: 'center', marginTop: 16, color: '#999' }}>
+                <Text style={{ fontSize: 12 }}>
+                  Hóa đơn được tạo tự động vào lúc {moment(selectedInvoice.thoi_gian_tao || selectedInvoice.ngay_tao).format("DD/MM/YYYY HH:mm:ss")}
+                </Text>
+              </div>
             </div>
           </div>
         )}

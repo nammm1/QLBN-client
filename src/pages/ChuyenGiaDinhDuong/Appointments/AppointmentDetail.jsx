@@ -67,7 +67,7 @@ import apiMonAnThamKhao from "../../../api/MonAnThamKhao";
 import { calculateAge } from "../../../utils/calculateAge";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { QRCodeSVG } from "qrcode.react";
+import { InvoiceHeader, InvoiceSignatureSection } from "../../../components/Invoice/InvoiceBranding";
 import dayjs from "dayjs";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -1263,6 +1263,60 @@ const NutritionistAppointmentDetail = () => {
     ? hoaDon.tong_tien 
     : dichVuTamThoi.reduce((sum, dv) => sum + (parseFloat(dv.so_luong || 0) * parseFloat(dv.don_gia || 0)), 0);
   const tongCong = totalDichVu;
+
+  const nutritionistProfile = appointment?.chuyen_gia || userInfo?.user || {};
+  const nutritionistName = nutritionistProfile?.ho_ten || "................................";
+  const nutritionistSpecialty =
+    nutritionistProfile?.chuc_danh ||
+    nutritionistProfile?.chuyen_mon ||
+    nutritionistProfile?.chuyen_nganh ||
+    "Chuyên gia dinh dưỡng";
+  const nutritionistEmail = nutritionistProfile?.email || "Chưa cập nhật";
+  const nutritionistPhone = nutritionistProfile?.so_dien_thoai || "Chưa cập nhật";
+
+  const nutritionInvoiceIssuedAt = hoaDon?.thoi_gian_tao
+    ? new Date(hoaDon.thoi_gian_tao).toLocaleString("vi-VN")
+    : new Date().toLocaleString("vi-VN");
+  const nutritionAppointmentTime = appointment?.thoi_gian_bat_dau
+    ? new Date(appointment.thoi_gian_bat_dau).toLocaleString("vi-VN")
+    : nutritionInvoiceIssuedAt;
+
+  const nutritionInvoiceMetadata = [
+    { label: "Ngày tư vấn", value: nutritionAppointmentTime },
+    { label: "Ngày lập", value: nutritionInvoiceIssuedAt },
+    { label: "Mã cuộc hẹn", value: id_cuoc_hen },
+    hoaDon?.trang_thai && {
+      label: "Trạng thái",
+      value: hoaDon.trang_thai === "da_thanh_toan" ? "Đã thanh toán" : "Chưa thanh toán",
+    },
+  ].filter(Boolean);
+
+  const nutritionPatientName =
+    hoSo?.ho_ten ||
+    benhNhanFull?.ho_ten ||
+    appointment?.benh_nhan?.ho_ten ||
+    "................................";
+
+  const nutritionSignatureSlots = [
+    // {
+    //   label: "Nhân viên tài chính/Thu ngân",
+    //   name: hoaDon?.nhan_vien_thanh_toan?.ho_ten || "................................",
+    //   title: hoaDon?.nhan_vien_thanh_toan?.chuc_danh || "Thu ngân",
+    //   note: "Ký, ghi rõ họ tên",
+    // },
+    {
+      label: "Bệnh nhân/Người thanh toán",
+      name: nutritionPatientName,
+      title: "Bệnh nhân/Người thanh toán",
+      note: "Ký, ghi rõ họ tên",
+    },
+    {
+      label: "Chuyên gia dinh dưỡng",
+      name: nutritionistName,
+      title: nutritionistSpecialty,
+      note: "Ký, ghi rõ họ tên & đóng dấu",
+    }
+  ];
 
   if (loading) {
     return (
@@ -2980,42 +3034,29 @@ const NutritionistAppointmentDetail = () => {
         ]}
       >
         <div id="invoicePreview" style={{ padding: 20, background: 'white', border: '1px solid #f0f0f0' }}>
-          {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: 30, borderBottom: '2px solid #1890ff', paddingBottom: 20, position: 'relative' }}>
-            <Title level={2} style={{ color: '#1890ff', margin: 0 }}>PHÒNG KHÁM MEDPRO</Title>
-            <Text style={{ fontSize: 16, color: '#666' }}>Địa chỉ: 123 Đường ABC, Quận XYZ, TP.HCM</Text>
-            <br />
-            <Text style={{ fontSize: 16, color: '#666' }}>Điện thoại: 028 1234 5678</Text>
-            
-            {/* QR Code */}
-            {hoaDon?.id_hoa_don && (
-              <div style={{ position: 'absolute', top: 0, right: 0, textAlign: 'center' }}>
-                <QRCodeSVG 
-                  value={hoaDon.id_hoa_don.toString()}
-                  size={120}
-                  level="H"
-                  includeMargin={true}
-                />
-                <div style={{ fontSize: '10px', marginTop: '4px', color: '#666' }}>
-                  Mã: {hoaDon.id_hoa_don}
-                </div>
-              </div>
-            )}
-          </div>
+          <InvoiceHeader
+            subtitle="Hóa đơn tư vấn dinh dưỡng"
+            qrValue={(hoaDon?.id_hoa_don || id_cuoc_hen)?.toString() || ""}
+          />
 
           {/* Thông tin bệnh nhân */}
           <Card title="THÔNG TIN BỆNH NHÂN" size="small" style={{ marginBottom: 20 }}>
             <Row gutter={[16, 8]}>
-              {hoaDon?.id_hoa_don && (
-                <Col span={8}><Text strong>Mã hóa đơn:</Text> {hoaDon.id_hoa_don}</Col>
-              )}
-              <Col span={8}><Text strong>Mã cuộc hẹn:</Text> {id_cuoc_hen}</Col>
               <Col span={8}><Text strong>Họ tên:</Text> {hoSo?.ho_ten || benhNhanFull?.ho_ten}</Col>
               <Col span={8}><Text strong>Giới tính:</Text> {hoSo?.gioi_tinh || benhNhanFull?.gioi_tinh}</Col>
               <Col span={8}><Text strong>Tuổi:</Text> {hoSo?.tuoi || (benhNhanFull?.ngay_sinh ? calculateAge(benhNhanFull.ngay_sinh) : 'N/A')}</Col>
               <Col span={8}><Text strong>Mã BHYT:</Text> {hoSo?.ma_BHYT || benhNhanFull?.ma_BHYT || 'Không có'}</Col>
               <Col span={8}><Text strong>Ngày khám:</Text> {hoaDon?.thoi_gian_tao ? new Date(hoaDon.thoi_gian_tao).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN')}</Col>
               <Col span={24}><Text strong>Địa chỉ:</Text> {hoSo?.dia_chi || benhNhanFull?.dia_chi || 'Không có'}</Col>
+            </Row>
+          </Card>
+
+          <Card title="THÔNG TIN CHUYÊN GIA DINH DƯỠNG" size="small" style={{ marginBottom: 20 }}>
+            <Row gutter={[16, 8]}>
+              <Col span={12}><Text strong>Họ tên:</Text> {nutritionistName}</Col>
+              <Col span={12}><Text strong>Chuyên môn:</Text> {nutritionistSpecialty}</Col>
+              <Col span={12}><Text strong>Số điện thoại:</Text> {nutritionistPhone}</Col>
+              <Col span={12}><Text strong>Email:</Text> {nutritionistEmail}</Col>
             </Row>
           </Card>
 
@@ -3112,14 +3153,32 @@ const NutritionistAppointmentDetail = () => {
             </Row>
           </Card>
 
-          {/* Footer */}
-          <div style={{ textAlign: 'center', marginTop: 40, color: '#666' }}>
-            <Text style={{ display: 'block', marginBottom: 8 }}>
-              Cảm ơn quý khách đã sử dụng dịch vụ của chúng tôi!
-            </Text>
-            <Text style={{ fontSize: 12 }}>
-              Hóa đơn được tạo vào lúc {hoaDon?.thoi_gian_tao ? new Date(hoaDon.thoi_gian_tao).toLocaleString('vi-VN') : new Date().toLocaleString('vi-VN')}
-            </Text>
+          <InvoiceSignatureSection slots={nutritionSignatureSlots} />
+
+          {/* Footer - Thông tin liên hệ */}
+          <div style={{ marginTop: 40, paddingTop: 20, borderTop: '1px solid #e8e8e8' }}>
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <Text style={{ display: 'block', marginBottom: 4, fontSize: 14, color: '#333' }}>
+                123 Đường ABC, Quận XYZ, TP.HCM
+              </Text>
+              <Text style={{ display: 'block', marginBottom: 4, fontSize: 14, color: '#333' }}>
+                Điện thoại: 028 1234 5678 • Email: support@medpro.vn
+              </Text>
+              <Text style={{ display: 'block', marginBottom: 4, fontSize: 14, color: '#333' }}>
+                Website: www.medpro.vn
+              </Text>
+              <Text style={{ display: 'block', marginBottom: 8, fontSize: 14, color: '#333' }}>
+                MST: 0312345678
+              </Text>
+              <Text style={{ display: 'block', fontSize: 13, color: '#666', fontStyle: 'italic' }}>
+                Nếu quý khách có nhu cầu hỗ trợ, vui lòng liên hệ theo địa chỉ trên hoặc đến quầy nhân viên quầy
+              </Text>
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 16, color: '#999' }}>
+              <Text style={{ fontSize: 12 }}>
+                Hóa đơn được tạo vào lúc {hoaDon?.thoi_gian_tao ? new Date(hoaDon.thoi_gian_tao).toLocaleString('vi-VN') : new Date().toLocaleString('vi-VN')}
+              </Text>
+            </div>
           </div>
         </div>
       </Modal>

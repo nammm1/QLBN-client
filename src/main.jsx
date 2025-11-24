@@ -1,6 +1,3 @@
-// Import polyfill FIRST to patch ReactDOM.findDOMNode before react-quill loads
-import './utils/react-dom-polyfill';
-
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";

@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { App as AntdApp } from 'antd';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import Home from "./pages/Home/Home";
@@ -78,9 +79,29 @@ import VNPayCallback from "./pages/Payment/VNPayCallback";
 // import Register from "./Pages/Register/Register";
 
 function App() {
+  // Google Client ID - bạn cần thay bằng Client ID thực tế từ Google Cloud Console
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  
+  // Kiểm tra và cảnh báo nếu chưa cấu hình Google Client ID
+  const isGoogleOAuthConfigured = GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== 'your-google-client-id-here';
+  
+  if (!isGoogleOAuthConfigured) {
+    console.warn(
+      '⚠️ Google OAuth chưa được cấu hình!\n' +
+      'Vui lòng tạo file .env trong thư mục QLBN-client và thêm:\n' +
+      'VITE_GOOGLE_CLIENT_ID=your-google-client-id-here\n\n' +
+      'Xem hướng dẫn chi tiết tại: HUONG_DAN_CAU_HINH_GOOGLE_OAUTH.md'
+    );
+  }
+  
+  // Sử dụng client_id thực hoặc dummy để tránh lỗi khi useGoogleLogin được gọi
+  // GoogleOAuthProvider cần một client_id hợp lệ, nhưng sẽ không hoạt động nếu là dummy
+  const effectiveClientId = isGoogleOAuthConfigured ? GOOGLE_CLIENT_ID : 'dummy-client-id';
+  
   return (
-    <AntdApp>
-      <Router>
+    <GoogleOAuthProvider clientId={effectiveClientId}>
+      <AntdApp>
+        <Router>
         <Routes>
         <Route path="/" element={<Layout />}>
           {/* Trang mặc định */}
@@ -181,6 +202,7 @@ function App() {
       </Routes>
       </Router>
     </AntdApp>
+    </GoogleOAuthProvider>
   );
 }
 

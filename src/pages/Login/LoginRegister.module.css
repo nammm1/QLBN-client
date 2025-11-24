@@ -49,7 +49,9 @@
 .wrapper {
   position: relative;
   width: 420px;
-  height: 450px;
+  min-height: 550px;
+  height: auto;
+  max-height: 90vh;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -77,6 +79,7 @@
 .wrapper.active {
   height: auto;
   min-height: 900px;
+  max-height: 90vh;
   padding: 40px 0;
 }
 
@@ -87,6 +90,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  min-height: 100%;
 }
 
 .form-box form {

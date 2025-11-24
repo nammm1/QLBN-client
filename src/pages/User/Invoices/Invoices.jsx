@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Card,
   Table,
@@ -7,16 +7,11 @@ import {
   Space,
   Tag,
   Modal,
-  Form,
-  Row,
-  Col,
-  Select,
   message,
   Typography,
   Descriptions,
   Divider,
   Empty,
-  InputNumber,
   Tabs,
   Badge,
 } from "antd";
@@ -25,35 +20,40 @@ import {
   EyeOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
-  CopyOutlined,
-  PrinterOutlined,
 } from "@ant-design/icons";
-import { QRCodeSVG } from "qrcode.react";
 import apiHoaDon from "../../../api/HoaDon";
 import apiChiTietHoaDon from "../../../api/ChiTietHoaDon";
 import moment from "moment";
-import { generateMomoQR, generateVNPayQR, generateBankQR } from "../../../utils/paymentQR";
 import apiPayment from "../../../api/Payment";
 import "./Invoices.css";
 
 const { Title, Text } = Typography;
-const { Option } = Select;
-
 const Invoices = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [invoiceDetails, setInvoiceDetails] = useState([]);
-  const [form] = Form.useForm();
   const [activeTab, setActiveTab] = useState("chua_thanh_toan");
   const [paymentLoading, setPaymentLoading] = useState(false);
 
   const savedUserInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
   const userInfo = savedUserInfo?.user || savedUserInfo;
   const userId = userInfo?.id_nguoi_dung;
+
+  const closePaymentModal = () => {
+    setIsPaymentModalVisible(false);
+  };
+
+  const openPaymentModal = (invoice) => {
+    if (invoice) {
+      setSelectedInvoice(invoice);
+    }
+    setIsPaymentModalVisible(true);
+  };
 
   // Kiểm tra đăng nhập
   useEffect(() => {
@@ -100,6 +100,20 @@ const Invoices = () => {
     }
   };
 
+  useEffect(() => {
+    if (!location.state?.paymentSuccess) {
+      return;
+    }
+
+    const orderId = location.state.orderId;
+    message.success(
+      orderId ? `Thanh toán Momo cho hóa đơn ${orderId} thành công!` : "Thanh toán Momo thành công!"
+    );
+    fetchData();
+    navigate(location.pathname, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, location.pathname, navigate]);
+
   const handleViewDetail = async (record) => {
     try {
       setSelectedInvoice(record);
@@ -114,11 +128,7 @@ const Invoices = () => {
   };
 
   const handlePayment = (record) => {
-    setSelectedInvoice(record);
-    form.setFieldsValue({
-      phuong_thuc_thanh_toan: "chuyen_khoan",
-    });
-    setIsPaymentModalVisible(true);
+    openPaymentModal(record);
   };
 
   // Tạo payment URL cho Momo
@@ -127,31 +137,12 @@ const Invoices = () => {
     
     setPaymentLoading(true);
     try {
-      const response = await apiPayment.createMomoPayment(selectedInvoice.id_hoa_don);
+      const response = await apiPayment.createMomoPayment(selectedInvoice.id_hoa_don, {
+        source: "patient",
+        redirectPath: "/invoices",
+      });
       if (response.success && response.data.paymentUrl) {
-        // Mở payment URL trong tab mới
-        window.open(response.data.paymentUrl, '_blank');
         message.success("Đang chuyển đến trang thanh toán Momo...");
-      } else {
-        message.error(response.message || "Không thể tạo payment URL");
-      }
-    } catch (error) {
-      message.error("Có lỗi xảy ra. Vui lòng thử lại!");
-      console.error(error);
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
-
-  // Tạo payment URL cho VNPay
-  const handleCreateVNPayPayment = async () => {
-    if (!selectedInvoice) return;
-    
-    setPaymentLoading(true);
-    try {
-      const response = await apiPayment.createVNPayPayment(selectedInvoice.id_hoa_don);
-      if (response.success && response.data.paymentUrl) {
-        // Redirect đến payment URL
         window.location.href = response.data.paymentUrl;
       } else {
         message.error(response.message || "Không thể tạo payment URL");
@@ -161,29 +152,6 @@ const Invoices = () => {
       console.error(error);
     } finally {
       setPaymentLoading(false);
-    }
-  };
-
-  const handleSubmitPayment = async (values) => {
-    try {
-      // Nếu là Momo hoặc VNPay, không cập nhật trạng thái ngay (sẽ cập nhật qua callback)
-      if (values.phuong_thuc_thanh_toan === "momo" || values.phuong_thuc_thanh_toan === "vnpay") {
-        message.info("Vui lòng hoàn tất thanh toán trên trang thanh toán");
-        return;
-      }
-
-      await apiHoaDon.updateThanhToan(selectedInvoice.id_hoa_don, {
-        phuong_thuc_thanh_toan: values.phuong_thuc_thanh_toan,
-        trang_thai: "da_thanh_toan",
-      });
-
-      message.success("Thanh toán thành công! Vui lòng chờ xác nhận từ nhân viên.");
-      setIsPaymentModalVisible(false);
-      form.resetFields();
-      fetchData();
-    } catch (error) {
-      message.error("Có lỗi xảy ra. Vui lòng thử lại!");
-      console.error(error);
     }
   };
 
@@ -410,12 +378,7 @@ const Invoices = () => {
               key="payment"
               type="primary"
               icon={<DollarOutlined />}
-              onClick={() => {
-                form.setFieldsValue({
-                  phuong_thuc_thanh_toan: "chuyen_khoan",
-                });
-                setIsPaymentModalVisible(true);
-              }}
+              onClick={() => openPaymentModal(selectedInvoice)}
               style={{
                 background: "linear-gradient(135deg, #52c41a 0%, #73d13d 100%)",
                 border: "none",
@@ -540,313 +503,110 @@ const Invoices = () => {
           </span>
         }
         open={isPaymentModalVisible}
-        onCancel={() => setIsPaymentModalVisible(false)}
+        onCancel={closePaymentModal}
         footer={null}
-        width={600}
+        width={520}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmitPayment}>
-          <Card
-            size="small"
-            style={{
-              backgroundColor: "#f9f9f9",
-              marginBottom: "24px",
-              borderRadius: "8px",
-            }}
-          >
-            <div style={{ textAlign: "center" }}>
-              <Text type="secondary">Tổng tiền cần thanh toán</Text>
-              <div
-                style={{
-                  fontSize: "32px",
-                  fontWeight: "bold",
-                  color: "#f39c12",
-                  margin: "12px 0",
-                }}
-              >
-                {parseFloat(selectedInvoice?.tong_tien || 0).toLocaleString("vi-VN")} đ
+        {selectedInvoice ? (
+          <>
+            <Card
+              size="small"
+              style={{
+                backgroundColor: "#f9f9f9",
+                marginBottom: "24px",
+                borderRadius: "8px",
+              }}
+            >
+              <div style={{ textAlign: "center" }}>
+                <Text type="secondary">Tổng tiền cần thanh toán</Text>
+                <div
+                  style={{
+                    fontSize: "32px",
+                    fontWeight: "bold",
+                    color: "#f39c12",
+                    margin: "12px 0",
+                  }}
+                >
+                  {parseFloat(selectedInvoice?.tong_tien || 0).toLocaleString("vi-VN")} đ
+                </div>
+                <Text type="secondary">
+                  Mã hóa đơn:{" "}
+                  <Text strong style={{ fontFamily: "monospace" }}>
+                    {selectedInvoice?.id_hoa_don}
+                  </Text>
+                </Text>
               </div>
-            </div>
-          </Card>
+            </Card>
 
-          <Form.Item
-            name="phuong_thuc_thanh_toan"
-            label="Phương thức thanh toán"
-            rules={[{ required: true, message: "Vui lòng chọn phương thức!" }]}
-          >
-            <Select placeholder="Chọn phương thức" size="large">
-              <Option value="chuyen_khoan">🏦 Chuyển khoản ngân hàng</Option>
-              <Option value="momo">💜 Momo</Option>
-              <Option value="vnpay">💙 VNPay</Option>
-              <Option value="the">💳 Thẻ</Option>
-              <Option value="vi_dien_tu">📱 Ví điện tử khác</Option>
-            </Select>
-          </Form.Item>
-
-          {/* Hiển thị mã thanh toán khi chọn các phương thức */}
-          <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) =>
-              prevValues.phuong_thuc_thanh_toan !== currentValues.phuong_thuc_thanh_toan
-            }
-          >
-            {({ getFieldValue }) => {
-              const phuongThuc = getFieldValue("phuong_thuc_thanh_toan");
-              const amount = parseFloat(selectedInvoice?.tong_tien || 0);
-              const invoiceId = selectedInvoice?.id_hoa_don || "";
-              
-              // Chuyển khoản ngân hàng
-              if (phuongThuc === "chuyen_khoan") {
-                const bankQR = generateBankQR("VCB", "0123456789", "PHONG KHAM MEDPRO", amount, invoiceId);
-                return (
-                  <Card
-                    size="small"
+            <Card
+              size="small"
+              style={{
+                backgroundColor: "#fff0f6",
+                border: "2px solid #eb2f96",
+                marginBottom: "16px",
+                borderRadius: "8px",
+              }}
+            >
+              <div style={{ textAlign: "center" }}>
+                <Title level={5} style={{ color: "#eb2f96", marginBottom: "12px" }}>
+                  💜 Thanh toán qua Momo
+                </Title>
+                <div style={{ marginBottom: "16px" }}>
+                  <Text strong>Số tiền: </Text>
+                  <Text style={{ fontSize: "24px", fontWeight: "bold", color: "#f39c12" }}>
+                    {parseFloat(selectedInvoice?.tong_tien || 0).toLocaleString("vi-VN")} đ
+                  </Text>
+                </div>
+                <div style={{ marginBottom: "16px" }}>
+                  <Text strong>Mã hóa đơn: </Text>
+                  <Text
+                    copyable={{
+                      text: selectedInvoice?.id_hoa_don,
+                      tooltips: ["Sao chép", "Đã sao chép"],
+                    }}
                     style={{
-                      backgroundColor: "#f0f9ff",
-                      border: "2px solid #1890ff",
-                      marginBottom: "16px",
-                      borderRadius: "8px",
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      color: "#eb2f96",
+                      fontFamily: "monospace",
                     }}
                   >
-                    <div style={{ textAlign: "center" }}>
-                      <Title level={5} style={{ color: "#1890ff", marginBottom: "12px" }}>
-                        🏦 Thông tin chuyển khoản
-                      </Title>
-                      <div style={{ marginBottom: "12px" }}>
-                        <Text strong>Ngân hàng: </Text>
-                        <Text style={{ fontSize: "16px", color: "#1890ff" }}>Vietcombank</Text>
-                      </div>
-                      <div style={{ marginBottom: "12px" }}>
-                        <Text strong>Số tài khoản: </Text>
-                        <Text
-                          copyable={{
-                            text: "0123456789",
-                            tooltips: ["Sao chép", "Đã sao chép"],
-                          }}
-                          style={{
-                            fontSize: "18px",
-                            fontWeight: "bold",
-                            color: "#1890ff",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          0123456789
-                        </Text>
-                      </div>
-                      <div style={{ marginBottom: "12px" }}>
-                        <Text strong>Chủ tài khoản: </Text>
-                        <Text style={{ fontSize: "16px" }}>PHÒNG KHÁM MEDPRO</Text>
-                      </div>
-                      <div style={{ marginBottom: "12px" }}>
-                        <Text strong>Số tiền: </Text>
-                        <Text style={{ fontSize: "18px", fontWeight: "bold", color: "#f39c12" }}>
-                          {amount.toLocaleString("vi-VN")} đ
-                        </Text>
-                      </div>
-                      <div style={{ marginBottom: "12px" }}>
-                        <Text strong>Nội dung chuyển khoản: </Text>
-                        <Text
-                          copyable={{
-                            text: invoiceId,
-                            tooltips: ["Sao chép", "Đã sao chép"],
-                          }}
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "bold",
-                            color: "#f39c12",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {invoiceId}
-                        </Text>
-                      </div>
-                      <div
-                        style={{
-                          marginTop: "16px",
-                          padding: "12px",
-                          backgroundColor: "#fff",
-                          borderRadius: "8px",
-                        }}
-                      >
-                        <QRCodeSVG
-                          value={bankQR}
-                          size={180}
-                          level="H"
-                          includeMargin={true}
-                        />
-                        <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
-                          Quét mã QR để chuyển khoản (số tiền: {amount.toLocaleString("vi-VN")} đ)
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          marginTop: "16px",
-                          padding: "12px",
-                          backgroundColor: "#fff7e6",
-                          borderRadius: "8px",
-                        }}
-                      >
-                        <Text type="warning" style={{ fontSize: "13px" }}>
-                          ⚠️ Vui lòng chuyển khoản đúng số tiền và nội dung. Sau khi chuyển khoản,
-                          vui lòng chờ nhân viên xác nhận thanh toán.
-                        </Text>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              }
-              
-              // Momo
-              if (phuongThuc === "momo") {
-                return (
-                  <Card
-                    size="small"
-                    style={{
-                      backgroundColor: "#fff0f6",
-                      border: "2px solid #eb2f96",
-                      marginBottom: "16px",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    <div style={{ textAlign: "center" }}>
-                      <Title level={5} style={{ color: "#eb2f96", marginBottom: "12px" }}>
-                        💜 Thanh toán qua Momo
-                      </Title>
-                      <div style={{ marginBottom: "16px" }}>
-                        <Text strong>Số tiền: </Text>
-                        <Text style={{ fontSize: "24px", fontWeight: "bold", color: "#f39c12" }}>
-                          {amount.toLocaleString("vi-VN")} đ
-                        </Text>
-                      </div>
-                      <div style={{ marginBottom: "16px" }}>
-                        <Text strong>Mã hóa đơn: </Text>
-                        <Text
-                          copyable={{
-                            text: invoiceId,
-                            tooltips: ["Sao chép", "Đã sao chép"],
-                          }}
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "bold",
-                            color: "#eb2f96",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {invoiceId}
-                        </Text>
-                      </div>
-                      <Button
-                        type="primary"
-                        size="large"
-                        loading={paymentLoading}
-                        onClick={handleCreateMomoPayment}
-                        style={{
-                          backgroundColor: "#eb2f96",
-                          borderColor: "#eb2f96",
-                          height: "50px",
-                          fontSize: "16px",
-                          fontWeight: "bold",
-                          width: "100%",
-                          marginTop: "16px",
-                        }}
-                        icon={<DollarOutlined />}
-                      >
-                        Thanh toán qua Momo
-                      </Button>
-                      <div style={{ marginTop: "12px", fontSize: "12px", color: "#666" }}>
-                        Bạn sẽ được chuyển đến trang thanh toán Momo
-                      </div>
-                    </div>
-                  </Card>
-                );
-              }
-              
-              // VNPay
-              if (phuongThuc === "vnpay") {
-                return (
-                  <Card
-                    size="small"
-                    style={{
-                      backgroundColor: "#e6f7ff",
-                      border: "2px solid #1890ff",
-                      marginBottom: "16px",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    <div style={{ textAlign: "center" }}>
-                      <Title level={5} style={{ color: "#1890ff", marginBottom: "12px" }}>
-                        💙 Thanh toán qua VNPay
-                      </Title>
-                      <div style={{ marginBottom: "16px" }}>
-                        <Text strong>Số tiền: </Text>
-                        <Text style={{ fontSize: "24px", fontWeight: "bold", color: "#f39c12" }}>
-                          {amount.toLocaleString("vi-VN")} đ
-                        </Text>
-                      </div>
-                      <div style={{ marginBottom: "16px" }}>
-                        <Text strong>Mã hóa đơn: </Text>
-                        <Text
-                          copyable={{
-                            text: invoiceId,
-                            tooltips: ["Sao chép", "Đã sao chép"],
-                          }}
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: "bold",
-                            color: "#1890ff",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {invoiceId}
-                        </Text>
-                      </div>
-                      <Button
-                        type="primary"
-                        size="large"
-                        loading={paymentLoading}
-                        onClick={handleCreateVNPayPayment}
-                        style={{
-                          backgroundColor: "#1890ff",
-                          borderColor: "#1890ff",
-                          height: "50px",
-                          fontSize: "16px",
-                          fontWeight: "bold",
-                          width: "100%",
-                          marginTop: "16px",
-                        }}
-                        icon={<DollarOutlined />}
-                      >
-                        Thanh toán qua VNPay
-                      </Button>
-                      <div style={{ marginTop: "12px", fontSize: "12px", color: "#666" }}>
-                        Bạn sẽ được chuyển đến trang thanh toán VNPay
-                      </div>
-                    </div>
-                  </Card>
-                );
-              }
-              
-              return null;
-            }}
-          </Form.Item>
+                    {selectedInvoice?.id_hoa_don}
+                  </Text>
+                </div>
+                <Button
+                  type="primary"
+                  size="large"
+                  loading={paymentLoading}
+                  onClick={handleCreateMomoPayment}
+                  style={{
+                    backgroundColor: "#eb2f96",
+                    borderColor: "#eb2f96",
+                    height: "50px",
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    width: "100%",
+                    marginTop: "16px",
+                  }}
+                  icon={<DollarOutlined />}
+                >
+                  Thanh toán qua Momo
+                </Button>
+                <div style={{ marginTop: "12px", fontSize: "12px", color: "#666" }}>
+                  Bạn sẽ được chuyển đến trang thanh toán Momo và tự động quay lại trang Hóa đơn sau khi hoàn tất.
+                </div>
+              </div>
+            </Card>
 
-          <Form.Item style={{ marginBottom: 0, marginTop: "24px", textAlign: "right" }}>
-            <Space>
-              <Button onClick={() => setIsPaymentModalVisible(false)}>Hủy</Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-                icon={<CheckCircleOutlined />}
-                size="large"
-                style={{
-                  background: "linear-gradient(135deg, #52c41a 0%, #73d13d 100%)",
-                  border: "none",
-                }}
-              >
-                Xác nhận đã thanh toán
-              </Button>
+            <Space direction="vertical" style={{ width: "100%" }}>
+              <Text type="secondary" style={{ fontSize: "12px" }}>
+                ⚠️ Nếu gặp sự cố với cổng thanh toán, vui lòng thử lại sau vài phút hoặc liên hệ nhân viên hỗ trợ.
+              </Text>
             </Space>
-          </Form.Item>
-        </Form>
+          </>
+        ) : (
+          <Empty description="Chưa chọn hóa đơn để thanh toán" />
+        )}
       </Modal>
     </div>
   );

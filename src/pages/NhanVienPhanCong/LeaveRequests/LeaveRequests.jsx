@@ -576,8 +576,21 @@ const LeaveRequests = () => {
     {
       title: "Số ngày",
       key: "so_ngay",
-      width: 100,
+      width: 120,
       render: (_, record) => {
+        if (record.buoi_nghi) {
+          const buoiText = record.buoi_nghi === 'sang' ? 'Sáng' : 
+                          record.buoi_nghi === 'chieu' ? 'Chiều' : 
+                          record.buoi_nghi === 'toi' ? 'Tối' : record.buoi_nghi;
+          return (
+            <Space>
+              <Text strong>0.5 ngày</Text>
+              <Tag color="blue" size="small">
+                {buoiText}
+              </Tag>
+            </Space>
+          );
+        }
         const days = dayjs(record.ngay_ket_thuc).diff(dayjs(record.ngay_bat_dau), 'day') + 1;
         return <Text strong>{days} ngày</Text>;
       }
@@ -881,9 +894,20 @@ const LeaveRequests = () => {
                   </Descriptions.Item>
                   <Descriptions.Item label="Số ngày nghỉ">
                     <Text strong>
-                      {dayjs(selectedRequest.ngay_ket_thuc).diff(dayjs(selectedRequest.ngay_bat_dau), 'day') + 1} ngày
+                      {selectedRequest.buoi_nghi 
+                        ? '0.5 ngày (Nửa ngày)' 
+                        : `${dayjs(selectedRequest.ngay_ket_thuc).diff(dayjs(selectedRequest.ngay_bat_dau), 'day') + 1} ngày`}
                     </Text>
                   </Descriptions.Item>
+                  {selectedRequest.buoi_nghi && (
+                    <Descriptions.Item label="Buổi nghỉ">
+                      <Tag color="blue">
+                        {selectedRequest.buoi_nghi === 'sang' ? 'Buổi sáng' : 
+                         selectedRequest.buoi_nghi === 'chieu' ? 'Buổi chiều' : 
+                         selectedRequest.buoi_nghi === 'toi' ? 'Buổi tối' : selectedRequest.buoi_nghi}
+                      </Tag>
+                    </Descriptions.Item>
+                  )}
                   <Descriptions.Item label="Lý do" span={2}>
                     <Text>{selectedRequest.ly_do || '-'}</Text>
                   </Descriptions.Item>

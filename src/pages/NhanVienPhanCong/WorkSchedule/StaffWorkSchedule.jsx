@@ -26,7 +26,8 @@ import {
   Avatar,
   Progress,
   Segmented,
-  theme
+  theme,
+  Radio
 } from "antd";
 import { 
   CalendarOutlined, 
@@ -178,12 +179,19 @@ const StaffWorkSchedule = () => {
 
   const handleXinNghiPhep = async (values) => {
     try {
+      // Nếu nghỉ nửa ngày, đảm bảo ngay_ket_thuc = ngay_bat_dau
+      let ngayKetThuc = values.ngay_ket_thuc;
+      if (values.loai_nghi && values.loai_nghi !== 'ca_ngay') {
+        ngayKetThuc = values.ngay_bat_dau;
+      }
+
       await apiXinNghiPhep.create({
         id_nguoi_dung: userInfo.user.id_nguoi_dung,
         ngay_bat_dau: values.ngay_bat_dau.format('YYYY-MM-DD'),
-        ngay_ket_thuc: values.ngay_ket_thuc.format('YYYY-MM-DD'),
+        ngay_ket_thuc: ngayKetThuc.format('YYYY-MM-DD'),
         ly_do: values.ly_do,
-        trang_thai: "cho_duyet"
+        trang_thai: "cho_duyet",
+        buoi_nghi: values.loai_nghi && values.loai_nghi !== 'ca_ngay' ? values.loai_nghi : null
       });
       message.success("🎉 Gửi đơn xin nghỉ phép thành công!");
       setModalXinNghiVisible(false);
@@ -991,31 +999,95 @@ const StaffWorkSchedule = () => {
           form={formNghiPhep}
           layout="vertical"
           onFinish={handleXinNghiPhep}
+          initialValues={{ loai_nghi: 'ca_ngay' }}
         >
           <Form.Item
-            label="Thời gian nghỉ"
-            name="dates"
-            rules={[{ required: true, message: 'Vui lòng chọn thời gian nghỉ!' }]}
+            name="loai_nghi"
+            label="Loại nghỉ phép"
+            rules={[{ required: true, message: 'Vui lòng chọn loại nghỉ phép' }]}
           >
-            <RangePicker 
-              style={{ width: '100%' }}
-              format="DD/MM/YYYY"
-              placeholder={['Ngày bắt đầu', 'Ngày kết thúc']}
-              onChange={(dates) => {
-                if (dates) {
-                  formNghiPhep.setFieldsValue({
-                    ngay_bat_dau: dates[0],
-                    ngay_ket_thuc: dates[1]
-                  });
+            <Radio.Group
+              onChange={(e) => {
+                const loaiNghi = e.target.value;
+                const ngayBatDau = formNghiPhep.getFieldValue('ngay_bat_dau');
+                if (loaiNghi !== 'ca_ngay' && ngayBatDau) {
+                  formNghiPhep.setFieldsValue({ ngay_ket_thuc: ngayBatDau });
                 }
               }}
-            />
+            >
+              <Radio value="ca_ngay">Cả ngày</Radio>
+              <Radio value="sang">Buổi sáng</Radio>
+              <Radio value="chieu">Buổi chiều</Radio>
+              <Radio value="toi">Buổi tối</Radio>
+            </Radio.Group>
           </Form.Item>
-          <Form.Item name="ngay_bat_dau" hidden>
-            <Input />
-          </Form.Item>
-          <Form.Item name="ngay_ket_thuc" hidden>
-            <Input />
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => 
+              prevValues.loai_nghi !== currentValues.loai_nghi
+            }
+          >
+            {({ getFieldValue }) => {
+              const loaiNghi = getFieldValue('loai_nghi');
+              const isNuaNgay = loaiNghi && loaiNghi !== 'ca_ngay';
+              
+              if (isNuaNgay) {
+                // Nửa ngày: dùng DatePicker đơn
+                return (
+                  <>
+                    <Form.Item
+                      name="ngay_bat_dau"
+                      label="📅 Ngày nghỉ"
+                      rules={[{ required: true, message: 'Vui lòng chọn ngày nghỉ' }]}
+                    >
+                      <DatePicker 
+                        style={{ width: '100%' }} 
+                        format="DD/MM/YYYY"
+                        onChange={(date) => {
+                          if (date) {
+                            formNghiPhep.setFieldsValue({ ngay_ket_thuc: date });
+                          }
+                        }}
+                      />
+                    </Form.Item>
+                    <Form.Item name="ngay_ket_thuc" hidden>
+                      <Input />
+                    </Form.Item>
+                  </>
+                );
+              } else {
+                // Cả ngày: dùng RangePicker
+                return (
+                  <>
+                    <Form.Item
+                      label="Thời gian nghỉ"
+                      name="dates"
+                      rules={[{ required: true, message: 'Vui lòng chọn thời gian nghỉ!' }]}
+                    >
+                      <RangePicker 
+                        style={{ width: '100%' }}
+                        format="DD/MM/YYYY"
+                        placeholder={['Ngày bắt đầu', 'Ngày kết thúc']}
+                        onChange={(dates) => {
+                          if (dates) {
+                            formNghiPhep.setFieldsValue({
+                              ngay_bat_dau: dates[0],
+                              ngay_ket_thuc: dates[1]
+                            });
+                          }
+                        }}
+                      />
+                    </Form.Item>
+                    <Form.Item name="ngay_bat_dau" hidden>
+                      <Input />
+                    </Form.Item>
+                    <Form.Item name="ngay_ket_thuc" hidden>
+                      <Input />
+                    </Form.Item>
+                  </>
+                );
+              }
+            }}
           </Form.Item>
           <Form.Item
             label="Lý do"

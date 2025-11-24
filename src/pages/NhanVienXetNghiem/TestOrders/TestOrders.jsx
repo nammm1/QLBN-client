@@ -35,6 +35,7 @@ import {
 } from "@ant-design/icons";
 import apiChiDinhXetNghiem from "../../../api/ChiDinhXetNghiem";
 import apiKetQuaXetNghiem from "../../../api/KetQuaXetNghiem";
+import apiUpload from "../../../api/Upload";
 import moment from "moment";
 
 const { Title, Text } = Typography;
@@ -55,6 +56,9 @@ const TestOrders = () => {
   const [resultModalVisible, setResultModalVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [form] = Form.useForm();
+  const [uploading, setUploading] = useState(false);
+  const [fileList, setFileList] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null); // File mới được chọn nhưng chưa upload
 
   useEffect(() => {
     fetchTestOrders();
@@ -104,22 +108,70 @@ const TestOrders = () => {
 
   const handleInputResult = (order) => {
     setSelectedOrder(order);
+    const fileUrl = order.ket_qua?.duong_dan_file_ket_qua || "";
     form.setFieldsValue({
       ket_qua_van_ban: order.ket_qua?.ket_qua_van_ban || "",
-      duong_dan_file_ket_qua: order.ket_qua?.duong_dan_file_ket_qua || "",
+      duong_dan_file_ket_qua: fileUrl,
       trang_thai_ket_qua: order.ket_qua?.trang_thai_ket_qua || "",
       ghi_chu_ket_qua: order.ket_qua?.ghi_chu_ket_qua || "",
     });
+    // Set file list nếu đã có file
+    if (fileUrl) {
+      setFileList([
+        {
+          uid: '-1',
+          name: 'File kết quả hiện tại',
+          status: 'done',
+          url: fileUrl,
+        },
+      ]);
+    } else {
+      setFileList([]);
+    }
+    setSelectedFile(null); // Reset file mới được chọn
     setResultModalVisible(true);
   };
 
   const handleSubmitResult = async (values) => {
     try {
+      let fileUrl = values.duong_dan_file_ket_qua; // Giữ file cũ nếu không có file mới
+      
+      // Upload file mới nếu có
+      if (selectedFile) {
+        setUploading(true);
+        try {
+          const response = await apiUpload.uploadKetQuaXetNghiemFile(selectedFile);
+          if (response.success) {
+            fileUrl = response.data.fileUrl;
+            // Cập nhật fileList với file đã upload thành công
+            setFileList([
+              {
+                uid: selectedFile.uid,
+                name: selectedFile.name,
+                status: 'done',
+                url: fileUrl,
+              },
+            ]);
+            message.success("Upload file thành công");
+          } else {
+            message.error("Upload file thất bại");
+            setUploading(false);
+            return;
+          }
+        } catch (error) {
+          message.error("Upload file thất bại: " + (error.response?.data?.message || error.message));
+          setUploading(false);
+          return;
+        } finally {
+          setUploading(false);
+        }
+      }
+      
       if (selectedOrder.ket_qua) {
         // Cập nhật kết quả đã có - không thay đổi trạng thái chỉ định
         await apiKetQuaXetNghiem.update(selectedOrder.id_chi_dinh, {
           ket_qua_van_ban: values.ket_qua_van_ban,
-          duong_dan_file_ket_qua: values.duong_dan_file_ket_qua,
+          duong_dan_file_ket_qua: fileUrl,
           trang_thai_ket_qua: values.trang_thai_ket_qua,
           ghi_chu_ket_qua: values.ghi_chu_ket_qua,
           thoi_gian_ket_luan: new Date(),
@@ -130,7 +182,7 @@ const TestOrders = () => {
         await apiKetQuaXetNghiem.create({
           id_chi_dinh: selectedOrder.id_chi_dinh,
           ket_qua_van_ban: values.ket_qua_van_ban,
-          duong_dan_file_ket_qua: values.duong_dan_file_ket_qua,
+          duong_dan_file_ket_qua: fileUrl,
           trang_thai_ket_qua: values.trang_thai_ket_qua,
           ghi_chu_ket_qua: values.ghi_chu_ket_qua,
           thoi_gian_ket_luan: new Date(),
@@ -147,6 +199,8 @@ const TestOrders = () => {
 
       setResultModalVisible(false);
       form.resetFields();
+      setFileList([]);
+      setSelectedFile(null);
       fetchTestOrders();
     } catch (error) {
       console.error("Error submitting result:", error);
@@ -434,6 +488,7 @@ const TestOrders = () => {
         onCancel={() => {
           setResultModalVisible(false);
           form.resetFields();
+          setFileList([]);
         }}
         onOk={() => form.submit()}
         okText={selectedOrder?.ket_qua ? "Cập nhật kết quả" : "Lưu kết quả"}
@@ -485,11 +540,52 @@ const TestOrders = () => {
             />
           </Form.Item>
           <Form.Item
-            label="Đường dẫn file kết quả (nếu có)"
+            label="File kết quả xét nghiệm"
             name="duong_dan_file_ket_qua"
-            extra="Nhập URL hoặc đường dẫn file kết quả (nếu có)"
+            extra="Chọn file kết quả xét nghiệm (PDF, Word, Excel, Image, v.v.). File sẽ được upload khi nhấn nút 'Cập nhật'."
           >
-            <Input placeholder="https://example.com/result.pdf" />
+            <Upload
+              fileList={fileList}
+              beforeUpload={(file) => {
+                // Chỉ lưu file vào state, không upload ngay
+                // File sẽ được upload khi nhấn nút "Cập nhật"
+                setSelectedFile(file);
+                // Xóa file cũ khỏi form value
+                form.setFieldsValue({ duong_dan_file_ket_qua: "" });
+                setFileList([
+                  {
+                    uid: file.uid,
+                    name: file.name,
+                    status: 'ready',
+                  },
+                ]);
+                // Ngăn không cho upload tự động
+                return false;
+              }}
+              onRemove={() => {
+                setSelectedFile(null);
+                // Khôi phục file cũ nếu có
+                const oldFileUrl = selectedOrder?.ket_qua?.duong_dan_file_ket_qua || "";
+                form.setFieldsValue({ duong_dan_file_ket_qua: oldFileUrl });
+                if (oldFileUrl) {
+                  setFileList([
+                    {
+                      uid: '-1',
+                      name: 'File kết quả hiện tại',
+                      status: 'done',
+                      url: oldFileUrl,
+                    },
+                  ]);
+                } else {
+                  setFileList([]);
+                }
+              }}
+              maxCount={1}
+            >
+              <Button icon={<UploadOutlined />}>
+                Chọn file
+              </Button>
+            </Upload>
           </Form.Item>
         </Form>
       </Modal>

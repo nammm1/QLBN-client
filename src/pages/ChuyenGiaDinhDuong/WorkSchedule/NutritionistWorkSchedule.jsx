@@ -26,7 +26,8 @@ import {
   Avatar,
   Progress,
   Segmented,
-  theme
+  theme,
+  Radio
 } from "antd";
 import { 
   CalendarOutlined, 
@@ -49,7 +50,8 @@ import {
   StarOutlined,
   RocketOutlined,
   AppstoreOutlined,
-  TableOutlined
+  TableOutlined,
+  HomeOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
@@ -216,12 +218,19 @@ const NutritionistWorkSchedule = () => {
 
   const handleXinNghiPhep = async (values) => {
     try {
+      // Nếu nghỉ nửa ngày, đảm bảo ngay_ket_thuc = ngay_bat_dau
+      let ngayKetThuc = values.ngay_ket_thuc;
+      if (values.loai_nghi && values.loai_nghi !== 'ca_ngay') {
+        ngayKetThuc = values.ngay_bat_dau;
+      }
+
       await apiXinNghiPhep.create({
         id_nguoi_dung: userInfo.user.id_nguoi_dung,
         ngay_bat_dau: values.ngay_bat_dau.format('YYYY-MM-DD'),
-        ngay_ket_thuc: values.ngay_ket_thuc.format('YYYY-MM-DD'),
+        ngay_ket_thuc: ngayKetThuc.format('YYYY-MM-DD'),
         ly_do: values.ly_do,
-        trang_thai: "cho_duyet"
+        trang_thai: "cho_duyet",
+        buoi_nghi: values.loai_nghi && values.loai_nghi !== 'ca_ngay' ? values.loai_nghi : null
       });
       message.success("🎉 Gửi đơn xin nghỉ phép thành công!");
       setModalXinNghiVisible(false);
@@ -373,6 +382,16 @@ const NutritionistWorkSchedule = () => {
               }}>
                 - {matched[0].gio_ket_thuc}
               </Text>
+              {matched[0].ten_phong && (
+                <Text style={{ 
+                  fontSize: "8px", 
+                  color: token.colorPrimary,
+                  display: 'block',
+                  marginTop: '2px'
+                }}>
+                  <HomeOutlined style={{ fontSize: '8px' }} /> {matched[0].ten_phong}
+                </Text>
+              )}
             </div>
           ) : (
             <div style={{ textAlign: 'center', width: '100%' }}>
@@ -449,6 +468,11 @@ const NutritionistWorkSchedule = () => {
                 <div>
                   <Text strong>🕐 Giờ làm:</Text> {matched[0].gio_bat_dau} - {matched[0].gio_ket_thuc}
                 </div>
+                {matched[0].ten_phong && (
+                  <div>
+                    <Text strong><HomeOutlined /> Phòng:</Text> {matched[0].ten_phong} {matched[0].so_phong && `(${matched[0].so_phong})`}
+                  </div>
+                )}
                 <div>
                   <Text strong>📋 Cuộc hẹn:</Text> {slotAppointments.length} cuộc hẹn
                 </div>
@@ -504,10 +528,21 @@ const NutritionistWorkSchedule = () => {
                 </Text>
               </div>
               <div>
+                {matched[0].ten_phong && (
+                  <Text style={{ 
+                    fontSize: "10px", 
+                    color: token.colorPrimary,
+                    display: 'block',
+                    marginTop: '4px'
+                  }}>
+                    <HomeOutlined /> {matched[0].ten_phong} {matched[0].so_phong && `(${matched[0].so_phong})`}
+                  </Text>
+                )}
                 <Text style={{ 
                   fontSize: "11px", 
                   color: token.colorTextSecondary,
-                  display: 'block'
+                  display: 'block',
+                  marginTop: matched[0].ten_phong ? '2px' : '0'
                 }}>
                   {slotAppointments.length} cuộc hẹn
                 </Text>
@@ -1180,20 +1215,67 @@ const NutritionistWorkSchedule = () => {
           form={formNghiPhep}
           layout="vertical"
           onFinish={handleXinNghiPhep}
+          initialValues={{ loai_nghi: 'ca_ngay' }}
         >
+          <Form.Item
+            name="loai_nghi"
+            label="Loại nghỉ phép"
+            rules={[{ required: true, message: 'Vui lòng chọn loại nghỉ phép' }]}
+          >
+            <Radio.Group
+              onChange={(e) => {
+                const loaiNghi = e.target.value;
+                const ngayBatDau = formNghiPhep.getFieldValue('ngay_bat_dau');
+                if (loaiNghi !== 'ca_ngay' && ngayBatDau) {
+                  formNghiPhep.setFieldsValue({ ngay_ket_thuc: ngayBatDau });
+                }
+              }}
+            >
+              <Radio value="ca_ngay">Cả ngày</Radio>
+              <Radio value="sang">Buổi sáng</Radio>
+              <Radio value="chieu">Buổi chiều</Radio>
+              <Radio value="toi">Buổi tối</Radio>
+            </Radio.Group>
+          </Form.Item>
           <Form.Item
             name="ngay_bat_dau"
             label="📅 Ngày bắt đầu"
             rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu' }]}
           >
-            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+            <DatePicker 
+              style={{ width: '100%' }} 
+              format="DD/MM/YYYY"
+              onChange={(date) => {
+                const loaiNghi = formNghiPhep.getFieldValue('loai_nghi');
+                if (date && loaiNghi && loaiNghi !== 'ca_ngay') {
+                  formNghiPhep.setFieldsValue({ ngay_ket_thuc: date });
+                }
+              }}
+            />
           </Form.Item>
           <Form.Item
-            name="ngay_ket_thuc"
-            label="📅 Ngày kết thúc"
-            rules={[{ required: true, message: 'Vui lòng chọn ngày kết thúc' }]}
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => 
+              prevValues.loai_nghi !== currentValues.loai_nghi
+            }
           >
-            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+            {({ getFieldValue }) => {
+              const loaiNghi = getFieldValue('loai_nghi');
+              const isNuaNgay = loaiNghi && loaiNghi !== 'ca_ngay';
+              return (
+                <Form.Item
+                  name="ngay_ket_thuc"
+                  label="📅 Ngày kết thúc"
+                  rules={[{ required: true, message: 'Vui lòng chọn ngày kết thúc' }]}
+                >
+                  <DatePicker 
+                    style={{ width: '100%' }} 
+                    format="DD/MM/YYYY"
+                    disabled={isNuaNgay}
+                  />
+                </Form.Item>
+              );
+            }}
           </Form.Item>
           <Form.Item
             name="ly_do"

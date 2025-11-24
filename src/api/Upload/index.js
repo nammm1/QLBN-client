@@ -73,6 +73,28 @@ const apiUpload = {
       throw err;
     }
   },
+
+  // Upload file kết quả xét nghiệm (hỗ trợ PDF, Word, Excel, Image, v.v.)
+  uploadKetQuaXetNghiemFile: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await axiosInstance.post(
+        `${API_CONFIG.BASE_URL}upload/ketqua-xetnghiem`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return res.data;
+    } catch (err) {
+      console.error("Error uploading ket qua xet nghiem file:", err);
+      throw err;
+    }
+  },
 };
 
 export default apiUpload;

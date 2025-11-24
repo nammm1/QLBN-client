@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import apiChat from "../../api/Chat";
 import apiNguoiDung from "../../api/NguoiDung";
+import socketService from "../../services/socket/socketService";
 import "./Chat.css";
 
 const { Content, Sider } = Layout;
@@ -167,21 +168,74 @@ const Chat = () => {
     }
   }, [messages, selectedConversation]);
 
-  // Lấy danh sách cuộc trò chuyện và load dữ liệu mới từ server
+  // Initialize Socket.IO connection
   useEffect(() => {
-    // Load dữ liệu mới từ server (silent - không hiển thị loading nếu đã có cache)
-    const hasCache = sessionStorage.getItem("chat_conversations");
-    loadConversations(!!hasCache); // silent nếu có cache
-    
-    // Polling để cập nhật tin nhắn mới mỗi 3 giây
-    const interval = setInterval(() => {
-      if (selectedConversation) {
-        loadMessages(selectedConversation.id_cuoc_tro_chuyen, true); // silent update
-      }
-      loadConversations(true); // silent update
-    }, 3000);
+    // Connect to Socket.IO
+    socketService.connect();
 
-    return () => clearInterval(interval);
+    // Setup Socket.IO event listeners
+    const handleNewMessage = (messageData) => {
+      // Only add message if it belongs to the current conversation
+      if (selectedConversation && messageData.id_cuoc_tro_chuyen === selectedConversation.id_cuoc_tro_chuyen) {
+        setMessages((prev) => {
+          // Check if message already exists to avoid duplicates
+          const exists = prev.some(msg => msg.id_tin_nhan === messageData.id_tin_nhan);
+          if (!exists) {
+            return [...prev, messageData];
+          }
+          return prev;
+        });
+        // Auto-scroll if user is near bottom
+        if (shouldAutoScrollRef.current) {
+          setTimeout(() => scrollToBottom(), 100);
+        }
+      }
+      // Update conversations list
+      loadConversations(true);
+    };
+
+    const handleMessageDeleted = (data) => {
+      if (selectedConversation && data.conversationId === selectedConversation.id_cuoc_tro_chuyen) {
+        setMessages((prev) => prev.filter((msg) => msg.id_tin_nhan !== data.messageId));
+      }
+      // Update conversations list
+      loadConversations(true);
+    };
+
+    const handleConversationUpdated = (data) => {
+      // Update conversations list when conversation is updated
+      loadConversations(true);
+    };
+
+    socketService.on('new_message', handleNewMessage);
+    socketService.on('message_deleted', handleMessageDeleted);
+    socketService.on('conversation_updated', handleConversationUpdated);
+
+    // Load initial conversations
+    const hasCache = sessionStorage.getItem("chat_conversations");
+    loadConversations(!!hasCache);
+
+    // Cleanup on unmount
+    return () => {
+      socketService.off('new_message', handleNewMessage);
+      socketService.off('message_deleted', handleMessageDeleted);
+      socketService.off('conversation_updated', handleConversationUpdated);
+    };
+  }, []);
+
+  // Join/leave conversation room when selected conversation changes
+  useEffect(() => {
+      if (selectedConversation) {
+      socketService.joinConversation(selectedConversation.id_cuoc_tro_chuyen);
+      // Mark as read via Socket.IO
+      socketService.markAsRead(selectedConversation.id_cuoc_tro_chuyen);
+    }
+
+    return () => {
+      if (selectedConversation) {
+        socketService.leaveConversation(selectedConversation.id_cuoc_tro_chuyen);
+      }
+    };
   }, [selectedConversation]);
 
   // Tự động mở cuộc trò chuyện khi có user hoặc id_cuoc_tro_chuyen param trong URL
@@ -488,10 +542,18 @@ const Chat = () => {
         }
         // Đảm bảo auto-scroll khi user gửi tin nhắn
         shouldAutoScrollRef.current = true;
-        // Thêm tin nhắn mới vào danh sách
-        setMessages((prev) => [...prev, res.data]);
+        // Thêm tin nhắn mới vào danh sách (Socket.IO sẽ emit event, nhưng thêm ngay để UX tốt hơn)
+        setMessages((prev) => {
+          const exists = prev.some(msg => msg.id_tin_nhan === res.data.id_tin_nhan);
+          if (!exists) {
+            return [...prev, res.data];
+          }
+          return prev;
+        });
         // Cập nhật danh sách cuộc trò chuyện
-        loadConversations();
+        loadConversations(true);
+        // Scroll to bottom
+        setTimeout(() => scrollToBottom(), 100);
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -817,11 +879,13 @@ const Chat = () => {
     try {
       const res = await apiChat.deleteMessage(id_tin_nhan);
       if (res.success) {
-        // Xóa tin nhắn khỏi danh sách
+        // Xóa tin nhắn khỏi danh sách (Socket.IO sẽ emit event, nhưng xóa ngay để UX tốt hơn)
         setMessages((prev) => prev.filter((msg) => msg.id_tin_nhan !== id_tin_nhan));
         // Ẩn icon xóa
         handleHideDeleteIcon(id_tin_nhan);
         message.success("Đã xóa tin nhắn");
+        // Update conversations
+        loadConversations(true);
       }
     } catch (error) {
       console.error("Error deleting message:", error);

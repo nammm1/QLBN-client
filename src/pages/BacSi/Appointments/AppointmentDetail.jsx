@@ -62,7 +62,7 @@ import apiKetQuaXetNghiem from "../../../api/KetQuaXetNghiem";
 import { calculateAge } from "../../../utils/calculateAge";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { QRCodeSVG } from "qrcode.react";
+import { InvoiceHeader, InvoiceSignatureSection } from "../../../components/Invoice/InvoiceBranding";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -509,10 +509,10 @@ const DoctorAppointmentDetail = () => {
 
       // Logic xử lý khi chưa hoàn thành
       // Kiểm tra và lưu đơn thuốc - kiểm tra tất cả các phần tử có id_thuoc không
-      const coDonThuoc = donThuocTamThoi.length > 0 && donThuocTamThoi.some(item => item.id_thuoc);
+      const coDonThuoc = donThuocTamThoi.length > 0 && donThuocTamThoi.some(item => item.id_thuoc && item.id_thuoc !== "" && item.id_thuoc !== null && item.id_thuoc !== undefined);
       if (coDonThuoc) {
         // Lọc ra chỉ những thuốc có id_thuoc hợp lệ
-        const donThuocHopLe = donThuocTamThoi.filter(item => item.id_thuoc);
+        const donThuocHopLe = donThuocTamThoi.filter(item => item.id_thuoc && item.id_thuoc !== "" && item.id_thuoc !== null && item.id_thuoc !== undefined);
         if (donThuocHopLe.length > 0) {
           await apiDonThuoc.create({
             id_ho_so: hoSo?.id_ho_so, 
@@ -525,10 +525,10 @@ const DoctorAppointmentDetail = () => {
       }
 
       // Kiểm tra và lưu dịch vụ - kiểm tra tất cả các phần tử có id_dich_vu không
-      const coDichVu = dichVuTamThoi.length > 0 && dichVuTamThoi.some(item => item.id_dich_vu);
+      const coDichVu = dichVuTamThoi.length > 0 && dichVuTamThoi.some(item => item.id_dich_vu && item.id_dich_vu !== "" && item.id_dich_vu !== null && item.id_dich_vu !== undefined);
       if (coDichVu) {
         // Lọc ra chỉ những dịch vụ có id_dich_vu hợp lệ
-        const dichVuHopLe = dichVuTamThoi.filter(item => item.id_dich_vu);
+        const dichVuHopLe = dichVuTamThoi.filter(item => item.id_dich_vu && item.id_dich_vu !== "" && item.id_dich_vu !== null && item.id_dich_vu !== undefined);
         if (dichVuHopLe.length > 0) {
           const tong_tien = dichVuHopLe.reduce(
             (sum, dv) => sum + (dv.so_luong || 0) * (dv.don_gia || 0),
@@ -601,9 +601,67 @@ const DoctorAppointmentDetail = () => {
     }
   };
 
-  const totalDichVu = dichVuTamThoi.reduce((sum, dv) => sum + (dv.so_luong * (dv.don_gia || 0)), 0);
-  const totalThuoc = donThuocTamThoi.reduce((sum, t) => sum + (t.so_luong * (t.don_gia || t.thuoc?.don_gia || 0)), 0);
+  const totalDichVu = dichVuTamThoi
+    .filter(d => d.id_dich_vu && d.id_dich_vu !== "" && d.id_dich_vu !== null && d.id_dich_vu !== undefined)
+    .reduce((sum, dv) => sum + (dv.so_luong * (dv.don_gia || 0)), 0);
+  const totalThuoc = donThuocTamThoi
+    .filter(t => t.id_thuoc && t.id_thuoc !== "" && t.id_thuoc !== null && t.id_thuoc !== undefined)
+    .reduce((sum, t) => sum + (t.so_luong * (t.don_gia || t.thuoc?.don_gia || 0)), 0);
   const tongCong = totalDichVu + totalThuoc;
+
+  const doctorProfile = appointment?.bac_si || userInfo?.user || {};
+  const doctorFullName = doctorProfile?.ho_ten || "................................";
+  const doctorSpecialization =
+    doctorProfile?.chuc_danh ||
+    doctorProfile?.chuyen_mon ||
+    doctorProfile?.chuyen_nganh ||
+    "Bác sĩ phụ trách";
+  const doctorEmail = doctorProfile?.email || "Chưa cập nhật";
+  const doctorPhone = doctorProfile?.so_dien_thoai || "Chưa cập nhật";
+
+  const invoiceIssuedAt = hoaDon?.thoi_gian_tao
+    ? new Date(hoaDon.thoi_gian_tao).toLocaleString("vi-VN")
+    : new Date().toLocaleString("vi-VN");
+  const appointmentTime = appointment?.thoi_gian_bat_dau
+    ? new Date(appointment.thoi_gian_bat_dau).toLocaleString("vi-VN")
+    : invoiceIssuedAt;
+
+  const invoiceMetadata = [
+    { label: "Ngày khám", value: appointmentTime },
+    { label: "Ngày lập", value: invoiceIssuedAt },
+    { label: "Mã cuộc hẹn", value: id_cuoc_hen },
+    hoaDon?.trang_thai && {
+      label: "Trạng thái",
+      value: hoaDon.trang_thai === "da_thanh_toan" ? "Đã thanh toán" : "Chưa thanh toán",
+    },
+  ].filter(Boolean);
+
+  const patientFullName =
+    hoSo?.ho_ten ||
+    benhNhanFull?.ho_ten ||
+    appointment?.benh_nhan?.ho_ten ||
+    "................................";
+
+  const invoiceSignatureSlots = [
+    // {
+    //   label: "Nhân viên tài chính/Thu ngân",
+    //   name: hoaDon?.nhan_vien_thanh_toan?.ho_ten || "................................",
+    //   title: hoaDon?.nhan_vien_thanh_toan?.chuc_danh || "Thu ngân",
+    //   note: "Ký, ghi rõ họ tên",
+    // },
+    {
+      label: "Bệnh nhân/Người thanh toán",
+      name: patientFullName,
+      title: "Bệnh nhân/Người thanh toán",
+      note: "Ký, ghi rõ họ tên",
+    },
+    {
+      label: "Bác sĩ phụ trách",
+      name: doctorFullName,
+      title: doctorSpecialization,
+      note: "Ký, ghi rõ họ tên & đóng dấu",
+    }
+  ];
 
   if (loading) {
     return (
@@ -1854,7 +1912,7 @@ const DoctorAppointmentDetail = () => {
         title="Xem trước hóa đơn"
         open={showPreview}
         onCancel={() => setShowPreview(false)}
-        width={1000}
+        width={1400}
         footer={[
           <Button key="cancel" onClick={() => setShowPreview(false)}>
             Đóng
@@ -1865,39 +1923,29 @@ const DoctorAppointmentDetail = () => {
         ]}
       >
         <div id="invoicePreview" style={{ padding: 20, background: 'white', border: '1px solid #f0f0f0' }}>
-          {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: 30, borderBottom: '2px solid #1890ff', paddingBottom: 20, position: 'relative' }}>
-            <Title level={2} style={{ color: '#1890ff', margin: 0 }}>PHÒNG KHÁM MEDPRO</Title>
-            <Text style={{ fontSize: 16, color: '#666' }}>Địa chỉ: 123 Đường ABC, Quận XYZ, TP.HCM</Text>
-            <br />
-            <Text style={{ fontSize: 16, color: '#666' }}>Điện thoại: 028 1234 5678</Text>
-            
-            {/* QR Code */}
-            {hoaDon?.id_hoa_don && (
-              <div style={{ position: 'absolute', top: 0, right: 0, textAlign: 'center' }}>
-                <QRCodeSVG 
-                  value={hoaDon.id_hoa_don.toString()}
-                  size={120}
-                  level="H"
-                  includeMargin={true}
-                />
-                <div style={{ fontSize: '10px', marginTop: '4px', color: '#666' }}>
-                  Mã: {hoaDon.id_hoa_don}
-                </div>
-              </div>
-            )}
-          </div>
+          <InvoiceHeader
+            subtitle="Hóa đơn khám bệnh"
+            qrValue={(hoaDon?.id_hoa_don || id_cuoc_hen)?.toString() || ""}
+          />
 
           {/* Thông tin bệnh nhân */}
           <Card title="THÔNG TIN BỆNH NHÂN" size="small" style={{ marginBottom: 20 }}>
             <Row gutter={[16, 8]}>
-              <Col span={8}><Text strong>Mã cuộc hẹn:</Text> {id_cuoc_hen}</Col>
               <Col span={8}><Text strong>Họ tên:</Text> {hoSo?.ho_ten}</Col>
               <Col span={8}><Text strong>Giới tính:</Text> {hoSo?.gioi_tinh}</Col>
               <Col span={8}><Text strong>Tuổi:</Text> {hoSo?.tuoi}</Col>
               <Col span={8}><Text strong>Mã BHYT:</Text> {hoSo?.ma_BHYT || 'Không có'}</Col>
               <Col span={8}><Text strong>Ngày khám:</Text> {new Date().toLocaleDateString('vi-VN')}</Col>
               <Col span={24}><Text strong>Địa chỉ:</Text> {hoSo?.dia_chi || 'Không có'}</Col>
+            </Row>
+          </Card>
+
+          <Card title="THÔNG TIN BÁC SĨ PHỤ TRÁCH" size="small" style={{ marginBottom: 20 }}>
+            <Row gutter={[16, 8]}>
+              <Col span={12}><Text strong>Họ tên:</Text> {doctorFullName}</Col>
+              <Col span={12}><Text strong>Chuyên môn:</Text> {doctorSpecialization}</Col>
+              <Col span={12}><Text strong>Số điện thoại:</Text> {doctorPhone}</Col>
+              <Col span={12}><Text strong>Email:</Text> {doctorEmail}</Col>
             </Row>
           </Card>
 
@@ -1951,12 +1999,12 @@ const DoctorAppointmentDetail = () => {
             </Card>
           )}
           {/* Dịch vụ */}
-          {dichVuTamThoi.length > 0 && (
+          {dichVuTamThoi.filter(d => d.id_dich_vu && d.id_dich_vu !== "" && d.id_dich_vu !== null && d.id_dich_vu !== undefined).length > 0 && (
             <Card title="DỊCH VỤ SỬ DỤNG" size="small" style={{ marginBottom: 20 }}>
               <Table
                 size="small"
                 pagination={false}
-                dataSource={dichVuTamThoi.map((d, i) => ({
+                dataSource={dichVuTamThoi.filter(d => d.id_dich_vu && d.id_dich_vu !== "" && d.id_dich_vu !== null && d.id_dich_vu !== undefined).map((d, i) => ({
                   key: i,
                   stt: i + 1,
                   ten: d.dich_vu?.ten_dich_vu,
@@ -1971,29 +2019,33 @@ const DoctorAppointmentDetail = () => {
                   { title: 'Đơn giá', dataIndex: 'dongia', width: 120, align: 'right' },
                   { title: 'Thành tiền', dataIndex: 'thanhtien', width: 120, align: 'right' },
                 ]}
-                summary={() => (
-                  <Table.Summary>
-                    <Table.Summary.Row style={{ background: '#f0f8ff' }}>
-                      <Table.Summary.Cell index={0} colSpan={4} align="right">
-                        <Text strong>Tổng tiền dịch vụ:</Text>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={1} align="right">
-                        <Text strong type="danger">{totalDichVu.toLocaleString()} VND</Text>
-                      </Table.Summary.Cell>
-                    </Table.Summary.Row>
-                  </Table.Summary>
-                )}
+                summary={() => {
+                  const filteredDichVu = dichVuTamThoi.filter(d => d.id_dich_vu && d.id_dich_vu !== "" && d.id_dich_vu !== null && d.id_dich_vu !== undefined);
+                  const totalFiltered = filteredDichVu.reduce((sum, dv) => sum + (dv.so_luong * (dv.don_gia || 0)), 0);
+                  return (
+                    <Table.Summary>
+                      <Table.Summary.Row style={{ background: '#f0f8ff' }}>
+                        <Table.Summary.Cell index={0} colSpan={4} align="right">
+                          <Text strong>Tổng tiền dịch vụ:</Text>
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={1} align="right">
+                          <Text strong type="danger">{totalFiltered.toLocaleString()} VND</Text>
+                        </Table.Summary.Cell>
+                      </Table.Summary.Row>
+                    </Table.Summary>
+                  );
+                }}
               />
             </Card>
           )}
 
           {/* Đơn thuốc */}
-          {donThuocTamThoi.length > 0 && (
+          {donThuocTamThoi.filter(t => t.id_thuoc && t.id_thuoc !== "" && t.id_thuoc !== null && t.id_thuoc !== undefined).length > 0 && (
             <Card title="ĐƠN THUỐC" size="small" style={{ marginBottom: 20 }}>
               <Table
                 size="small"
                 pagination={false}
-                dataSource={donThuocTamThoi.map((t, i) => ({
+                dataSource={donThuocTamThoi.filter(t => t.id_thuoc && t.id_thuoc !== "" && t.id_thuoc !== null && t.id_thuoc !== undefined).map((t, i) => ({
                   key: i,
                   stt: i + 1,
                   tenthuoc: `${t.thuoc?.ten_thuoc || t.ten_thuoc || 'Chưa chọn thuốc'}`,
@@ -2025,26 +2077,44 @@ const DoctorAppointmentDetail = () => {
             <Row justify="end">
               <Col>
                 <Space direction="vertical" size="small" align="end">
-                  {dichVuTamThoi.length > 0 && (
-                    <Text>Tổng tiền dịch vụ: <Text strong>{totalDichVu.toLocaleString()} VND</Text></Text>
+                  {dichVuTamThoi.filter(d => d.id_dich_vu && d.id_dich_vu !== "" && d.id_dich_vu !== null && d.id_dich_vu !== undefined).length > 0 && (
+                    <Text>Tổng tiền dịch vụ: <Text strong>{dichVuTamThoi.filter(d => d.id_dich_vu && d.id_dich_vu !== "" && d.id_dich_vu !== null && d.id_dich_vu !== undefined).reduce((sum, dv) => sum + (dv.so_luong * (dv.don_gia || 0)), 0).toLocaleString()} VND</Text></Text>
                   )}
                   <Divider style={{ margin: '8px 0' }} />
                   <Title level={4} style={{ margin: 0, color: '#cf1322' }}>
-                    TỔNG CỘNG: {tongCong.toLocaleString()} VND
+                    TỔNG CỘNG: {(dichVuTamThoi.filter(d => d.id_dich_vu && d.id_dich_vu !== "" && d.id_dich_vu !== null && d.id_dich_vu !== undefined).reduce((sum, dv) => sum + (dv.so_luong * (dv.don_gia || 0)), 0) + donThuocTamThoi.filter(t => t.id_thuoc && t.id_thuoc !== "" && t.id_thuoc !== null && t.id_thuoc !== undefined).reduce((sum, t) => sum + (t.so_luong * (t.don_gia || t.thuoc?.don_gia || 0)), 0)).toLocaleString()} VND
                   </Title>
                 </Space>
               </Col>
             </Row>
           </Card>
 
-          {/* Footer */}
-          <div style={{ textAlign: 'center', marginTop: 40, color: '#666' }}>
-            <Text style={{ display: 'block', marginBottom: 8 }}>
-              Cảm ơn quý khách đã sử dụng dịch vụ của chúng tôi!
-            </Text>
-            <Text style={{ fontSize: 12 }}>
-              Hóa đơn được tạo tự động vào lúc {new Date().toLocaleString('vi-VN')}
-            </Text>
+          <InvoiceSignatureSection slots={invoiceSignatureSlots} />
+
+          {/* Footer - Thông tin liên hệ */}
+          <div style={{ marginTop: 40, paddingTop: 20, borderTop: '1px solid #e8e8e8' }}>
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <Text style={{ display: 'block', marginBottom: 4, fontSize: 14, color: '#333' }}>
+                123 Đường ABC, Quận XYZ, TP.HCM
+              </Text>
+              <Text style={{ display: 'block', marginBottom: 4, fontSize: 14, color: '#333' }}>
+                Điện thoại: 028 1234 5678 • Email: support@medpro.vn
+              </Text>
+              <Text style={{ display: 'block', marginBottom: 4, fontSize: 14, color: '#333' }}>
+                Website: www.medpro.vn
+              </Text>
+              <Text style={{ display: 'block', marginBottom: 8, fontSize: 14, color: '#333' }}>
+                MST: 0312345678
+              </Text>
+              <Text style={{ display: 'block', fontSize: 13, color: '#666', fontStyle: 'italic' }}>
+                Nếu quý khách có nhu cầu hỗ trợ, vui lòng liên hệ theo địa chỉ trên hoặc đến quầy nhân viên quầy
+              </Text>
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 16, color: '#999' }}>
+              <Text style={{ fontSize: 12 }}>
+                Hóa đơn được tạo tự động vào lúc {new Date().toLocaleString('vi-VN')}
+              </Text>
+            </div>
           </div>
         </div>
       </Modal>

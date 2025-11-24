@@ -53,6 +53,10 @@ import {
   CalculatorOutlined,
   PlusOutlined,
   DeleteOutlined,
+  ExclamationCircleOutlined,
+  RobotOutlined,
+  InfoCircleOutlined,
+  AlertOutlined,
 } from "@ant-design/icons";
 import {
   LineChart,
@@ -154,6 +158,63 @@ const formatMucTieuDinhDuong = (mucTieu) => {
   return mucTieuMap[mucTieuLower] || mucTieu.charAt(0).toUpperCase() + mucTieu.slice(1).toLowerCase().replace(/_/g, ' ');
 };
 
+const invalidMealReasonMap = {
+  ten_mon_khong_hop_le: "Tên món ăn không hợp lệ hoặc bị bỏ trống.",
+  khong_co_so_luong_hop_le: "Chưa nhập lượng tiêu thụ cho món ăn này.",
+};
+
+const getInvalidMealReason = (reason) => {
+  if (!reason) return "Món ăn không hợp lệ.";
+  return invalidMealReasonMap[reason] || "Món ăn bị bỏ qua do thông tin không hợp lệ.";
+};
+
+const aiHighlightRules = [
+  { key: "high_calo", label: "Năng lượng cao", color: "volcano", pattern: /(calo|calorie|năng lượng|tăng cân)/i },
+  { key: "carb_focus", label: "Nhiều tinh bột", color: "orange", pattern: /(tinh bột|cơm|xôi|ngũ cốc)/i },
+  { key: "lack_greens", label: "Thiếu rau quả", color: "green", pattern: /(rau xanh|trái cây|rau củ)/i },
+  { key: "sugar_high", label: "Đường cao", color: "magenta", pattern: /(đường|trà sữa|đồ uống có đường)/i },
+  { key: "fat_high", label: "Chất béo cao", color: "red", pattern: /(chất béo|chiên xào|mỡ|béo bão hòa)/i },
+];
+
+const warningToneRules = [
+  { key: "blood_sugar", label: "Đường huyết", color: "magenta", level: "high", pattern: /(đường huyết|tiểu đường|đường)/i },
+  { key: "heart", label: "Tim mạch", color: "volcano", level: "high", pattern: /(tim mạch|cholesterol)/i },
+  { key: "weight", label: "Kiểm soát cân nặng", color: "orange", level: "medium", pattern: /(tăng cân|béo phì|thừa cân)/i },
+  { key: "micronutrients", label: "Thiếu vi chất", color: "geekblue", level: "info", pattern: /(vitamin|khoáng chất|thiếu hụt|thiếu)/i },
+];
+
+const extractAIHighlights = (textList = []) => {
+  const combined = textList.filter(Boolean).join(" ").toLowerCase();
+  if (!combined) return [];
+
+  const matched = aiHighlightRules.filter((rule) => rule.pattern.test(combined));
+  if (matched.length > 0) return matched;
+
+  return [{ key: "balance", label: "Cần cân bằng khẩu phần", color: "geekblue" }];
+};
+
+const splitTextIntoParagraphs = (text) => {
+  if (!text) return [];
+  return text
+    .split(/\n+/)
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+};
+
+const splitTextIntoBullets = (text) => {
+  if (!text) return [];
+  return text
+    .split(/\n+/)
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+};
+
+const getWarningTone = (warning = "") => {
+  const normalized = warning.toLowerCase();
+  const matched = warningToneRules.find((rule) => rule.pattern.test(normalized));
+  return matched || { key: "general", label: "Cảnh báo chung", color: "gold", level: "medium" };
+};
+
 const NutritionRecords = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [personalInfo, setPersonalInfo] = useState(null);
@@ -174,6 +235,20 @@ const NutritionRecords = () => {
   const [calorieResult, setCalorieResult] = useState(null);
   const [calorieLoading, setCalorieLoading] = useState(false);
   const [isCalorieStarted, setIsCalorieStarted] = useState(false);
+  
+  const aiInsights = calorieResult?.goi_y_ai;
+  const aiHighlightTags = aiInsights
+    ? extractAIHighlights([
+        aiInsights.tong_quan_suc_khoe,
+        aiInsights.phan_tich_nguon_an,
+        Array.isArray(aiInsights.de_xuat_che_do_an) ? aiInsights.de_xuat_che_do_an.join(" ") : "",
+        Array.isArray(aiInsights.canh_bao) ? aiInsights.canh_bao.join(" ") : "",
+      ])
+    : [];
+  const aiOverviewParagraphs = splitTextIntoParagraphs(aiInsights?.tong_quan_suc_khoe);
+  const aiDietAnalysisItems = splitTextIntoBullets(aiInsights?.phan_tich_nguon_an);
+  const aiSuggestionItems = Array.isArray(aiInsights?.de_xuat_che_do_an) ? aiInsights.de_xuat_che_do_an : [];
+  const aiWarnings = Array.isArray(aiInsights?.canh_bao) ? aiInsights.canh_bao : [];
   
   // Đơn vị có sẵn
   const unitOptions = [
@@ -1414,6 +1489,261 @@ const NutritionRecords = () => {
                     ]}
                   />
                 </Col>
+              )}
+
+              {calorieResult.invalid_meals && calorieResult.invalid_meals.length > 0 && (
+                <Col xs={24}>
+                  <Alert
+                    type="warning"
+                    showIcon
+                    className="invalid-meals-alert"
+                    message="Một số món ăn đã bị bỏ qua khi tính toán"
+                    description={
+                      <div className="invalid-meals-list">
+                        {calorieResult.invalid_meals.map((meal, idx) => (
+                          <div key={`${meal.index || idx}-${meal.ten_mon || idx}`} className="invalid-meal-item">
+                            <Tag color="volcano" className="invalid-meal-tag">
+                              {meal.ten_mon || `Món #${(meal.index ?? idx) + 1}`}
+                            </Tag>
+                            <Text type="secondary">{getInvalidMealReason(meal.reason)}</Text>
+                          </div>
+                        ))}
+                      </div>
+                    }
+                  />
+                </Col>
+              )}
+
+              {aiInsights && (
+                <>
+                  <Col xs={24}>
+                    <div className="section-heading ai-section-heading">
+                      <div className="section-heading-icon">
+                        <RobotOutlined />
+                      </div>
+                      <div className="section-heading-info">
+                        <Text className="section-heading-title">Gợi ý chăm sóc từ AI</Text>
+                        <Text className="section-heading-desc">
+                          Phân tích khẩu phần & cảnh báo sức khỏe cá nhân hóa
+                        </Text>
+                      </div>
+                      {aiHighlightTags.length > 0 && (
+                        <div className="ai-highlight-tags">
+                          {aiHighlightTags.map((tag) => (
+                            <Tag key={tag.key} color={tag.color} bordered={false}>
+                              {tag.label}
+                            </Tag>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Card
+                      type="inner"
+                      className="ai-insight-card"
+                      title={
+                        <span className="card-title-with-icon">
+                          <BulbOutlined /> Tổng quan & Phân tích
+                        </span>
+                      }
+                    >
+                      <Space direction="vertical" size="large">
+                        {aiOverviewParagraphs.length > 0 ? (
+                          aiOverviewParagraphs.map((paragraph, index) => (
+                            <Paragraph key={index} className="ai-paragraph ai-paragraph-block">
+                              <span className="ai-paragraph-index">{index + 1}</span>
+                              <span>{paragraph}</span>
+                            </Paragraph>
+                          ))
+                        ) : (
+                          <Text type="secondary">Chưa có tổng quan sức khỏe.</Text>
+                        )}
+
+                        {aiDietAnalysisItems.length > 0 && (
+                          <div className="ai-analysis-panel">
+                            <div className="ai-analysis-header">
+                              <InfoCircleOutlined />
+                              <Text strong>Phân tích khẩu phần</Text>
+                            </div>
+                            <ul className="ai-analysis-list">
+                              {aiDietAnalysisItems.map((item, idx) => (
+                                <li key={idx}>
+                                  <span className="ai-analysis-bullet" />
+                                  <span>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </Space>
+                    </Card>
+                  </Col>
+
+                  {aiSuggestionItems.length > 0 && (
+                      <Col xs={24} md={12}>
+                        <Card
+                          type="inner"
+                          className="ai-suggestion-card"
+                          title={
+                            <span className="card-title-with-icon">
+                              <FireOutlined /> Đề xuất chế độ ăn
+                            </span>
+                          }
+                        >
+                          <ul className="ai-suggestion-list">
+                            {aiSuggestionItems.map((suggestion, index) => (
+                              <li key={index} className="ai-suggestion-item">
+                                <span className="ai-step-index">{index + 1}</span>
+                                <div>
+                                  <Text className="ai-suggestion-title">Mẹo {index + 1}</Text>
+                                  <Paragraph className="ai-suggestion-text">{suggestion}</Paragraph>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </Card>
+                      </Col>
+                    )}
+
+                  {aiWarnings.length > 0 && (
+                      <Col xs={24}>
+                        <Card
+                          type="inner"
+                          className="ai-warning-card"
+                          title={
+                            <span className="card-title-with-icon">
+                              <ExclamationCircleOutlined /> Cảnh báo sức khỏe
+                            </span>
+                          }
+                        >
+                          <div className="ai-warning-timeline">
+                            {aiWarnings.map((warning, index) => {
+                              const tone = getWarningTone(warning);
+                              return (
+                                <div key={index} className="ai-warning-item">
+                                  <div className={`ai-warning-dot ai-warning-dot--${tone.level}`} />
+                                  <div className="ai-warning-content">
+                                    <div className="ai-warning-header">
+                                      <Tag color={tone.color} bordered={false}>
+                                        {tone.label}
+                                      </Tag>
+                                      <Text type="secondary">Cảnh báo #{index + 1}</Text>
+                                    </div>
+                                    <Paragraph className="ai-warning-text">
+                                      <AlertOutlined className="ai-warning-text-icon" />
+                                      {warning}
+                                    </Paragraph>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </Card>
+                      </Col>
+                    )}
+                </>
+              )}
+
+              {calorieResult.patient_context && (
+                <>
+                  <Col xs={24}>
+                    <Divider orientation="left">Hồ sơ sức khỏe tham chiếu</Divider>
+                  </Col>
+                  {calorieResult.patient_context.ho_so && (
+                    <Col xs={24} lg={12}>
+                      <Card
+                        type="inner"
+                        className="patient-context-card"
+                        title={
+                          <span className="card-title-with-icon">
+                            <UserOutlined /> Hồ sơ gần nhất
+                          </span>
+                        }
+                      >
+                        <Descriptions column={1} size="small">
+                          {calorieResult.patient_context.ho_so.ho_ten && (
+                            <Descriptions.Item label="Họ tên">
+                              {calorieResult.patient_context.ho_so.ho_ten}
+                            </Descriptions.Item>
+                          )}
+                          {calorieResult.patient_context.ho_so.gioi_tinh && (
+                            <Descriptions.Item label="Giới tính">
+                              {calorieResult.patient_context.ho_so.gioi_tinh}
+                            </Descriptions.Item>
+                          )}
+                          {calorieResult.patient_context.ho_so.tuoi && (
+                            <Descriptions.Item label="Tuổi">
+                              {calorieResult.patient_context.ho_so.tuoi}
+                            </Descriptions.Item>
+                          )}
+                          {calorieResult.patient_context.ho_so.chieu_cao && (
+                            <Descriptions.Item label="Chiều cao">
+                              {calorieResult.patient_context.ho_so.chieu_cao} cm
+                            </Descriptions.Item>
+                          )}
+                          {calorieResult.patient_context.ho_so.can_nang && (
+                            <Descriptions.Item label="Cân nặng">
+                              {calorieResult.patient_context.ho_so.can_nang} kg
+                            </Descriptions.Item>
+                          )}
+                          {calorieResult.patient_context.ho_so.vong_eo && (
+                            <Descriptions.Item label="Vòng eo">
+                              {calorieResult.patient_context.ho_so.vong_eo} cm
+                            </Descriptions.Item>
+                          )}
+                          {calorieResult.patient_context.ho_so.mo_co_the && (
+                            <Descriptions.Item label="Mỡ cơ thể">
+                              {calorieResult.patient_context.ho_so.mo_co_the} %
+                            </Descriptions.Item>
+                          )}
+                        </Descriptions>
+                      </Card>
+                    </Col>
+                  )}
+
+                  {calorieResult.patient_context.tu_van_gan_nhat && (
+                    <Col xs={24} lg={12}>
+                      <Card
+                        type="inner"
+                        className="patient-context-card"
+                        title={
+                          <span className="card-title-with-icon">
+                            <MedicineBoxOutlined /> Tư vấn gần nhất
+                          </span>
+                        }
+                      >
+                        <Descriptions column={1} size="small">
+                          {calorieResult.patient_context.tu_van_gan_nhat.thoi_gian_tu_van && (
+                            <Descriptions.Item label="Thời gian tư vấn">
+                              {formatDateTime(calorieResult.patient_context.tu_van_gan_nhat.thoi_gian_tu_van)}
+                            </Descriptions.Item>
+                          )}
+                          {calorieResult.patient_context.tu_van_gan_nhat.ke_hoach_dinh_duong && (
+                            <Descriptions.Item label="Kế hoạch dinh dưỡng">
+                              {calorieResult.patient_context.tu_van_gan_nhat.ke_hoach_dinh_duong}
+                            </Descriptions.Item>
+                          )}
+                          {calorieResult.patient_context.tu_van_gan_nhat.nhu_cau_calo && (
+                            <Descriptions.Item label="Nhu cầu calo">
+                              {calorieResult.patient_context.tu_van_gan_nhat.nhu_cau_calo} kcal
+                            </Descriptions.Item>
+                          )}
+                          {calorieResult.patient_context.tu_van_gan_nhat.muc_tieu_dinh_duong && (
+                            <Descriptions.Item label="Mục tiêu">
+                              {formatMucTieuDinhDuong(calorieResult.patient_context.tu_van_gan_nhat.muc_tieu_dinh_duong)}
+                            </Descriptions.Item>
+                          )}
+                          {calorieResult.patient_context.tu_van_gan_nhat.di_ung_thuc_pham && (
+                            <Descriptions.Item label="Dị ứng thực phẩm">
+                              {calorieResult.patient_context.tu_van_gan_nhat.di_ung_thuc_pham}
+                            </Descriptions.Item>
+                          )}
+                        </Descriptions>
+                      </Card>
+                    </Col>
+                  )}
+                </>
               )}
             </Row>
           </Card>

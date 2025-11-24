@@ -18,7 +18,8 @@ import {
   message,
   Statistic,
   Segmented,
-  theme
+  theme,
+  Radio
 } from "antd";
 import { 
   CalendarOutlined, 
@@ -436,14 +437,22 @@ const ReceptionistWorkSchedule = () => {
         <Form
           form={formNghiPhep}
           layout="vertical"
+          initialValues={{ loai_nghi: 'ca_ngay' }}
           onFinish={async (values) => {
             try {
+              // Nếu nghỉ nửa ngày, đảm bảo ngay_ket_thuc = ngay_bat_dau
+              let ngayKetThuc = values.ngay_ket_thuc;
+              if (values.loai_nghi && values.loai_nghi !== 'ca_ngay') {
+                ngayKetThuc = values.ngay_bat_dau;
+              }
+
               await apiXinNghiPhep.create({
                 id_nguoi_dung: userId,
                 ngay_bat_dau: values.ngay_bat_dau.format('YYYY-MM-DD'),
-                ngay_ket_thuc: values.ngay_ket_thuc.format('YYYY-MM-DD'),
+                ngay_ket_thuc: ngayKetThuc.format('YYYY-MM-DD'),
                 ly_do: values.ly_do,
-                trang_thai: "cho_duyet"
+                trang_thai: "cho_duyet",
+                buoi_nghi: values.loai_nghi && values.loai_nghi !== 'ca_ngay' ? values.loai_nghi : null
               });
               message.success("Đã gửi đơn xin nghỉ phép!");
               setModalXinNghiVisible(false);
@@ -455,18 +464,64 @@ const ReceptionistWorkSchedule = () => {
           }}
         >
           <Form.Item
+            name="loai_nghi"
+            label="Loại nghỉ phép"
+            rules={[{ required: true, message: 'Vui lòng chọn loại nghỉ phép' }]}
+          >
+            <Radio.Group
+              onChange={(e) => {
+                const loaiNghi = e.target.value;
+                const ngayBatDau = formNghiPhep.getFieldValue('ngay_bat_dau');
+                if (loaiNghi !== 'ca_ngay' && ngayBatDau) {
+                  formNghiPhep.setFieldsValue({ ngay_ket_thuc: ngayBatDau });
+                }
+              }}
+            >
+              <Radio value="ca_ngay">Cả ngày</Radio>
+              <Radio value="sang">Buổi sáng</Radio>
+              <Radio value="chieu">Buổi chiều</Radio>
+              <Radio value="toi">Buổi tối</Radio>
+            </Radio.Group>
+          </Form.Item>
+          <Form.Item
             name="ngay_bat_dau"
             label="📅 Ngày bắt đầu"
             rules={[{ required: true, message: 'Vui lòng chọn ngày bắt đầu' }]}
           >
-            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+            <DatePicker 
+              style={{ width: '100%' }} 
+              format="DD/MM/YYYY"
+              onChange={(date) => {
+                const loaiNghi = formNghiPhep.getFieldValue('loai_nghi');
+                if (date && loaiNghi && loaiNghi !== 'ca_ngay') {
+                  formNghiPhep.setFieldsValue({ ngay_ket_thuc: date });
+                }
+              }}
+            />
           </Form.Item>
           <Form.Item
-            name="ngay_ket_thuc"
-            label="📅 Ngày kết thúc"
-            rules={[{ required: true, message: 'Vui lòng chọn ngày kết thúc' }]}
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => 
+              prevValues.loai_nghi !== currentValues.loai_nghi
+            }
           >
-            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+            {({ getFieldValue }) => {
+              const loaiNghi = getFieldValue('loai_nghi');
+              const isNuaNgay = loaiNghi && loaiNghi !== 'ca_ngay';
+              return (
+                <Form.Item
+                  name="ngay_ket_thuc"
+                  label="📅 Ngày kết thúc"
+                  rules={[{ required: true, message: 'Vui lòng chọn ngày kết thúc' }]}
+                >
+                  <DatePicker 
+                    style={{ width: '100%' }} 
+                    format="DD/MM/YYYY"
+                    disabled={isNuaNgay}
+                  />
+                </Form.Item>
+              );
+            }}
           </Form.Item>
           <Form.Item
             name="ly_do"

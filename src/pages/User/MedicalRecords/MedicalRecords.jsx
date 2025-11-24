@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Button,
   Card,
@@ -86,6 +86,7 @@ const MedicalRecords = () => {
   const [hoaDonLoading, setHoaDonLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
   const patientId =
@@ -351,10 +352,10 @@ const MedicalRecords = () => {
               const chiTiet = Array.isArray(unwrapped.chi_tiet)
                 ? unwrapped.chi_tiet
                 : [unwrapped.chi_tiet];
-              
-              setSelectedMedical(prev => ({
-                ...prev,
-                don_thuoc: chiTiet.map(ct => ({
+            
+            setSelectedMedical(prev => ({
+              ...prev,
+              don_thuoc: chiTiet.map(ct => ({
                   ten_thuoc: ct.thuoc?.ten_thuoc || ct.thuoc?.ten || ct.ten_thuoc || "—",
                   lieu_dung: ct.lieu_dung || ct.cach_dung || ct.tan_suat || "—",
                   so_luong: ct.so_luong ? `${ct.so_luong} ${ct.thuoc?.don_vi || ct.don_vi || ""}`.trim() : "—",
@@ -420,35 +421,47 @@ const MedicalRecords = () => {
     }
   }, [selectedMedical?.id_cuoc_hen, modalVisible]);
 
+  useEffect(() => {
+    if (!location.state?.paymentSuccess) {
+      return;
+    }
+
+    const paidOrderId = location.state.orderId;
+    message.success(
+      paidOrderId ? `Thanh toán Momo cho hóa đơn ${paidOrderId} thành công!` : "Thanh toán Momo thành công!"
+    );
+
+    const refreshHoaDonAfterPayment = async () => {
+      if (!selectedMedical?.id_cuoc_hen) return;
+      try {
+        setHoaDonLoading(true);
+        const hoaDonData = await apiHoaDon.getByCuocHenKham(selectedMedical.id_cuoc_hen);
+        if (hoaDonData) {
+          setHoaDon(hoaDonData);
+        }
+      } catch (error) {
+        console.error("Không thể làm mới hóa đơn sau thanh toán:", error);
+      } finally {
+        setHoaDonLoading(false);
+      }
+    };
+
+    refreshHoaDonAfterPayment();
+    navigate(location.pathname, { replace: true });
+  }, [location.state, location.pathname, navigate, selectedMedical?.id_cuoc_hen]);
+
   // Hàm xử lý thanh toán Momo
   const handleMomoPayment = async () => {
     if (!hoaDon) return;
     
     setPaymentLoading(true);
     try {
-      const response = await apiPayment.createMomoPayment(hoaDon.id_hoa_don);
+      const response = await apiPayment.createMomoPayment(hoaDon.id_hoa_don, {
+        source: "patient",
+        redirectPath: "/medical-records",
+      });
       if (response.success && response.data.paymentUrl) {
-        window.open(response.data.paymentUrl, '_blank');
         message.success("Đang chuyển đến trang thanh toán Momo...");
-      } else {
-        message.error(response.message || "Không thể tạo payment URL");
-      }
-    } catch (error) {
-      message.error("Có lỗi xảy ra. Vui lòng thử lại!");
-      console.error(error);
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
-
-  // Hàm xử lý thanh toán VNPay
-  const handleVNPayPayment = async () => {
-    if (!hoaDon) return;
-    
-    setPaymentLoading(true);
-    try {
-      const response = await apiPayment.createVNPayPayment(hoaDon.id_hoa_don);
-      if (response.success && response.data.paymentUrl) {
         window.location.href = response.data.paymentUrl;
       } else {
         message.error(response.message || "Không thể tạo payment URL");
@@ -986,7 +999,7 @@ const MedicalRecords = () => {
                   {/* Nút thanh toán nếu chưa thanh toán */}
                   {hoaDon.trang_thai === 'chua_thanh_toan' && (
                     <div style={{ marginTop: 16, textAlign: "center" }}>
-                      <Space>
+                      <Space direction="vertical">
                         <Button
                           type="primary"
                           size="large"
@@ -994,17 +1007,11 @@ const MedicalRecords = () => {
                           loading={paymentLoading}
                           onClick={handleMomoPayment}
                         >
-                          Thanh toán Momo
+                          Thanh toán qua Momo
                         </Button>
-                        <Button
-                          type="primary"
-                          size="large"
-                          icon={<DollarOutlined />}
-                          loading={paymentLoading}
-                          onClick={handleVNPayPayment}
-                        >
-                          Thanh toán VNPay
-                        </Button>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          Sau khi thanh toán thành công, hệ thống sẽ tự quay lại trang hồ sơ khám bệnh.
+                        </Text>
                       </Space>
                     </div>
                   )}

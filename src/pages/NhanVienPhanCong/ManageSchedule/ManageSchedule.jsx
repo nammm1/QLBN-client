@@ -688,6 +688,8 @@ const ManageSchedule = () => {
     ca: null
   });
   const [selectedBacSiInForm, setSelectedBacSiInForm] = useState(null); // Track bác sĩ đã chọn trong form để filter phòng khám
+  const [selectedNhanVienInForm, setSelectedNhanVienInForm] = useState(null); // Track nhân viên đã chọn trong form để filter phòng khám
+  const [selectedChuyenGiaInForm, setSelectedChuyenGiaInForm] = useState(null); // Track chuyên gia đã chọn trong form để filter phòng khám
   const [listsInitialized, setListsInitialized] = useState(false); // Đánh dấu các list đã được load lần đầu
 
   // Load danh sách nhân viên khi activeTab thay đổi
@@ -945,16 +947,22 @@ const ManageSchedule = () => {
     }
   };
 
-  const fetchPhongKhamList = async (id_chuyen_khoa = null) => {
+  const fetchPhongKhamList = async (id_chuyen_khoa = null, vai_tro = null, id_chuyen_nganh = null) => {
     try {
       const params = {};
       if (id_chuyen_khoa) {
         params.id_chuyen_khoa = id_chuyen_khoa;
       }
+      if (vai_tro) {
+        params.vai_tro = vai_tro;
+      }
+      if (id_chuyen_nganh) {
+        params.id_chuyen_nganh = id_chuyen_nganh;
+      }
       const res = await apiPhongKham.getAll(params);
       setPhongKhamList(res?.data || []);
       // Lưu tất cả phòng khám để filter sau
-      if (!id_chuyen_khoa) {
+      if (!id_chuyen_khoa && !vai_tro && !id_chuyen_nganh) {
         setAllPhongKhamList(res?.data || []);
       }
     } catch (error) {
@@ -995,6 +1003,8 @@ const ManageSchedule = () => {
     setSelectedSchedule(null);
     setSelectedChuyenKhoa(null);
     setSelectedBacSiInForm(null);
+    setSelectedNhanVienInForm(null);
+    setSelectedChuyenGiaInForm(null);
     form.resetFields();
     fetchPhongKhamList(); // Reset về tất cả phòng khám
     setModalVisible(true);
@@ -1029,17 +1039,31 @@ const ManageSchedule = () => {
       });
     } else if (activeTab === 'chuyen-gia-dinh-duong') {
       const chuyenGia = chuyenGiaDinhDuongList.find(cg => cg.id_chuyen_gia === record.id_nguoi_dung);
+      setSelectedChuyenGiaInForm(record.id_nguoi_dung);
+      // Filter phòng khám cho chuyên gia dinh dưỡng
+      fetchPhongKhamList(null, 'chuyen_gia_dinh_duong', chuyenGia?.id_chuyen_nganh || null);
       form.setFieldsValue({
         id_nguoi_dung: record.id_nguoi_dung,
         ngay_lam_viec: dayjs(record.ngay_lam_viec),
         ca: record.ca,
+        id_phong_kham: record.id_phong_kham || undefined,
         id_chuyen_nganh_filter: chuyenGia?.id_chuyen_nganh || undefined
       });
     } else {
+      // Nhân viên khác
+      const nhanVien = nhanVienKhacList.find(nv => nv.id_nguoi_dung === record.id_nguoi_dung);
+      setSelectedNhanVienInForm(record.id_nguoi_dung);
+      // Filter phòng khám theo vai trò
+      if (nhanVien?.vai_tro) {
+        fetchPhongKhamList(null, nhanVien.vai_tro, null);
+      } else {
+        fetchPhongKhamList();
+      }
       form.setFieldsValue({
         id_nguoi_dung: record.id_nguoi_dung,
         ngay_lam_viec: dayjs(record.ngay_lam_viec),
-        ca: record.ca
+        ca: record.ca,
+        id_phong_kham: record.id_phong_kham || undefined
       });
     }
     setModalVisible(true);
@@ -1085,19 +1109,31 @@ const ManageSchedule = () => {
   };
 
   const handleAssignRoom = (schedule) => {
-    // Chỉ cho phép phân phòng cho bác sĩ
-    if (activeTab !== 'bac-si') {
-      message.warning("Chỉ bác sĩ mới có thể được phân phòng khám");
-      return;
-    }
     setScheduleToAssignRoom(schedule);
-    // Lấy chuyên khoa của bác sĩ để filter phòng khám
-    const bacSi = bacSiList.find(bs => bs.id_bac_si === schedule.id_nguoi_dung);
-    if (bacSi?.id_chuyen_khoa) {
-      fetchPhongKhamList(bacSi.id_chuyen_khoa);
+    
+    // Filter phòng khám dựa trên vai trò
+    if (activeTab === 'bac-si') {
+      // Bác sĩ: filter theo chuyên khoa
+      const bacSi = bacSiList.find(bs => bs.id_bac_si === schedule.id_nguoi_dung);
+      if (bacSi?.id_chuyen_khoa) {
+        fetchPhongKhamList(bacSi.id_chuyen_khoa);
+      } else {
+        fetchPhongKhamList(null, 'bac_si');
+      }
+    } else if (activeTab === 'chuyen-gia-dinh-duong') {
+      // Chuyên gia dinh dưỡng: filter theo vai trò
+      const chuyenGia = chuyenGiaDinhDuongList.find(cg => cg.id_chuyen_gia === schedule.id_nguoi_dung);
+      fetchPhongKhamList(null, 'chuyen_gia_dinh_duong', chuyenGia?.id_chuyen_nganh || null);
     } else {
-      fetchPhongKhamList();
+      // Nhân viên khác: filter theo vai trò
+      const nhanVien = nhanVienKhacList.find(nv => nv.id_nguoi_dung === schedule.id_nguoi_dung);
+      if (nhanVien?.vai_tro) {
+        fetchPhongKhamList(null, nhanVien.vai_tro, null);
+      } else {
+        fetchPhongKhamList();
+      }
     }
+    
     formAssignRoom.setFieldsValue({
       id_phong_kham: schedule.id_phong_kham || undefined
     });
@@ -1140,10 +1176,8 @@ const ManageSchedule = () => {
           ngay_lam_viec: values.ngay_lam_viec.format('YYYY-MM-DD'),
           ca: values.ca
         };
-        // Chỉ thêm phòng khám nếu là bác sĩ
-        if (activeTab === 'bac-si') {
-          data.id_phong_kham = values.id_phong_kham || null;
-        }
+        // Thêm phòng khám cho tất cả các role
+        data.id_phong_kham = values.id_phong_kham || null;
         await apiNhanVienPhanCong.updateLichLamViec(selectedSchedule.id_lich_lam_viec, data);
         message.success("Cập nhật lịch làm việc thành công");
       } else {
@@ -1154,10 +1188,8 @@ const ManageSchedule = () => {
             ngay_lam_viec: values.ngay_lam_viec.format('YYYY-MM-DD'),
             ca: values.ca
           };
-          // Chỉ thêm phòng khám nếu là bác sĩ
-          if (activeTab === 'bac-si') {
-            data.id_phong_kham = values.id_phong_kham || null;
-          }
+          // Thêm phòng khám cho tất cả các role
+          data.id_phong_kham = values.id_phong_kham || null;
           return apiNhanVienPhanCong.createLichLamViec(data);
         });
 
@@ -1177,6 +1209,8 @@ const ManageSchedule = () => {
       setSelectedChuyenKhoa(null);
       setSelectedChuyenNganh(null);
       setSelectedBacSiInForm(null);
+      setSelectedNhanVienInForm(null);
+      setSelectedChuyenGiaInForm(null);
       fetchPhongKhamList(); // Reset phòng khám về tất cả
       fetchSchedules();
     } catch (error) {
@@ -1246,10 +1280,8 @@ const ManageSchedule = () => {
                 ngay_lam_viec: d.format('YYYY-MM-DD'),
                 ca: ca
               };
-              // Chỉ thêm phòng khám nếu là bác sĩ
-              if (activeTab === 'bac-si') {
-                item.id_phong_kham = id_phong_kham || null;
-              }
+              // Thêm phòng khám cho tất cả các role
+              item.id_phong_kham = id_phong_kham || null;
               danhSachPhanCong.push(item);
             });
           });
@@ -1986,6 +2018,23 @@ const ManageSchedule = () => {
                   return label.includes(input.toLowerCase());
                 }}
                 disabled={selectedSchedule ? false : chuyenGiaDinhDuongList.length === 0}
+                onChange={(value) => {
+                  if (!selectedSchedule) {
+                    setSelectedChuyenGiaInForm(Array.isArray(value) ? value[0] : value);
+                    // Khi chọn chuyên gia, filter phòng khám theo vai trò và chuyên ngành
+                    if (value && (Array.isArray(value) ? value.length > 0 : true)) {
+                      const firstChuyenGiaId = Array.isArray(value) ? value[0] : value;
+                      const chuyenGia = chuyenGiaDinhDuongList.find(cg => cg.id_chuyen_gia === firstChuyenGiaId);
+                      if (chuyenGia) {
+                        fetchPhongKhamList(null, 'chuyen_gia_dinh_duong', chuyenGia.id_chuyen_nganh || null);
+                      } else {
+                        fetchPhongKhamList(null, 'chuyen_gia_dinh_duong', null);
+                      }
+                    } else {
+                      fetchPhongKhamList();
+                    }
+                  }
+                }}
               >
                 {chuyenGiaDinhDuongList.map(cg => (
                   <Option key={cg.id_chuyen_gia} value={cg.id_chuyen_gia}>
@@ -2005,6 +2054,23 @@ const ManageSchedule = () => {
                   return label.includes(input.toLowerCase());
                 }}
                 disabled={selectedSchedule ? false : nhanVienKhacList.length === 0}
+                onChange={(value) => {
+                  if (!selectedSchedule) {
+                    setSelectedNhanVienInForm(Array.isArray(value) ? value[0] : value);
+                    // Khi chọn nhân viên, filter phòng khám theo vai trò
+                    if (value && (Array.isArray(value) ? value.length > 0 : true)) {
+                      const firstNhanVienId = Array.isArray(value) ? value[0] : value;
+                      const nhanVien = nhanVienKhacList.find(nv => nv.id_nguoi_dung === firstNhanVienId);
+                      if (nhanVien?.vai_tro) {
+                        fetchPhongKhamList(null, nhanVien.vai_tro, null);
+                      } else {
+                        fetchPhongKhamList();
+                      }
+                    } else {
+                      fetchPhongKhamList();
+                    }
+                  }
+                }}
               >
                 {nhanVienKhacList.map(nv => (
                   <Option key={nv.id_nguoi_dung} value={nv.id_nguoi_dung}>
@@ -2041,14 +2107,22 @@ const ManageSchedule = () => {
             </Select>
           </Form.Item>
 
-          {activeTab === 'bac-si' && (
+          {(activeTab === 'bac-si' || activeTab === 'chuyen-gia-dinh-duong' || activeTab === 'nhan-vien-khac') && (
             <Form.Item
               name="id_phong_kham"
               label="Phòng khám (tùy chọn)"
               extra={
-                selectedBacSiInForm 
-                  ? "Phòng khám đã được lọc theo chuyên khoa của bác sĩ đã chọn" 
-                  : "Phòng khám sẽ được lọc theo chuyên khoa của bác sĩ khi bạn chọn bác sĩ"
+                activeTab === 'bac-si' 
+                  ? (selectedBacSiInForm 
+                      ? "Phòng khám đã được lọc theo chuyên khoa của bác sĩ đã chọn" 
+                      : "Phòng khám sẽ được lọc theo chuyên khoa của bác sĩ khi bạn chọn bác sĩ")
+                  : activeTab === 'chuyen-gia-dinh-duong'
+                  ? (selectedChuyenGiaInForm
+                      ? "Phòng khám đã được lọc theo vai trò chuyên gia dinh dưỡng"
+                      : "Phòng khám sẽ được lọc khi bạn chọn chuyên gia dinh dưỡng")
+                  : (selectedNhanVienInForm
+                      ? "Phòng khám đã được lọc theo vai trò của nhân viên đã chọn"
+                      : "Phòng khám sẽ được lọc theo vai trò khi bạn chọn nhân viên")
               }
             >
               <Select 
@@ -2059,12 +2133,17 @@ const ManageSchedule = () => {
                   const label = option?.children?.toString().toLowerCase() || '';
                   return label.includes(input.toLowerCase());
                 }}
-                disabled={!selectedBacSiInForm && !selectedSchedule}
+                disabled={
+                  (activeTab === 'bac-si' && !selectedBacSiInForm && !selectedSchedule) ||
+                  (activeTab === 'chuyen-gia-dinh-duong' && !selectedChuyenGiaInForm && !selectedSchedule) ||
+                  (activeTab === 'nhan-vien-khac' && !selectedNhanVienInForm && !selectedSchedule)
+                }
               >
                 {phongKhamList.map(pk => (
                   <Option key={pk.id_phong_kham} value={pk.id_phong_kham}>
                     {pk.ten_phong} ({pk.so_phong})
                     {pk.ten_chuyen_khoa && ` - ${pk.ten_chuyen_khoa}`}
+                    {pk.ten_chuyen_nganh && ` - ${pk.ten_chuyen_nganh}`}
                     {pk.tang && ` - Tầng ${pk.tang}`}
                   </Option>
                 ))}
@@ -2080,6 +2159,8 @@ const ManageSchedule = () => {
                 setSelectedChuyenKhoa(null);
                 setSelectedChuyenNganh(null);
                 setSelectedBacSiInForm(null);
+                setSelectedNhanVienInForm(null);
+                setSelectedChuyenGiaInForm(null);
                 fetchPhongKhamList(); // Reset phòng khám về tất cả
               }}>
                 Hủy
@@ -2373,11 +2454,17 @@ const ManageSchedule = () => {
             </Select>
           </Form.Item>
 
-          {activeTab === 'bac-si' && (
+          {(activeTab === 'bac-si' || activeTab === 'chuyen-gia-dinh-duong' || activeTab === 'nhan-vien-khac') && (
             <Form.Item
               name="id_phong_kham"
               label="Phòng khám (tùy chọn)"
-              extra="Phòng khám sẽ được lọc theo chuyên khoa của bác sĩ đã chọn"
+              extra={
+                activeTab === 'bac-si'
+                  ? "Phòng khám sẽ được lọc theo chuyên khoa của bác sĩ đã chọn"
+                  : activeTab === 'chuyen-gia-dinh-duong'
+                  ? "Phòng khám sẽ được lọc theo vai trò chuyên gia dinh dưỡng"
+                  : "Phòng khám sẽ được lọc theo vai trò của nhân viên đã chọn"
+              }
             >
               <Select 
                 placeholder="Chọn phòng khám" 
@@ -2392,6 +2479,7 @@ const ManageSchedule = () => {
                   <Option key={pk.id_phong_kham} value={pk.id_phong_kham}>
                     {pk.ten_phong} ({pk.so_phong})
                     {pk.ten_chuyen_khoa && ` - ${pk.ten_chuyen_khoa}`}
+                    {pk.ten_chuyen_nganh && ` - ${pk.ten_chuyen_nganh}`}
                     {pk.tang && ` - Tầng ${pk.tang}`}
                   </Option>
                 ))}
@@ -2553,7 +2641,11 @@ const ManageSchedule = () => {
         title={
           <Space>
             <HomeOutlined />
-            <span>Phân phòng cho bác sĩ</span>
+            <span>
+              {activeTab === 'bac-si' ? 'Phân phòng cho bác sĩ' :
+               activeTab === 'chuyen-gia-dinh-duong' ? 'Phân phòng cho chuyên gia dinh dưỡng' :
+               'Phân phòng cho nhân viên'}
+            </span>
           </Space>
         }
         open={modalAssignRoomVisible}
