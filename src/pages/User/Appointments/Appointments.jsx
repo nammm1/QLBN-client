@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Tabs, Table, Typography, Button, Tag, Space, Card, Spin, Empty, Popconfirm, message } from "antd";
 import { CalendarOutlined, AppleOutlined, CloseCircleOutlined, VideoCameraOutlined, HomeOutlined } from "@ant-design/icons";
-import "./appointments.css";
+import "./Appointments.css";
 import apiCuocHenKhamBenh from "../../../api/CuocHenKhamBenh";
 import apiCuocHenTuVan from "../../../api/CuocHenTuVan";
 import apiNguoiDung from "../../../api/NguoiDung";
