@@ -1114,9 +1114,9 @@ const ManageSchedule = () => {
     // Filter phòng khám dựa trên vai trò
     if (activeTab === 'bac-si') {
       // Bác sĩ: filter theo chuyên khoa
-      const bacSi = bacSiList.find(bs => bs.id_bac_si === schedule.id_nguoi_dung);
-      if (bacSi?.id_chuyen_khoa) {
-        fetchPhongKhamList(bacSi.id_chuyen_khoa);
+    const bacSi = bacSiList.find(bs => bs.id_bac_si === schedule.id_nguoi_dung);
+    if (bacSi?.id_chuyen_khoa) {
+      fetchPhongKhamList(bacSi.id_chuyen_khoa);
       } else {
         fetchPhongKhamList(null, 'bac_si');
       }
@@ -1129,9 +1129,9 @@ const ManageSchedule = () => {
       const nhanVien = nhanVienKhacList.find(nv => nv.id_nguoi_dung === schedule.id_nguoi_dung);
       if (nhanVien?.vai_tro) {
         fetchPhongKhamList(null, nhanVien.vai_tro, null);
-      } else {
-        fetchPhongKhamList();
-      }
+    } else {
+      fetchPhongKhamList();
+    }
     }
     
     formAssignRoom.setFieldsValue({
@@ -1177,7 +1177,7 @@ const ManageSchedule = () => {
           ca: values.ca
         };
         // Thêm phòng khám cho tất cả các role
-        data.id_phong_kham = values.id_phong_kham || null;
+          data.id_phong_kham = values.id_phong_kham || null;
         await apiNhanVienPhanCong.updateLichLamViec(selectedSchedule.id_lich_lam_viec, data);
         message.success("Cập nhật lịch làm việc thành công");
       } else {
@@ -1189,7 +1189,7 @@ const ManageSchedule = () => {
             ca: values.ca
           };
           // Thêm phòng khám cho tất cả các role
-          data.id_phong_kham = values.id_phong_kham || null;
+            data.id_phong_kham = values.id_phong_kham || null;
           return apiNhanVienPhanCong.createLichLamViec(data);
         });
 
@@ -1281,7 +1281,7 @@ const ManageSchedule = () => {
                 ca: ca
               };
               // Thêm phòng khám cho tất cả các role
-              item.id_phong_kham = id_phong_kham || null;
+                item.id_phong_kham = id_phong_kham || null;
               danhSachPhanCong.push(item);
             });
           });
@@ -2114,7 +2114,7 @@ const ManageSchedule = () => {
               extra={
                 activeTab === 'bac-si' 
                   ? (selectedBacSiInForm 
-                      ? "Phòng khám đã được lọc theo chuyên khoa của bác sĩ đã chọn" 
+                  ? "Phòng khám đã được lọc theo chuyên khoa của bác sĩ đã chọn" 
                       : "Phòng khám sẽ được lọc theo chuyên khoa của bác sĩ khi bạn chọn bác sĩ")
                   : activeTab === 'chuyen-gia-dinh-duong'
                   ? (selectedChuyenGiaInForm
