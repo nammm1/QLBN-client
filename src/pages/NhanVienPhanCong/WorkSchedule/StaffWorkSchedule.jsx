@@ -524,9 +524,11 @@ const StaffWorkSchedule = () => {
                     overflow: 'hidden',
                     height: '100%'
                   }}
-                  bodyStyle={{ 
-                    padding: '12px',
-                    background: 'linear-gradient(135deg, #fafafa 0%, #ffffff 100%)'
+                  styles={{
+                    body: {
+                      padding: '12px',
+                      background: 'linear-gradient(135deg, #fafafa 0%, #ffffff 100%)'
+                    }
                   }}
                   headStyle={{
                     borderBottom: `1px solid ${token.colorBorderSecondary}`,
@@ -694,7 +696,7 @@ const StaffWorkSchedule = () => {
           background: 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)',
           border: 'none'
         }}
-        bodyStyle={{ padding: '24px 32px' }}
+        styles={{ body: { padding: '24px 32px' } }}
       >
         <Row align="middle" gutter={[16, 16]}>
           <Col flex="auto">
@@ -779,7 +781,7 @@ const StaffWorkSchedule = () => {
               border: 'none',
               boxShadow: '0 4px 12px rgba(22, 160, 133, 0.3)'
             }}
-            bodyStyle={{ padding: '20px' }}
+            styles={{ body: { padding: '20px' } }}
           >
             <Statistic
               title={<Text style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>Tổng ca làm tuần này</Text>}
@@ -798,7 +800,7 @@ const StaffWorkSchedule = () => {
               border: 'none',
               boxShadow: '0 4px 12px rgba(52, 152, 219, 0.3)'
             }}
-            bodyStyle={{ padding: '20px' }}
+            styles={{ body: { padding: '20px' } }}
           >
             <Statistic
               title={<Text style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>Ca sáng</Text>}
@@ -817,7 +819,7 @@ const StaffWorkSchedule = () => {
               border: 'none',
               boxShadow: '0 4px 12px rgba(243, 156, 18, 0.3)'
             }}
-            bodyStyle={{ padding: '20px' }}
+            styles={{ body: { padding: '20px' } }}
           >
             <Statistic
               title={<Text style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>Ca chiều</Text>}
@@ -836,7 +838,7 @@ const StaffWorkSchedule = () => {
               border: 'none',
               boxShadow: '0 4px 12px rgba(155, 89, 182, 0.3)'
             }}
-            bodyStyle={{ padding: '20px' }}
+            styles={{ body: { padding: '20px' } }}
           >
             <Statistic
               title={<Text style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>Ca tối</Text>}
@@ -856,7 +858,7 @@ const StaffWorkSchedule = () => {
           borderRadius: '12px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
         }}
-        bodyStyle={{ padding: '20px' }}
+        styles={{ body: { padding: '20px' } }}
       >
         <Row align="middle" justify="space-between" gutter={[16, 16]}>
           <Col>

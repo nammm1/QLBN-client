@@ -52,6 +52,21 @@
   position: sticky;
   top: 0;
   z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.chat-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chat-header-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .chat-messages {
@@ -215,4 +230,132 @@
     opacity: 1;
     transform: scale(1);
   }
+}
+
+.typing-indicator-bubble {
+  margin: 4px 0 0 16px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: #f0f5ff;
+  color: #1f2d5c;
+  font-size: 13px;
+  width: fit-content;
+  box-shadow: inset 0 0 0 1px rgba(46, 91, 255, 0.1);
+}
+
+.video-call-modal .ant-modal-content {
+  background: linear-gradient(135deg, #0f172a, #1f2937);
+  color: #fff;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.video-call-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.video-call-modal__status {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.video-call-modal__duration {
+  display: block;
+  margin-top: 4px;
+}
+
+.video-call-modal__body {
+  position: relative;
+  background: #0b1120;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.video-call-modal__remote {
+  height: 420px;
+  position: relative;
+}
+
+.video-call-modal__remote video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 16px;
+  background: #000;
+}
+
+.video-call-modal__local {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  width: 220px;
+  height: 140px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.video-call-modal__local video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-call-modal__local-label {
+  position: absolute;
+  bottom: 6px;
+  left: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.video-call-modal__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #cbd5f5;
+  background: rgba(0, 0, 0, 0.55);
+  text-align: center;
+}
+
+.video-call-modal__placeholder svg {
+  font-size: 32px;
+}
+
+.video-call-modal__placeholder.compact {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.video-call-modal__controls {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.incoming-call-modal .ant-modal-content {
+  border-radius: 12px;
+}
+
+.incoming-call-content {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.incoming-call-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
 }

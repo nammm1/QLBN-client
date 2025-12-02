@@ -59,7 +59,7 @@ const StaffDashboard = () => {
           background: 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)',
           border: 'none'
         }}
-        bodyStyle={{ padding: '32px' }}
+        styles={{ body: { padding: '32px' } }}
       >
         <Row align="middle" gutter={24}>
           <Col>
@@ -98,7 +98,7 @@ const StaffDashboard = () => {
               border: 'none',
               boxShadow: '0 4px 12px rgba(22, 160, 133, 0.3)'
             }}
-            bodyStyle={{ padding: '24px' }}
+            styles={{ body: { padding: '24px' } }}
           >
             <Statistic
               title={<Text style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500, fontSize: '14px' }}>Tổng nhân viên</Text>}
@@ -116,7 +116,7 @@ const StaffDashboard = () => {
               border: 'none',
               boxShadow: '0 4px 12px rgba(52, 152, 219, 0.3)'
             }}
-            bodyStyle={{ padding: '24px' }}
+            styles={{ body: { padding: '24px' } }}
           >
             <Statistic
               title={<Text style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500, fontSize: '14px' }}>Lịch chờ phân công</Text>}
@@ -134,7 +134,7 @@ const StaffDashboard = () => {
               border: 'none',
               boxShadow: '0 4px 12px rgba(243, 156, 18, 0.3)'
             }}
-            bodyStyle={{ padding: '24px' }}
+            styles={{ body: { padding: '24px' } }}
           >
             <Statistic
               title={<Text style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500, fontSize: '14px' }}>Yêu cầu nghỉ phép</Text>}
@@ -152,7 +152,7 @@ const StaffDashboard = () => {
               border: 'none',
               boxShadow: '0 4px 12px rgba(155, 89, 182, 0.3)'
             }}
-            bodyStyle={{ padding: '24px' }}
+            styles={{ body: { padding: '24px' } }}
           >
             <Statistic
               title={<Text style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500, fontSize: '14px' }}>Hoàn thành tuần này</Text>}

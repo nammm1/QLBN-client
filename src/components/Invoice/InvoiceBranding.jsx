@@ -6,7 +6,7 @@ import hospitalLogo from "../../assets/hospital-logo.svg";
 const { Title, Text } = Typography;
 
 const defaultClinicInfo = {
-  name: "PHÒNG KHÁM HOPYTALCARE",
+  name: "PHÒNG KHÁM HOPITALCARE",
   slogan: "Chăm sóc sức khỏe toàn diện",
   address: "123 Đường ABC, Quận XYZ, TP.HCM",
   phone: "028 1234 5678",

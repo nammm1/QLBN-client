@@ -61,10 +61,12 @@ const DoctorFunction = () => {
                     boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                     transition: "all 0.3s"
                   }}
-                  bodyStyle={{
-                    textAlign: "center",
-                    padding: "40px 24px",
-                    background: "linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)"
+                  styles={{
+                    body: {
+                      textAlign: "center",
+                      padding: "40px 24px",
+                      background: "linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)",
+                    },
                   }}
                 >
                   <div style={{ marginBottom: 24 }}>

@@ -15,6 +15,17 @@ const apiCuocHenKhamBenh = {
       throw err;
     }
   },
+  initDepositPayment: async (id_cuoc_hen) => {
+    try {
+      const res = await axiosInstance.post(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenKhamBenh}/${id_cuoc_hen}/deposit-payment`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error initializing deposit payment:", err);
+      throw err;
+    }
+  },
    // Lấy tất cả cuộc hẹn của bệnh nhân
   getById: async (id_cuoc_hen) => {
     try {

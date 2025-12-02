@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Layout, List, Input, Button, Avatar, Empty, Badge, message, Upload, Typography, Space, Card, Modal, Select, Tag, Skeleton } from "antd";
 
@@ -9,15 +9,29 @@ import {
   SearchOutlined,
   PlusOutlined,
   DeleteOutlined,
+  VideoCameraOutlined,
+  PhoneOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 import apiChat from "../../api/Chat";
 import apiNguoiDung from "../../api/NguoiDung";
 import socketService from "../../services/socket/socketService";
+import VideoCallModal from "../../components/Chat/VideoCallModal.jsx";
 import "./Chat.css";
+
+const RTC_CONFIGURATION = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
+  ],
+};
 
 const { Content, Sider } = Layout;
 const { TextArea } = Input;
 const { Text } = Typography;
+
+const INCOMING_CALL_TOAST_KEY = "incoming-call";
 
 const Chat = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -37,108 +51,459 @@ const Chat = () => {
   const [autoOpeningConversation, setAutoOpeningConversation] = useState(false);
   const [showDeleteIcon, setShowDeleteIcon] = useState({}); // { messageId: true/false }
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [callModalVisible, setCallModalVisible] = useState(false);
+  const [callState, setCallState] = useState("idle");
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [currentCallInfo, setCurrentCallInfo] = useState(null);
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isCameraOff, setIsCameraOff] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+  const [typingIndicator, setTypingIndicator] = useState(null);
   const longPressTimerRef = useRef({}); // { messageId: timerId }
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const fileInputRef = useRef(null);
   const isRestoringFromCacheRef = useRef(false);
   const shouldAutoScrollRef = useRef(true); // Flag để quyết định có auto-scroll không
+  const peerConnectionRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const remoteStreamRef = useRef(null);
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const currentCallRef = useRef(null);
+  const incomingCallRef = useRef(null);
+  const callTimerRef = useRef(null);
+  const typingEmitTimeoutRef = useRef(null);
+  const typingIndicatorTimeoutRef = useRef(null);
+  const pendingRemoteCandidatesRef = useRef([]);
+  const pendingRemoteAnswerRef = useRef(null);
+  const applyingRemoteAnswerRef = useRef(false);
+  const remoteDescriptionAppliedRef = useRef(false);
+  const typingSignalActiveRef = useRef(false);
+  const lastConversationIdRef = useRef(null);
   const savedUserInfo = JSON.parse(localStorage.getItem("userInfo"));
   const userInfo = savedUserInfo?.user || savedUserInfo; // Hỗ trợ cả 2 format
+  const [messageApi, contextHolder] = message.useMessage();
+  const hideIncomingCallToast = useCallback(() => {
+    messageApi.destroy(INCOMING_CALL_TOAST_KEY);
+  }, [messageApi]);
 
-  // Lưu vị trí scroll trước khi unload
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (messagesContainerRef.current && selectedConversation) {
-        const scrollTop = messagesContainerRef.current.scrollTop;
-        sessionStorage.setItem(
-          `chat_scroll_${selectedConversation.id_cuoc_tro_chuyen}`,
-          scrollTop.toString()
-        );
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const cleanupCallState = useCallback(
+    ({ notifyServer = false, reason = "hangup" } = {}) => {
+      const currentCall = currentCallRef.current;
+      if (notifyServer && currentCall) {
+        socketService.endVideoCall({
+          conversationId: currentCall.conversationId,
+          callId: currentCall.callId,
+          reason,
+        });
       }
-    };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [selectedConversation]);
+      if (callTimerRef.current) {
+        clearInterval(callTimerRef.current);
+        callTimerRef.current = null;
+      }
 
-  // Lưu vị trí scroll khi scroll
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container || !selectedConversation) return;
+      if (peerConnectionRef.current) {
+        try {
+          peerConnectionRef.current.ontrack = null;
+          peerConnectionRef.current.onicecandidate = null;
+          peerConnectionRef.current.close();
+        } catch (error) {
+          console.warn("peer connection cleanup error", error);
+        }
+        peerConnectionRef.current = null;
+      }
 
-    const handleScroll = () => {
-      const scrollTop = container.scrollTop;
-      const scrollHeight = container.scrollHeight;
-      const clientHeight = container.clientHeight;
-      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-      
-      // Kiểm tra nếu user đang ở gần cuối trang (trong vòng 150px)
-      const isNearBottom = distanceFromBottom < 150;
-      shouldAutoScrollRef.current = isNearBottom;
-      
-      // Lưu vị trí scroll
-      sessionStorage.setItem(
-        `chat_scroll_${selectedConversation.id_cuoc_tro_chuyen}`,
-        scrollTop.toString()
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
+        localStreamRef.current = null;
+      }
+      if (remoteStreamRef.current) {
+        remoteStreamRef.current.getTracks?.().forEach((track) => track.stop());
+        remoteStreamRef.current = null;
+      }
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = null;
+      }
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = null;
+      }
+      pendingRemoteCandidatesRef.current = [];
+      pendingRemoteAnswerRef.current = null;
+      remoteDescriptionAppliedRef.current = false;
+      applyingRemoteAnswerRef.current = false;
+      currentCallRef.current = null;
+      setLocalStream(null);
+      setRemoteStream(null);
+      hideIncomingCallToast();
+      setCallModalVisible(false);
+      setCallState("idle");
+      setCurrentCallInfo(null);
+      setIncomingCall(null);
+      setIsMicMuted(false);
+      setIsCameraOff(false);
+      setCallDuration(0);
+    },
+    [hideIncomingCallToast]
+  );
+
+  const ensureLocalStream = useCallback(async () => {
+    if (localStreamRef.current) {
+      return localStreamRef.current;
+    }
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      throw new Error("Thiết bị không hỗ trợ cuộc gọi video");
+    }
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+    localStreamRef.current = stream;
+    setLocalStream(stream);
+    setIsMicMuted(false);
+    setIsCameraOff(false);
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = stream;
+    }
+    return stream;
+  }, []);
+
+  const attemptApplyRemoteAnswer = useCallback(async () => {
+    if (applyingRemoteAnswerRef.current) {
+      return;
+    }
+    const currentCall = currentCallRef.current;
+    const pc = peerConnectionRef.current;
+    const pendingAnswer = pendingRemoteAnswerRef.current;
+    if (
+      !currentCall ||
+      !pc ||
+      !pendingAnswer ||
+      remoteDescriptionAppliedRef.current
+    ) {
+      return;
+    }
+    if (pc.currentRemoteDescription) {
+      remoteDescriptionAppliedRef.current = true;
+      pendingRemoteAnswerRef.current = null;
+      return;
+    }
+    if (pc.signalingState !== "have-local-offer") {
+      return;
+    }
+    applyingRemoteAnswerRef.current = true;
+    try {
+      await pc.setRemoteDescription(
+        new RTCSessionDescription(pendingAnswer)
       );
-    };
-
-    container.addEventListener("scroll", handleScroll);
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, [selectedConversation, messages]);
-
-  // Khôi phục trạng thái từ localStorage khi component mount
-  useEffect(() => {
-    const savedConversationId = localStorage.getItem("chat_selected_conversation_id");
-    const savedConversations = sessionStorage.getItem("chat_conversations");
-    const savedMessages = sessionStorage.getItem(`chat_messages_${savedConversationId}`);
-    
-    // Khôi phục conversations nếu có
-    if (savedConversations) {
-      try {
-        const parsed = JSON.parse(savedConversations);
-        setConversations(parsed);
-        
-        // Khôi phục conversation đã chọn
-        if (savedConversationId && parsed.length > 0) {
-          const savedConv = parsed.find(c => c.id_cuoc_tro_chuyen === savedConversationId);
-          if (savedConv) {
-            setSelectedConversation(savedConv);
-            isRestoringFromCacheRef.current = true;
-            
-            // Khôi phục messages nếu có
-            if (savedMessages) {
-              try {
-                setMessages(JSON.parse(savedMessages));
-                // Đợi render xong rồi khôi phục scroll position
-                setTimeout(() => {
-                  const savedScroll = sessionStorage.getItem(`chat_scroll_${savedConversationId}`);
-                  if (savedScroll && messagesContainerRef.current) {
-                    messagesContainerRef.current.scrollTop = parseInt(savedScroll, 10);
-                  }
-                  isRestoringFromCacheRef.current = false;
-                }, 100);
-              } catch (e) {
-                console.error("Error parsing saved messages:", e);
-                isRestoringFromCacheRef.current = false;
-              }
-            } else {
-              isRestoringFromCacheRef.current = false;
-            }
+      remoteDescriptionAppliedRef.current = true;
+      pendingRemoteAnswerRef.current = null;
+      if (pendingRemoteCandidatesRef.current.length > 0) {
+        for (const candidate of pendingRemoteCandidatesRef.current) {
+          try {
+            await pc.addIceCandidate(candidate);
+          } catch (candidateError) {
+            console.error("addIceCandidate (pending) error:", candidateError);
           }
         }
-        setIsInitialLoading(false);
-      } catch (e) {
-        console.error("Error parsing saved conversations:", e);
-        setIsInitialLoading(false);
+        pendingRemoteCandidatesRef.current = [];
       }
-    } else {
-      setIsInitialLoading(false);
+      setCallState("connecting");
+    } catch (error) {
+      console.error("setRemoteDescription error:", error);
+    } finally {
+      applyingRemoteAnswerRef.current = false;
+      if (
+        pendingRemoteAnswerRef.current &&
+        !remoteDescriptionAppliedRef.current
+      ) {
+        attemptApplyRemoteAnswer();
+      }
     }
   }, []);
+
+  const createPeerConnection = useCallback(
+    (conversationId, callId) => {
+      if (peerConnectionRef.current) {
+        try {
+          peerConnectionRef.current.close();
+        } catch (error) {
+          console.warn("Previous peer connection close error", error);
+        }
+        peerConnectionRef.current = null;
+      }
+
+      pendingRemoteCandidatesRef.current = [];
+      pendingRemoteAnswerRef.current = null;
+      remoteDescriptionAppliedRef.current = false;
+
+      const pc = new RTCPeerConnection(RTC_CONFIGURATION);
+      peerConnectionRef.current = pc;
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          socketService.sendVideoIceCandidate({
+            conversationId,
+            callId,
+            candidate: event.candidate,
+          });
+        }
+      };
+
+      pc.ontrack = (event) => {
+        const [stream] = event.streams;
+        if (stream) {
+          remoteStreamRef.current = stream;
+          setRemoteStream(stream);
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = stream;
+          }
+          setCallState("in_call");
+        }
+      };
+
+      pc.onsignalingstatechange = () => {
+        if (pc.signalingState === "have-local-offer") {
+          attemptApplyRemoteAnswer();
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (
+          ["disconnected", "failed", "closed"].includes(pc.connectionState)
+        ) {
+          cleanupCallState({ notifyServer: false, reason: pc.connectionState });
+        }
+      };
+
+      return pc;
+    },
+    [attemptApplyRemoteAnswer, cleanupCallState]
+  );
+
+  const handleStartVideoCall = useCallback(async () => {
+    if (!selectedConversation) {
+      messageApi.warning("Vui lòng chọn cuộc trò chuyện trước khi gọi video");
+      return;
+    }
+    if (callState !== "idle") {
+      messageApi.warning("Bạn đang có cuộc gọi khác đang diễn ra");
+      return;
+    }
+    try {
+      setCallState("starting");
+      setCallModalVisible(true);
+      const conversationId = selectedConversation.id_cuoc_tro_chuyen;
+      const otherUser = getOtherUserInfo(selectedConversation);
+      const callId = `CALL_${Date.now()}`;
+      setCurrentCallInfo({
+        callId,
+        conversationId,
+        role: "caller",
+        otherUser,
+      });
+
+      const stream = await ensureLocalStream();
+      const pc = createPeerConnection(conversationId, callId);
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await attemptApplyRemoteAnswer();
+
+      socketService.startVideoCall({
+        conversationId,
+        callId,
+        offer,
+        metadata: {
+          callerName: userInfo?.ho_ten,
+          callerId: userInfo?.id_nguoi_dung,
+          calleeId: otherUser?.id,
+          calleeName: otherUser?.name,
+        },
+      });
+      setCallState("calling");
+    } catch (error) {
+      console.error("handleStartVideoCall error:", error);
+      messageApi.error(
+        error?.message ||
+          "Không thể khởi tạo cuộc gọi video. Vui lòng kiểm tra thiết bị và thử lại."
+      );
+      cleanupCallState({ notifyServer: false, reason: "init_failed" });
+    }
+  }, [
+    callState,
+    createPeerConnection,
+    ensureLocalStream,
+    selectedConversation,
+    userInfo,
+    cleanupCallState,
+  ]);
+
+  const handleAcceptIncomingCall = useCallback(async () => {
+    if (!incomingCall) {
+      return;
+    }
+    try {
+      setCallState("starting");
+      const { conversationId, callId, offer, callerInfo } = incomingCall;
+      const stream = await ensureLocalStream();
+      const pc = createPeerConnection(conversationId, callId);
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socketService.answerVideoCall({ conversationId, callId, answer });
+      setCurrentCallInfo({
+        callId,
+        conversationId,
+        role: "callee",
+        otherUser: callerInfo,
+      });
+      setIncomingCall(null);
+      setCallModalVisible(true);
+      setCallState("connecting");
+    } catch (error) {
+      console.error("handleAcceptIncomingCall error:", error);
+      messageApi.error("Không thể tham gia cuộc gọi. Vui lòng thử lại.");
+      socketService.rejectVideoCall({
+        conversationId: incomingCall.conversationId,
+        callId: incomingCall.callId,
+        reason: "failed_to_connect",
+      });
+      setIncomingCall(null);
+      cleanupCallState({ notifyServer: false, reason: "failed_to_connect" });
+    }
+  }, [incomingCall, ensureLocalStream, createPeerConnection, cleanupCallState]);
+
+  const handleDeclineIncomingCall = useCallback(
+    (reason = "declined") => {
+      if (incomingCall) {
+        socketService.rejectVideoCall({
+          conversationId: incomingCall.conversationId,
+          callId: incomingCall.callId,
+          reason,
+        });
+                  }
+      setIncomingCall(null);
+      if (!currentCallRef.current) {
+        setCallState("idle");
+      }
+    },
+    [incomingCall]
+  );
+
+  const handleEndCall = useCallback(
+    (reason = "hangup") => {
+      const currentCall = currentCallRef.current;
+      if (!currentCall) {
+        cleanupCallState({ notifyServer: false, reason });
+        return;
+      }
+      const shouldCancel =
+        callState !== "in_call" && callState !== "connecting";
+      if (shouldCancel) {
+        socketService.cancelVideoCall({
+          conversationId: currentCall.conversationId,
+          callId: currentCall.callId,
+          reason,
+        });
+        cleanupCallState({ notifyServer: false, reason });
+            } else {
+        cleanupCallState({ notifyServer: true, reason });
+      }
+    },
+    [callState, cleanupCallState]
+  );
+
+  const handleToggleMic = useCallback(() => {
+    if (!localStreamRef.current) {
+      return;
+            }
+    const nextMuted = !isMicMuted;
+    localStreamRef.current
+      .getAudioTracks()
+      .forEach((track) => (track.enabled = !nextMuted));
+    setIsMicMuted(nextMuted);
+  }, [isMicMuted]);
+
+  const handleToggleCamera = useCallback(() => {
+    if (!localStreamRef.current) {
+      return;
+    }
+    const nextDisabled = !isCameraOff;
+    localStreamRef.current
+      .getVideoTracks()
+      .forEach((track) => (track.enabled = !nextDisabled));
+    setIsCameraOff(nextDisabled);
+  }, [isCameraOff]);
+
+  const stopTypingSignal = useCallback(() => {
+    if (typingEmitTimeoutRef.current) {
+      clearTimeout(typingEmitTimeoutRef.current);
+      typingEmitTimeoutRef.current = null;
+    }
+    if (typingSignalActiveRef.current && lastConversationIdRef.current) {
+      socketService.sendTyping(lastConversationIdRef.current, false);
+    }
+    typingSignalActiveRef.current = false;
+  }, []);
+
+  const notifyTyping = useCallback(() => {
+    const conversationId = selectedConversation?.id_cuoc_tro_chuyen;
+    if (!conversationId) {
+      return;
+    }
+    if (!typingSignalActiveRef.current) {
+      socketService.sendTyping(conversationId, true);
+      typingSignalActiveRef.current = true;
+    }
+    if (typingEmitTimeoutRef.current) {
+      clearTimeout(typingEmitTimeoutRef.current);
+    }
+    typingEmitTimeoutRef.current = setTimeout(() => {
+      socketService.sendTyping(conversationId, false);
+      typingSignalActiveRef.current = false;
+      typingEmitTimeoutRef.current = null;
+    }, 2000);
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    const videoEl = localVideoRef.current;
+    if (videoEl) {
+      videoEl.muted = true;
+      if (localStream) {
+        videoEl.srcObject = localStream;
+        const playPromise = videoEl.play();
+        if (playPromise?.catch) {
+          playPromise.catch(() => {});
+        }
+      } else {
+        videoEl.srcObject = null;
+      }
+    }
+  }, [localStream]);
+
+  useEffect(() => {
+    const videoEl = remoteVideoRef.current;
+    if (videoEl) {
+      if (remoteStream) {
+        videoEl.srcObject = remoteStream;
+        const playPromise = videoEl.play();
+        if (playPromise?.catch) {
+          playPromise.catch(() => {});
+        }
+      } else {
+        videoEl.srcObject = null;
+      }
+    }
+  }, [remoteStream]);
 
   // Lưu trạng thái vào localStorage/sessionStorage
   useEffect(() => {
@@ -223,6 +588,146 @@ const Chat = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const handleIncomingOffer = (payload) => {
+      if (!payload?.conversationId || !payload?.callId) {
+        return;
+      }
+      const resolvedTargetUserId = payload?.resolvedTargetUserId;
+      if (
+        resolvedTargetUserId &&
+        userInfo?.id_nguoi_dung &&
+        resolvedTargetUserId !== userInfo.id_nguoi_dung
+      ) {
+        return;
+      }
+      if (currentCallRef.current || incomingCallRef.current) {
+        socketService.rejectVideoCall({
+          conversationId: payload.conversationId,
+          callId: payload.callId,
+          reason: "user_busy",
+        });
+        return;
+      }
+      setIncomingCall(payload);
+      setCallState("incoming");
+      messageApi.open({
+        key: INCOMING_CALL_TOAST_KEY,
+        type: "info",
+        content: `${payload?.callerInfo?.name || "Người dùng"} đang gọi video...`,
+        duration: 0,
+      });
+    };
+
+    const handleOfferAck = () => {
+      setCallState((prev) => (prev === "starting" ? "calling" : prev));
+    };
+
+    const handleCallAnswer = async (payload) => {
+      const currentCall = currentCallRef.current;
+      if (!currentCall || currentCall.callId !== payload?.callId) {
+        return;
+      }
+      if (!peerConnectionRef.current || !payload?.answer) {
+        return;
+      }
+      pendingRemoteAnswerRef.current = payload.answer;
+      attemptApplyRemoteAnswer();
+    };
+
+    const handleIceCandidate = async (payload) => {
+      const currentCall = currentCallRef.current;
+      if (
+        !currentCall ||
+        currentCall.callId !== payload?.callId ||
+        !payload?.candidate
+      ) {
+        return;
+      }
+      if (!peerConnectionRef.current) {
+        return;
+      }
+      try {
+        const rtcCandidate = new RTCIceCandidate(payload.candidate);
+        if (!peerConnectionRef.current.remoteDescription) {
+          pendingRemoteCandidatesRef.current.push(rtcCandidate);
+          return;
+        }
+        await peerConnectionRef.current.addIceCandidate(rtcCandidate);
+      } catch (error) {
+        console.error("addIceCandidate error:", error);
+      }
+    };
+
+    const handleCallRejected = (payload) => {
+      const currentCall = currentCallRef.current;
+      if (!currentCall || currentCall.callId !== payload?.callId) {
+        return;
+      }
+      hideIncomingCallToast();
+      messageApi.warning("Cuộc gọi đã bị từ chối");
+      cleanupCallState({ notifyServer: false, reason: "rejected" });
+    };
+
+    const handleCallCancelled = (payload) => {
+      const pendingCall = incomingCallRef.current;
+      if (pendingCall && payload?.callId === pendingCall.callId) {
+        hideIncomingCallToast();
+        messageApi.info("Người gọi đã huỷ cuộc gọi");
+        setIncomingCall(null);
+        setCallState("idle");
+      }
+    };
+
+    const handleCallEnded = (payload) => {
+      const currentCall = currentCallRef.current;
+      if (!currentCall || currentCall.callId !== payload?.callId) {
+        return;
+      }
+      hideIncomingCallToast();
+      if (payload?.reason === "peer_disconnected") {
+        messageApi.warning("Cuộc gọi kết thúc do đối tác rời đi");
+      } else {
+        messageApi.info("Cuộc gọi đã kết thúc");
+      }
+      cleanupCallState({ notifyServer: false, reason: payload?.reason });
+    };
+
+    const handleCallBusy = () => {
+      hideIncomingCallToast();
+      messageApi.warning("Đối tác đang bận cuộc gọi khác");
+      cleanupCallState({ notifyServer: false, reason: "busy" });
+    };
+
+    const handleCallError = () => {
+      hideIncomingCallToast();
+      messageApi.error("Không thể thiết lập cuộc gọi video");
+      cleanupCallState({ notifyServer: false, reason: "error" });
+    };
+
+    socketService.on("video_call_offer", handleIncomingOffer);
+    socketService.on("video_call_offer_ack", handleOfferAck);
+    socketService.on("video_call_answer", handleCallAnswer);
+    socketService.on("video_call_ice_candidate", handleIceCandidate);
+    socketService.on("video_call_rejected", handleCallRejected);
+    socketService.on("video_call_cancelled", handleCallCancelled);
+    socketService.on("video_call_ended", handleCallEnded);
+    socketService.on("video_call_busy", handleCallBusy);
+    socketService.on("video_call_error", handleCallError);
+
+    return () => {
+      socketService.off("video_call_offer", handleIncomingOffer);
+      socketService.off("video_call_offer_ack", handleOfferAck);
+      socketService.off("video_call_answer", handleCallAnswer);
+      socketService.off("video_call_ice_candidate", handleIceCandidate);
+      socketService.off("video_call_rejected", handleCallRejected);
+      socketService.off("video_call_cancelled", handleCallCancelled);
+      socketService.off("video_call_ended", handleCallEnded);
+      socketService.off("video_call_busy", handleCallBusy);
+      socketService.off("video_call_error", handleCallError);
+    };
+  }, [attemptApplyRemoteAnswer, cleanupCallState, incomingCall]);
+
   // Join/leave conversation room when selected conversation changes
   useEffect(() => {
       if (selectedConversation) {
@@ -288,7 +793,7 @@ const Chat = () => {
             setSelectedConversation(foundConv);
             loadMessages(foundConv.id_cuoc_tro_chuyen);
           } else {
-            message.warning("Không tìm thấy cuộc trò chuyện");
+            messageApi.warning("Không tìm thấy cuộc trò chuyện");
           }
           setSearchParams({});
         }, 1000);
@@ -296,7 +801,7 @@ const Chat = () => {
       }
     } catch (error) {
       console.error("Error opening conversation:", error);
-      message.error("Không thể mở cuộc trò chuyện");
+      messageApi.error("Không thể mở cuộc trò chuyện");
     } finally {
       setAutoOpeningConversation(false);
     }
@@ -356,7 +861,7 @@ const Chat = () => {
             loadMessages(newConversation.id_cuoc_tro_chuyen);
           }
           
-          message.success("Cuộc trò chuyện đã được mở");
+          messageApi.success("Cuộc trò chuyện đã được mở");
         }
         // Xóa param từ URL
         setSearchParams({});
@@ -511,12 +1016,12 @@ const Chat = () => {
 
   const handleSendMessage = async (file = null) => {
     if (!selectedConversation) {
-      message.warning("Vui lòng chọn cuộc trò chuyện");
+      messageApi.warning("Vui lòng chọn cuộc trò chuyện");
       return;
     }
 
     if (!messageText.trim() && !file) {
-      message.warning("Vui lòng nhập nội dung tin nhắn hoặc chọn file");
+      messageApi.warning("Vui lòng nhập nội dung tin nhắn hoặc chọn file");
       return;
     }
 
@@ -554,6 +1059,7 @@ const Chat = () => {
         loadConversations(true);
         // Scroll to bottom
         setTimeout(() => scrollToBottom(), 100);
+        stopTypingSignal();
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -567,16 +1073,196 @@ const Chat = () => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        message.error("File không được vượt quá 10MB");
+        messageApi.error("File không được vượt quá 10MB");
         return;
       }
       handleSendMessage(file);
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  useEffect(() => {
+    currentCallRef.current = currentCallInfo;
+  }, [currentCallInfo]);
+
+  useEffect(() => {
+    incomingCallRef.current = incomingCall;
+  }, [incomingCall]);
+
+  useEffect(() => {
+    const handleUserTyping = (payload) => {
+      if (
+        !selectedConversation ||
+        payload?.conversationId !== selectedConversation.id_cuoc_tro_chuyen ||
+        payload?.userId === userInfo?.id_nguoi_dung
+      ) {
+        return;
+      }
+      if (payload?.isTyping) {
+        const name =
+          payload?.userInfo?.ho_ten ||
+          payload?.userInfo?.ten_dang_nhap ||
+          "Người dùng";
+        setTypingIndicator(`${name} đang nhập...`);
+        if (typingIndicatorTimeoutRef.current) {
+          clearTimeout(typingIndicatorTimeoutRef.current);
+        }
+        typingIndicatorTimeoutRef.current = setTimeout(() => {
+          setTypingIndicator(null);
+          typingIndicatorTimeoutRef.current = null;
+        }, 3000);
+      } else {
+        if (typingIndicatorTimeoutRef.current) {
+          clearTimeout(typingIndicatorTimeoutRef.current);
+          typingIndicatorTimeoutRef.current = null;
+        }
+        setTypingIndicator(null);
+      }
+    };
+
+    socketService.on("user_typing", handleUserTyping);
+    return () => {
+      socketService.off("user_typing", handleUserTyping);
+      if (typingIndicatorTimeoutRef.current) {
+        clearTimeout(typingIndicatorTimeoutRef.current);
+        typingIndicatorTimeoutRef.current = null;
+      }
+      setTypingIndicator(null);
+    };
+  }, [selectedConversation, userInfo?.id_nguoi_dung]);
+
+  // Lưu vị trí scroll trước khi unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (messagesContainerRef.current && selectedConversation) {
+        const scrollTop = messagesContainerRef.current.scrollTop;
+        sessionStorage.setItem(
+          `chat_scroll_${selectedConversation.id_cuoc_tro_chuyen}`,
+          scrollTop.toString()
+        );
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    if (callState === "in_call") {
+      if (!callTimerRef.current) {
+        callTimerRef.current = setInterval(() => {
+          setCallDuration((prev) => prev + 1);
+        }, 1000);
+      }
+    } else if (callTimerRef.current) {
+      clearInterval(callTimerRef.current);
+      callTimerRef.current = null;
+      if (callState === "idle") {
+        setCallDuration(0);
+      }
+    }
+  }, [callState]);
+
+  useEffect(() => {
+    const currentId = selectedConversation?.id_cuoc_tro_chuyen || null;
+    if (
+      lastConversationIdRef.current &&
+      lastConversationIdRef.current !== currentId &&
+      typingSignalActiveRef.current
+    ) {
+      socketService.sendTyping(lastConversationIdRef.current, false);
+      typingSignalActiveRef.current = false;
+    }
+    lastConversationIdRef.current = currentId;
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    return () => {
+      if (callTimerRef.current) {
+        clearInterval(callTimerRef.current);
+        callTimerRef.current = null;
+      }
+      cleanupCallState({ notifyServer: true, reason: "leave_page" });
+      stopTypingSignal();
+    };
+  }, [cleanupCallState, stopTypingSignal]);
+
+  // Lưu vị trí scroll khi scroll
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container || !selectedConversation) return;
+
+    const handleScroll = () => {
+      const scrollTop = container.scrollTop;
+      const scrollHeight = container.scrollHeight;
+      const clientHeight = container.clientHeight;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      
+      // Kiểm tra nếu user đang ở gần cuối trang (trong vòng 150px)
+      const isNearBottom = distanceFromBottom < 150;
+      shouldAutoScrollRef.current = isNearBottom;
+      
+      // Lưu vị trí scroll
+      sessionStorage.setItem(
+        `chat_scroll_${selectedConversation.id_cuoc_tro_chuyen}`,
+        scrollTop.toString()
+      );
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [selectedConversation, messages]);
+
+  // Khôi phục trạng thái từ localStorage khi component mount
+  useEffect(() => {
+    const savedConversationId = localStorage.getItem("chat_selected_conversation_id");
+    const savedConversations = sessionStorage.getItem("chat_conversations");
+    const savedMessages = sessionStorage.getItem(`chat_messages_${savedConversationId}`);
+    
+    // Khôi phục conversations nếu có
+    if (savedConversations) {
+      try {
+        const parsed = JSON.parse(savedConversations);
+        setConversations(parsed);
+        
+        // Khôi phục conversation đã chọn
+        if (savedConversationId && parsed.length > 0) {
+          const savedConv = parsed.find(c => c.id_cuoc_tro_chuyen === savedConversationId);
+          if (savedConv) {
+            setSelectedConversation(savedConv);
+            isRestoringFromCacheRef.current = true;
+            
+            // Khôi phục messages nếu có
+            if (savedMessages) {
+              try {
+                setMessages(JSON.parse(savedMessages));
+                // Đợi render xong rồi khôi phục scroll position
+                setTimeout(() => {
+                  const savedScroll = sessionStorage.getItem(`chat_scroll_${savedConversationId}`);
+                  if (savedScroll && messagesContainerRef.current) {
+                    messagesContainerRef.current.scrollTop = parseInt(savedScroll, 10);
+                  }
+                  isRestoringFromCacheRef.current = false;
+                }, 100);
+              } catch (e) {
+                console.error("Error parsing saved messages:", e);
+                isRestoringFromCacheRef.current = false;
+              }
+            } else {
+              isRestoringFromCacheRef.current = false;
+            }
+          }
+        }
+        setIsInitialLoading(false);
+      } catch (e) {
+        console.error("Error parsing saved conversations:", e);
+        setIsInitialLoading(false);
+      }
+    } else {
+      setIsInitialLoading(false);
+    }
+  }, []);
 
   const getOtherUserInfo = (conversation) => {
     const currentUserId = userInfo?.id_nguoi_dung;
@@ -801,7 +1487,7 @@ const Chat = () => {
         
         // Đóng modal
         handleCloseModal();
-        message.success("Cuộc trò chuyện đã được tạo");
+        messageApi.success("Cuộc trò chuyện đã được tạo");
       }
     } catch (error) {
       console.error("Error creating conversation:", error);
@@ -883,7 +1569,7 @@ const Chat = () => {
         setMessages((prev) => prev.filter((msg) => msg.id_tin_nhan !== id_tin_nhan));
         // Ẩn icon xóa
         handleHideDeleteIcon(id_tin_nhan);
-        message.success("Đã xóa tin nhắn");
+        messageApi.success("Đã xóa tin nhắn");
         // Update conversations
         loadConversations(true);
       }
@@ -904,6 +1590,8 @@ const Chat = () => {
   });
 
   return (
+    <>
+      {contextHolder}
     <Layout className="chat-layout">
       <Sider width={350} className="chat-sidebar">
         <div className="chat-sidebar-header">
@@ -1020,6 +1708,7 @@ const Chat = () => {
         {selectedConversation ? (
           <>
             <div className="chat-header">
+              <div className="chat-header-info">
               {(() => {
                 const otherUser = getOtherUserInfo(selectedConversation);
                 return (
@@ -1042,6 +1731,20 @@ const Chat = () => {
                   </Space>
                 );
               })()}
+              </div>
+              <div className="chat-header-actions">
+                <Button
+                  icon={<VideoCameraOutlined />}
+                  onClick={handleStartVideoCall}
+                  disabled={
+                    !selectedConversation ||
+                    callState !== "idle" ||
+                    !!incomingCall
+                  }
+                >
+                  Gọi video
+                </Button>
+              </div>
             </div>
 
             <div className="chat-messages" ref={messagesContainerRef}>
@@ -1188,6 +1891,11 @@ const Chat = () => {
                   );
                 })
               )}
+              {typingIndicator && (
+                <div className="typing-indicator-bubble">
+                  {typingIndicator}
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
 
@@ -1206,11 +1914,16 @@ const Chat = () => {
               />
               <TextArea
                 value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
+                onChange={(e) => {
+                  setMessageText(e.target.value);
+                  notifyTyping();
+                }}
+                onBlur={() => stopTypingSignal()}
                 onPressEnter={(e) => {
                   if (!e.shiftKey) {
                     e.preventDefault();
                     handleSendMessage();
+                    stopTypingSignal();
                   }
                 }}
                 placeholder="Nhập tin nhắn..."
@@ -1234,6 +1947,64 @@ const Chat = () => {
           />
         )}
       </Content>
+
+      <VideoCallModal
+        visible={callModalVisible}
+        callState={callState}
+        otherUser={currentCallInfo?.otherUser}
+        onEndCall={() => handleEndCall("hangup")}
+        onToggleMic={handleToggleMic}
+        onToggleCamera={handleToggleCamera}
+        isMicMuted={isMicMuted}
+        isCameraOff={isCameraOff}
+        localVideoRef={localVideoRef}
+        remoteVideoRef={remoteVideoRef}
+        callDuration={callDuration}
+        remoteReady={!!remoteStream}
+        localReady={!!localStream}
+      />
+
+      <Modal
+        open={!!incomingCall}
+        footer={null}
+        closable={false}
+        onCancel={() => handleDeclineIncomingCall("dismissed")}
+        className="incoming-call-modal"
+        width={420}
+        destroyOnHidden
+      >
+        {incomingCall && (
+          <div className="incoming-call-content">
+            <Avatar
+              size={80}
+              src={incomingCall?.callerInfo?.avatar}
+              icon={<UserOutlined />}
+              style={{ marginBottom: 16 }}
+            />
+            <Typography.Title level={4}>
+              {incomingCall?.callerInfo?.name || "Người dùng"}
+            </Typography.Title>
+            <Text type="secondary">Đang gọi video cho bạn</Text>
+            <div className="incoming-call-actions">
+              <Button
+                size="large"
+                icon={<CloseCircleOutlined />}
+                onClick={() => handleDeclineIncomingCall("declined")}
+              >
+                Từ chối
+              </Button>
+              <Button
+                size="large"
+                type="primary"
+                icon={<PhoneOutlined />}
+                onClick={handleAcceptIncomingCall}
+              >
+                Trả lời
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Modal chọn người dùng để tạo cuộc trò chuyện */}
       <Modal
@@ -1337,6 +2108,7 @@ const Chat = () => {
         </div>
       </Modal>
     </Layout>
+    </>
   );
 };
 

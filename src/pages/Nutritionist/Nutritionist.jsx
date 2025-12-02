@@ -254,7 +254,7 @@ const Nutritionist = () => {
                   boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
                   marginBottom: 32
                 }}
-                bodyStyle={{ padding: 24 }}
+                styles={{ body: { padding: 24 } }}
               >
                 <div className="search-container">
                   <input
@@ -311,12 +311,14 @@ const Nutritionist = () => {
                             display: "flex",
                             flexDirection: "column"
                           }}
-                          bodyStyle={{ 
-                            padding: 24, 
-                            display: "flex",
-                            flexDirection: "column",
-                            flex: 1,
-                            height: "100%"
+                          styles={{
+                            body: {
+                              padding: 24,
+                              display: "flex",
+                              flexDirection: "column",
+                              flex: 1,
+                              height: "100%",
+                            },
                           }}
                         >
                           {/* Background glow effect */}
@@ -563,7 +565,7 @@ const Nutritionist = () => {
                           textAlign: "center",
                           height: "100%"
                         }}
-                        bodyStyle={{ padding: 20 }}
+                        styles={{ body: { padding: 20 } }}
                       >
                         <motion.div
                           whileHover={{ scale: 1.05 }}
@@ -589,7 +591,7 @@ const Nutritionist = () => {
                           textAlign: "center",
                           height: "100%"
                         }}
-                        bodyStyle={{ padding: 20 }}
+                        styles={{ body: { padding: 20 } }}
                       >
                         <motion.div
                           whileHover={{ scale: 1.05 }}
@@ -615,7 +617,7 @@ const Nutritionist = () => {
                           textAlign: "center",
                           height: "100%"
                         }}
-                        bodyStyle={{ padding: 20 }}
+                        styles={{ body: { padding: 20 } }}
                       >
                         <motion.div
                           whileHover={{ scale: 1.05 }}
@@ -645,7 +647,7 @@ const Nutritionist = () => {
                           boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
                           height: "100%"
                         }}
-                        bodyStyle={{ padding: 20 }}
+                        styles={{ body: { padding: 20 } }}
                       >
                         <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
                           <div style={{
@@ -681,7 +683,7 @@ const Nutritionist = () => {
                           boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
                           height: "100%"
                         }}
-                        bodyStyle={{ padding: 20 }}
+                        styles={{ body: { padding: 20 } }}
                       >
                         <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
                           <div style={{
@@ -717,7 +719,7 @@ const Nutritionist = () => {
                           boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
                           height: "100%"
                         }}
-                        bodyStyle={{ padding: 20 }}
+                        styles={{ body: { padding: 20 } }}
                       >
                         <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
                           <div style={{
@@ -744,8 +746,8 @@ const Nutritionist = () => {
                       </Card>
                     </Col>
                     {selectedNutritionist.email && (
-                      <Col xs={24} sm={12}>
-                        <Card
+                    <Col xs={24} sm={12}>
+                      <Card
                           className="info-card"
                           style={{
                             borderRadius: 16,
@@ -754,7 +756,7 @@ const Nutritionist = () => {
                             boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
                             height: "100%"
                           }}
-                          bodyStyle={{ padding: 20 }}
+                        styles={{ body: { padding: 20 } }}
                         >
                           <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
                             <div style={{
@@ -792,7 +794,7 @@ const Nutritionist = () => {
                       background: "linear-gradient(135deg, #f6ffed 0%, #f0f9ff 100%)",
                       boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
                     }}
-                    bodyStyle={{ padding: 24 }}
+                    styles={{ body: { padding: 24 } }}
                   >
                     <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
                       <div style={{

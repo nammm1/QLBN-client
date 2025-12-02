@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Result, Button, Spin, App } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import apiPayment from '../../api/Payment';
 
 const decodeExtraData = (rawValue) => {
   if (!rawValue) return null;
@@ -21,7 +22,7 @@ const MomoCallback = () => {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState(null);
-  const [redirectPath, setRedirectPath] = useState('/invoices');
+  const [redirectPath, setRedirectPath] = useState('/');
   const [countdown, setCountdown] = useState(3);
 
   const resultCode = searchParams.get('resultCode');
@@ -30,22 +31,47 @@ const MomoCallback = () => {
   const orderInfo = searchParams.get('orderInfo');
   const extraDataRaw = searchParams.get('extraData');
 
-  const decodedExtraData = useMemo(() => decodeExtraData(extraDataRaw), [extraDataRaw]);
+  const normalizedExtraData = useMemo(() => {
+    if (!extraDataRaw) return '';
+    return extraDataRaw.replace(/ /g, '+');
+  }, [extraDataRaw]);
+
+  const decodedExtraData = useMemo(() => decodeExtraData(normalizedExtraData), [normalizedExtraData]);
+
+  const rawCallbackPayload = useMemo(() => {
+    const payload = Object.fromEntries(searchParams.entries());
+    if (normalizedExtraData) {
+      payload.extraData = normalizedExtraData;
+    }
+    return payload;
+  }, [searchParams, normalizedExtraData]);
 
   useEffect(() => {
-    const fallbackRedirect =
-      decodedExtraData?.redirectPath && decodedExtraData.redirectPath.startsWith('/')
-        ? decodedExtraData.redirectPath
-        : decodedExtraData?.source === 'cashier'
-        ? '/receptionist/billing'
-        : '/invoices';
-    setRedirectPath(fallbackRedirect);
+    // Ưu tiên đường dẫn trả về cụ thể từ extraData (nếu có)
+    if (decodedExtraData?.redirectPath && decodedExtraData.redirectPath.startsWith('/')) {
+      setRedirectPath(decodedExtraData.redirectPath);
+      return;
+    }
+
+    // Nếu là thanh toán cọc (deposit) thì đưa về trang chủ
+    if (decodedExtraData?.deposit === true) {
+      setRedirectPath('/');
+      return;
+    }
+
+    // Mặc định cũ: thu ngân về trang thu ngân, bệnh nhân về trang hóa đơn
+    if (decodedExtraData?.source === 'cashier') {
+      setRedirectPath('/receptionist/billing');
+    } else {
+      setRedirectPath('/invoices');
+    }
   }, [decodedExtraData]);
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
         if (resultCode === '0' && orderId) {
+          await apiPayment.confirmMomoPayment(rawCallbackPayload);
           setPaymentStatus('success');
           message.success('Thanh toán thành công!');
         } else {
@@ -54,14 +80,15 @@ const MomoCallback = () => {
         }
       } catch (error) {
         console.error('Error handling callback:', error);
-        setPaymentStatus('error');
+        message.warning('Thanh toán thành công nhưng chưa thể xác nhận với hệ thống. Vui lòng kiểm tra trạng thái hóa đơn.');
+        setPaymentStatus('success');
       } finally {
         setLoading(false);
       }
     };
 
     handleCallback();
-  }, [resultCode, orderId]);
+  }, [resultCode, orderId, rawCallbackPayload, message]);
 
   useEffect(() => {
     if (paymentStatus !== 'success' || !redirectPath) {

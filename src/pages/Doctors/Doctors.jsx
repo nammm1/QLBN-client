@@ -423,7 +423,7 @@ const Doctors = () => {
                   boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
                   marginBottom: 32
                 }}
-                bodyStyle={{ padding: 24 }}
+                styles={{ body: { padding: 24 } }}
               >
                 <Row gutter={[16, 16]} align="middle">
                   <Col xs={24} md={12}>
@@ -499,12 +499,14 @@ const Doctors = () => {
                             display: "flex",
                             flexDirection: "column"
                           }}
-                          bodyStyle={{ 
-                            padding: 24, 
-                            display: "flex",
-                            flexDirection: "column",
-                            flex: 1,
-                            height: "100%"
+                          styles={{
+                            body: {
+                              padding: 24,
+                              display: "flex",
+                              flexDirection: "column",
+                              flex: 1,
+                              height: "100%",
+                            },
                           }}
                         >
                           {/* Background glow effect */}

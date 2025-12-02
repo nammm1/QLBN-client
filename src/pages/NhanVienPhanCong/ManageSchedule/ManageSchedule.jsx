@@ -336,7 +336,7 @@ const CalendarView = ({ schedules, loading, dateRange, onDateRangeChange, filter
                               transition: 'all 0.3s ease',
                               position: 'relative'
                             }}
-                            bodyStyle={{ padding: '10px' }}
+                            styles={{ body: { padding: '10px' } }}
                             onMouseEnter={(e) => {
                               e.currentTarget.style.transform = 'translateY(-2px)';
                               e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';

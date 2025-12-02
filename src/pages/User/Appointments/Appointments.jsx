@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Tabs, Table, Typography, Button, Tag, Space, Card, Spin, Empty, Popconfirm, message } from "antd";
+import { Tabs, Table, Typography, Button, Tag, Space, Card, Spin, Empty, Popconfirm, Modal, Descriptions } from "antd";
 import { CalendarOutlined, AppleOutlined, CloseCircleOutlined, VideoCameraOutlined, HomeOutlined } from "@ant-design/icons";
 import "./Appointments.css";
 import apiCuocHenKhamBenh from "../../../api/CuocHenKhamBenh";
@@ -7,6 +7,7 @@ import apiCuocHenTuVan from "../../../api/CuocHenTuVan";
 import apiNguoiDung from "../../../api/NguoiDung";
 import apiChuyenKhoa from "../../../api/ChuyenKhoa";
 import apiKhungGioKham from "../../../api/KhungGioKham";
+import apiHoaDon from "../../../api/HoaDon";
 import toast from "../../../utils/toast";
 
 const { Title, Text } = Typography;
@@ -71,6 +72,10 @@ const Appointments = () => {
   const [lichTuVan, setLichTuVan] = useState([]);
   const [loadingKham, setLoadingKham] = useState(true);
   const [loadingTuVan, setLoadingTuVan] = useState(true);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailData, setDetailData] = useState(null);
+  const [detailType, setDetailType] = useState(null); // 'kham' | 'tu_van'
 
   const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
   const patientId =
@@ -140,6 +145,16 @@ const Appointments = () => {
               "—";
           }
 
+          let phong_kham_label = "—";
+          if (it.phong_kham) {
+            const pk = it.phong_kham;
+            const parts = [];
+            if (pk.ten_phong) parts.push(pk.ten_phong);
+            if (pk.so_phong) parts.push(`P.${pk.so_phong}`);
+            if (pk.tang) parts.push(`Tầng ${pk.tang}`);
+            phong_kham_label = parts.join(" - ") || "—";
+          }
+
           return {
             id,
             ngay_kham: it.ngay_kham,
@@ -147,6 +162,7 @@ const Appointments = () => {
             gio_ket_thuc,
             ten_bac_si,
             ten_chuyen_khoa,
+            phong_kham: phong_kham_label,
             loai_hen: loaiHenLabel(it.loai_hen),
             trang_thai: statusLabel(it.trang_thai),
             _raw_trang_thai: it.trang_thai,
@@ -206,6 +222,16 @@ const Appointments = () => {
 
           const loai_dinh_duong = it.loai_dinh_duong || it.loai_tu_van || "—";
 
+          let phong_kham_label = "—";
+          if (it.phong_kham) {
+            const pk = it.phong_kham;
+            const parts = [];
+            if (pk.ten_phong) parts.push(pk.ten_phong);
+            if (pk.so_phong) parts.push(`P.${pk.so_phong}`);
+            if (pk.tang) parts.push(`Tầng ${pk.tang}`);
+            phong_kham_label = parts.join(" - ") || "—";
+          }
+
           return {
             id,
             ngay_kham: it.ngay_tu_van || it.ngay_kham,
@@ -213,6 +239,7 @@ const Appointments = () => {
             gio_ket_thuc,
             ten_chuyen_gia,
             loai_dinh_duong,
+            phong_kham: phong_kham_label,
             loai_hen: phuongThucLabel(it.loai_hen),
             trang_thai: statusLabel(it.trang_thai),
             _raw_trang_thai: it.trang_thai,
@@ -273,6 +300,47 @@ const Appointments = () => {
     }
   };
 
+  // ======================= XEM CHI TIẾT LỊCH ==========================
+  const openKhamDetail = async (record) => {
+    if (!record?.id) return;
+    setDetailType("kham");
+    setDetailVisible(true);
+    setDetailLoading(true);
+    try {
+      const [cuocHen, hoaDon] = await Promise.all([
+        apiCuocHenKhamBenh.getById(record.id).catch(() => null),
+        apiHoaDon.getByCuocHenKham(record.id).catch(() => null),
+      ]);
+      setDetailData({
+        base: record,
+        cuocHen,
+        hoaDon,
+      });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const openTuVanDetail = async (record) => {
+    if (!record?.id) return;
+    setDetailType("tu_van");
+    setDetailVisible(true);
+    setDetailLoading(true);
+    try {
+      const [cuocHen, hoaDon] = await Promise.all([
+        apiCuocHenTuVan.getById(record.id).catch(() => null),
+        apiHoaDon.getByCuocHenTuVan(record.id).catch(() => null),
+      ]);
+      setDetailData({
+        base: record,
+        cuocHen,
+        hoaDon,
+      });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   // ======================= USE EFFECT ==========================
   useEffect(() => {
     (async () => {
@@ -292,6 +360,11 @@ const Appointments = () => {
       title: "Thời gian",
       key: "thoi_gian",
       render: (_, record) => `${record.gio_bat_dau} - ${record.gio_ket_thuc}`,
+    },
+    {
+      title: "Phòng / Tầng",
+      dataIndex: "phong_kham",
+      key: "phong_kham",
     },
     {
       title: "Bác sĩ",
@@ -333,24 +406,26 @@ const Appointments = () => {
     {
       title: "Thao tác",
       key: "action",
-      render: (_, record) =>
-        record._raw_trang_thai !== "da_huy" &&
-        record._raw_trang_thai !== "da_hoan_thanh" ? (
-          <Popconfirm
-            title="Bạn có chắc muốn hủy lịch khám này?"
-            onConfirm={() => handleCancelKham(record.id)}
-            okText="Có"
-            cancelText="Không"
-          >
-            <Button
-              danger
-              icon={<CloseCircleOutlined />}
-              size="small"
-            >
-              Hủy
-            </Button>
-          </Popconfirm>
-        ) : null,
+      render: (_, record) => (
+        <Space>
+          <Button size="small" onClick={() => openKhamDetail(record)}>
+            Xem chi tiết
+          </Button>
+          {record._raw_trang_thai !== "da_huy" &&
+            record._raw_trang_thai !== "da_hoan_thanh" && (
+              <Popconfirm
+                title="Bạn có chắc muốn hủy lịch khám này?"
+                onConfirm={() => handleCancelKham(record.id)}
+                okText="Có"
+                cancelText="Không"
+              >
+                <Button danger icon={<CloseCircleOutlined />} size="small">
+                  Hủy
+                </Button>
+              </Popconfirm>
+            )}
+        </Space>
+      ),
     },
   ];
 
@@ -365,6 +440,11 @@ const Appointments = () => {
       title: "Thời gian",
       key: "thoi_gian",
       render: (_, record) => `${record.gio_bat_dau} - ${record.gio_ket_thuc}`,
+    },
+    {
+      title: "Phòng / Tầng",
+      dataIndex: "phong_kham",
+      key: "phong_kham",
     },
     {
       title: "Chuyên gia",
@@ -407,24 +487,26 @@ const Appointments = () => {
     {
       title: "Thao tác",
       key: "action",
-      render: (_, record) =>
-        record._raw_trang_thai !== "da_huy" &&
-        record._raw_trang_thai !== "da_hoan_thanh" ? (
-          <Popconfirm
-            title="Bạn có chắc muốn hủy lịch tư vấn này?"
-            onConfirm={() => handleCancelTuVan(record.id)}
-            okText="Có"
-            cancelText="Không"
-          >
-            <Button
-              danger
-              icon={<CloseCircleOutlined />}
-              size="small"
-            >
-              Hủy
-            </Button>
-          </Popconfirm>
-        ) : null,
+      render: (_, record) => (
+        <Space>
+          <Button size="small" onClick={() => openTuVanDetail(record)}>
+            Xem chi tiết
+          </Button>
+          {record._raw_trang_thai !== "da_huy" &&
+            record._raw_trang_thai !== "da_hoan_thanh" && (
+              <Popconfirm
+                title="Bạn có chắc muốn hủy lịch tư vấn này?"
+                onConfirm={() => handleCancelTuVan(record.id)}
+                okText="Có"
+                cancelText="Không"
+              >
+                <Button danger icon={<CloseCircleOutlined />} size="small">
+                  Hủy
+                </Button>
+              </Popconfirm>
+            )}
+        </Space>
+      ),
     },
   ];
 
@@ -498,6 +580,95 @@ const Appointments = () => {
           size="large"
         />
       </div>
+
+      <Modal
+        open={detailVisible}
+        title={detailType === "kham" ? "Chi tiết lịch khám" : "Chi tiết lịch tư vấn"}
+        onCancel={() => {
+          setDetailVisible(false);
+          setDetailData(null);
+        }}
+        footer={null}
+        width={720}
+      >
+        {detailLoading ? (
+          <div style={{ textAlign: "center", padding: 32 }}>
+            <Spin />
+          </div>
+        ) : detailData ? (
+          <>
+            <Descriptions column={1} size="small" bordered>
+              <Descriptions.Item label="Mã cuộc hẹn">
+                {detailData.cuocHen?.id_cuoc_hen || detailData.base?.id || "—"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ngày">
+                {formatDate(detailData.cuocHen?.ngay_kham || detailData.base?.ngay_kham)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Giờ">
+                {detailData.cuocHen?.khungGio
+                  ? `${detailData.cuocHen.khungGio.gio_bat_dau} - ${detailData.cuocHen.khungGio.gio_ket_thuc}`
+                  : `${detailData.base?.gio_bat_dau || "—"} - ${detailData.base?.gio_ket_thuc || "—"}`}
+              </Descriptions.Item>
+              <Descriptions.Item label="Phòng / Tầng">
+                {detailData.base?.phong_kham || "—"}
+              </Descriptions.Item>
+              {detailType === "kham" ? (
+                <>
+                  <Descriptions.Item label="Bác sĩ">
+                    {detailData.base?.ten_bac_si || "—"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Chuyên khoa">
+                    {detailData.base?.ten_chuyen_khoa || "—"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Lý do khám">
+                    {detailData.cuocHen?.ly_do_kham || "—"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Triệu chứng">
+                    {detailData.cuocHen?.trieu_chung || "—"}
+                  </Descriptions.Item>
+                </>
+              ) : (
+                <>
+                  <Descriptions.Item label="Chuyên gia">
+                    {detailData.base?.ten_chuyen_gia || "—"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Loại dinh dưỡng / tư vấn">
+                    {detailData.base?.loai_dinh_duong || "—"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Lý do tư vấn">
+                    {detailData.cuocHen?.ly_do_tu_van || "—"}
+                  </Descriptions.Item>
+                </>
+              )}
+              <Descriptions.Item label="Hình thức">
+                {loaiHenLabel(detailData.cuocHen?.loai_hen || detailData.base?.loai_hen)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Trạng thái">
+                {getStatusTag(detailData.cuocHen?.trang_thai || detailData.base?._raw_trang_thai)}
+              </Descriptions.Item>
+            </Descriptions>
+
+            {detailData.hoaDon && (
+              <>
+                <div style={{ height: 16 }} />
+                <Descriptions column={1} size="small" bordered title="Thông tin hóa đơn (nếu có)">
+                  <Descriptions.Item label="Mã hóa đơn">
+                    {detailData.hoaDon.id_hoa_don}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Tổng tiền">
+                    {Number(detailData.hoaDon.tong_tien || 0).toLocaleString("vi-VN")} đ
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Trạng thái hóa đơn">
+                    {detailData.hoaDon.trang_thai}
+                  </Descriptions.Item>
+                </Descriptions>
+              </>
+            )}
+          </>
+        ) : (
+          <Empty description="Không có dữ liệu chi tiết" />
+        )}
+      </Modal>
     </div>
   );
 };

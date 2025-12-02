@@ -1042,7 +1042,7 @@ const Billing = () => {
         onCancel={() => setIsPaymentModalVisible(false)}
         footer={null}
         width={860}
-        bodyStyle={{ paddingTop: 12 }}
+        styles={{ body: { paddingTop: 12 } }}
       >
         {selectedInvoice ? (
           <Space direction="vertical" size={16} style={{ width: "100%" }}>
@@ -1053,7 +1053,7 @@ const Billing = () => {
                 background: "linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%)",
                 boxShadow: "0 12px 24px rgba(0,0,0,0.04)",
               }}
-              bodyStyle={{ padding: 20 }}
+              styles={{ body: { padding: 20 } }}
             >
               <Row gutter={[24, 16]} align="middle">
                 <Col xs={24} md={12}>
@@ -1173,7 +1173,9 @@ const Billing = () => {
                     background:
                       "linear-gradient(145deg, rgba(246,255,237,1) 0%, rgba(255,255,255,1) 100%)",
                   }}
-                  bodyStyle={{ display: "flex", flexDirection: "column", height: "100%" }}
+                  styles={{
+                    body: { display: "flex", flexDirection: "column", height: "100%" },
+                  }}
                 >
                   <Space direction="vertical" size={12}>
                     <Title level={5} style={{ color: "#389e0d", margin: 0 }}>
@@ -1218,7 +1220,9 @@ const Billing = () => {
                     background:
                       "linear-gradient(145deg, rgba(255,240,246,1) 0%, rgba(255,255,255,1) 100%)",
                   }}
-                  bodyStyle={{ display: "flex", flexDirection: "column", height: "100%" }}
+                  styles={{
+                    body: { display: "flex", flexDirection: "column", height: "100%" },
+                  }}
                 >
                   <Space direction="vertical" size={12}>
                     <Title level={5} style={{ color: "#c41d7f", margin: 0 }}>

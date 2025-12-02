@@ -306,6 +306,20 @@ const NutritionistAppointments = () => {
       width: 150,
     },
     {
+      title: "PHÒNG / TẦNG",
+      dataIndex: "phong_kham",
+      key: "phong_kham",
+      render: (phong_kham) => {
+        if (!phong_kham) return "—";
+        const parts = [];
+        if (phong_kham.ten_phong) parts.push(phong_kham.ten_phong);
+        if (phong_kham.so_phong) parts.push(`P.${phong_kham.so_phong}`);
+        if (phong_kham.tang) parts.push(`Tầng ${phong_kham.tang}`);
+        return parts.join(" - ") || "—";
+      },
+      width: 200,
+    },
+    {
       title: "LOẠI HẸN",
       dataIndex: "loai_hen",
       key: "loai_hen",

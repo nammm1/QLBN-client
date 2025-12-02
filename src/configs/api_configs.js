@@ -1,5 +1,5 @@
 const API_CONFIG = {
-  BASE_URL: "http://103.121.89.198:5005/",
+  BASE_URL: "http://localhost:5005/",
   RESOURCES: {
     // Người dùng & Tài khoản
     NguoiDung: "nguoi-dung",

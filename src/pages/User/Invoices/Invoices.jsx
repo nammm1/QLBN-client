@@ -20,6 +20,8 @@ import {
   EyeOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  SyncOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 import apiHoaDon from "../../../api/HoaDon";
 import apiChiTietHoaDon from "../../../api/ChiTietHoaDon";
@@ -28,6 +30,28 @@ import apiPayment from "../../../api/Payment";
 import "./Invoices.css";
 
 const { Title, Text } = Typography;
+const STATUS_CONFIGS = {
+  chua_thanh_toan: { color: "warning", text: "Chưa thanh toán", icon: <ClockCircleOutlined /> },
+  da_thanh_toan: { color: "success", text: "Đã thanh toán", icon: <CheckCircleOutlined /> },
+  da_huy: { color: "error", text: "Đã hủy", icon: <CloseCircleOutlined /> },
+  dang_hoan_tien: {
+    color: "processing",
+    text: "Đang hoàn tiền",
+    icon: <SyncOutlined spin />,
+  },
+  da_hoan_tien: { color: "cyan", text: "Đã hoàn tiền", icon: <CheckCircleOutlined /> },
+  hoan_that_bai: { color: "error", text: "Hoàn tiền thất bại", icon: <CloseCircleOutlined /> },
+};
+
+const renderStatusTag = (status) => {
+  const config = STATUS_CONFIGS[status] || STATUS_CONFIGS.chua_thanh_toan;
+  return (
+    <Tag color={config.color} icon={config.icon}>
+      {config.text}
+    </Tag>
+  );
+};
+
 const Invoices = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,6 +63,7 @@ const Invoices = () => {
   const [invoiceDetails, setInvoiceDetails] = useState([]);
   const [activeTab, setActiveTab] = useState("chua_thanh_toan");
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [allInvoices, setAllInvoices] = useState([]);
 
   const savedUserInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
   const userInfo = savedUserInfo?.user || savedUserInfo;
@@ -69,7 +94,7 @@ const Invoices = () => {
     if (userId) {
       fetchData();
     }
-  }, [userId, activeTab]);
+  }, [userId]);
 
   const fetchData = async () => {
     if (!userId) return;
@@ -81,17 +106,18 @@ const Invoices = () => {
       const userInfo = savedUserInfo?.user || savedUserInfo;
       const idBenhNhan = userInfo?.id_benh_nhan || userId;
 
-      // Lấy hóa đơn theo id_benh_nhan
+      // Lấy hóa đơn theo id_benh_nhan (một lần, rồi lọc trên FE)
       const response = await apiHoaDon.search({ id_benh_nhan: idBenhNhan });
       const invoiceData = response?.data || response || [];
-      let filteredInvoices = Array.isArray(invoiceData) ? invoiceData : [];
+      const all = Array.isArray(invoiceData) ? invoiceData : [];
 
-      // Filter theo tab
-      if (activeTab !== "all") {
-        filteredInvoices = filteredInvoices.filter((inv) => inv.trang_thai === activeTab);
-      }
-
-      setInvoices(filteredInvoices);
+      setAllInvoices(all);
+      // Filter ban đầu theo tab hiện tại
+      setInvoices(
+        activeTab === "all"
+          ? all
+          : all.filter((inv) => inv.trang_thai === activeTab)
+      );
     } catch (error) {
       message.error("Không thể tải dữ liệu hóa đơn");
       console.error(error);
@@ -117,9 +143,18 @@ const Invoices = () => {
   const handleViewDetail = async (record) => {
     try {
       setSelectedInvoice(record);
-      const response = await apiChiTietHoaDon.getByHoaDon(record.id_hoa_don);
-      const details = response?.data || response || [];
-      setInvoiceDetails(Array.isArray(details) ? details : []);
+      try {
+        const response = await apiChiTietHoaDon.getByHoaDon(record.id_hoa_don);
+        const details = response?.data || response || [];
+        setInvoiceDetails(Array.isArray(details) ? details : []);
+      } catch (error) {
+        // Nếu không có chi tiết (404) thì vẫn cho mở modal, chỉ không có bảng dịch vụ
+        if (error?.response?.status === 404) {
+          setInvoiceDetails([]);
+        } else {
+          throw error;
+        }
+      }
       setIsDetailModalVisible(true);
     } catch (error) {
       message.error("Không thể tải chi tiết hóa đơn");
@@ -195,20 +230,8 @@ const Invoices = () => {
       title: "Trạng thái",
       dataIndex: "trang_thai",
       key: "trang_thai",
-      width: 130,
-      render: (status) => {
-        const configs = {
-          chua_thanh_toan: { color: "warning", text: "Chưa thanh toán", icon: <ClockCircleOutlined /> },
-          da_thanh_toan: { color: "success", text: "Đã thanh toán", icon: <CheckCircleOutlined /> },
-          da_huy: { color: "error", text: "Đã hủy", icon: <ClockCircleOutlined /> },
-        };
-        const { color, text, icon } = configs[status] || configs.chua_thanh_toan;
-        return (
-          <Tag color={color} icon={icon}>
-            {text}
-          </Tag>
-        );
-      },
+      width: 150,
+      render: (status) => renderStatusTag(status),
     },
     {
       title: "Phương thức",
@@ -261,8 +284,38 @@ const Invoices = () => {
   ];
 
   const getTabCount = (status) => {
-    return invoices.filter((inv) => inv.trang_thai === status).length;
+    return allInvoices.filter((inv) => inv.trang_thai === status).length;
   };
+
+  const renderTabTable = (emptyMessage) => (
+    <Table
+      columns={columns}
+      dataSource={invoices}
+      loading={loading}
+      rowKey="id_hoa_don"
+      pagination={{
+        pageSize: 10,
+        showSizeChanger: true,
+        showTotal: (total) => `Tổng ${total} hóa đơn`,
+      }}
+      locale={{
+        emptyText: <Empty description={emptyMessage} />,
+      }}
+    />
+  );
+
+  // Re-filter khi đổi tab hoặc khi allInvoices thay đổi
+  useEffect(() => {
+    if (!allInvoices || !Array.isArray(allInvoices)) {
+      setInvoices([]);
+      return;
+    }
+    if (activeTab === "all") {
+      setInvoices(allInvoices);
+    } else {
+      setInvoices(allInvoices.filter((inv) => inv.trang_thai === activeTab));
+    }
+  }, [activeTab, allInvoices]);
 
   return (
     <div className="invoices-page">
@@ -288,22 +341,7 @@ const Invoices = () => {
                   </span>
                 </Badge>
               ),
-              children: (
-                <Table
-                  columns={columns}
-                  dataSource={invoices}
-                  loading={loading}
-                  rowKey="id_hoa_don"
-                  pagination={{
-                    pageSize: 10,
-                    showSizeChanger: true,
-                    showTotal: (total) => `Tổng ${total} hóa đơn`,
-                  }}
-                  locale={{
-                    emptyText: <Empty description="Không có hóa đơn chưa thanh toán" />,
-                  }}
-                />
-              ),
+              children: renderTabTable("Không có hóa đơn chưa thanh toán"),
             },
             {
               key: "da_thanh_toan",
@@ -313,47 +351,47 @@ const Invoices = () => {
                   Đã thanh toán ({getTabCount("da_thanh_toan")})
                 </span>
               ),
-              children: (
-                <Table
-                  columns={columns}
-                  dataSource={invoices}
-                  loading={loading}
-                  rowKey="id_hoa_don"
-                  pagination={{
-                    pageSize: 10,
-                    showSizeChanger: true,
-                    showTotal: (total) => `Tổng ${total} hóa đơn`,
-                  }}
-                  locale={{
-                    emptyText: <Empty description="Không có hóa đơn đã thanh toán" />,
-                  }}
-                />
+              children: renderTabTable("Không có hóa đơn đã thanh toán"),
+            },
+            {
+              key: "dang_hoan_tien",
+              label: (
+                <span>
+                  <SyncOutlined spin />
+                  Đang hoàn tiền ({getTabCount("dang_hoan_tien")})
+                </span>
               ),
+              children: renderTabTable("Không có hóa đơn đang hoàn tiền"),
+            },
+            {
+              key: "da_hoan_tien",
+              label: (
+                <span>
+                  <CheckCircleOutlined />
+                  Hoàn tiền xong ({getTabCount("da_hoan_tien")})
+                </span>
+              ),
+              children: renderTabTable("Không có hóa đơn đã hoàn tiền"),
+            },
+            {
+              key: "hoan_that_bai",
+              label: (
+                <span>
+                  <CloseCircleOutlined />
+                  Hoàn tiền thất bại ({getTabCount("hoan_that_bai")})
+                </span>
+              ),
+              children: renderTabTable("Không có hóa đơn bị lỗi hoàn tiền"),
             },
             {
               key: "all",
               label: (
                 <span>
                   <EyeOutlined />
-                  Tất cả ({invoices.length})
+                  Tất cả ({allInvoices.length})
                 </span>
               ),
-              children: (
-                <Table
-                  columns={columns}
-                  dataSource={invoices}
-                  loading={loading}
-                  rowKey="id_hoa_don"
-                  pagination={{
-                    pageSize: 10,
-                    showSizeChanger: true,
-                    showTotal: (total) => `Tổng ${total} hóa đơn`,
-                  }}
-                  locale={{
-                    emptyText: <Empty description="Không có hóa đơn nào" />,
-                  }}
-                />
-              ),
+              children: renderTabTable("Không có hóa đơn nào"),
             },
           ]}
         />
@@ -404,13 +442,7 @@ const Invoices = () => {
                 )}
               </Descriptions.Item>
               <Descriptions.Item label="Trạng thái">
-                {selectedInvoice.trang_thai === "da_thanh_toan" ? (
-                  <Tag color="success">Đã thanh toán</Tag>
-                ) : selectedInvoice.trang_thai === "chua_thanh_toan" ? (
-                  <Tag color="warning">Chưa thanh toán</Tag>
-                ) : (
-                  <Tag color="error">Đã hủy</Tag>
-                )}
+                {renderStatusTag(selectedInvoice.trang_thai)}
               </Descriptions.Item>
               {selectedInvoice.phuong_thuc_thanh_toan && (
                 <Descriptions.Item label="Phương thức thanh toán" span={2}>

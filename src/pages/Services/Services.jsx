@@ -450,7 +450,7 @@ const Services = () => {
                             overflow: "hidden",
                             padding: 0,
                           }}
-                          bodyStyle={{ padding: 0 }}
+                          styles={{ body: { padding: 0 } }}
                           cover={
                             <div
                               style={{
@@ -632,7 +632,7 @@ const Services = () => {
               textAlign: "center",
               color: "white",
             }}
-            bodyStyle={{ padding: 60 }}
+            styles={{ body: { padding: 60 } }}
           >
             <Space direction="vertical" size="large" style={{ width: "100%" }}>
               <Title level={2} style={{ color: "white", margin: 0 }}>

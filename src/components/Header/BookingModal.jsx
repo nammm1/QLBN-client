@@ -17,6 +17,7 @@ import apiCuocHenKhamBenh from "../../api/CuocHenKhamBenh";
 import symptomAnalysisService from "../../api/SymptomAnalysis";
 import { Modal, Card, Pagination, Tag, Empty } from "antd";
 import LoginRequiredModal from "../LoginRequiredModal/LoginRequiredModal";
+import DepositPaymentModal from "../Payment/DepositPaymentModal";
 import { useNavigate } from "react-router-dom";
 
 // format ngày thành YYYY-MM-DD theo local time (không lệch múi giờ)
@@ -53,6 +54,9 @@ const formatCaToEnum = (ca) => {
   };
   return mapping[ca] || ca;
 };
+const DEPOSIT_HOLD_LABEL = "24 giờ";
+const formatCurrency = (value) =>
+  Number(value || 0).toLocaleString("vi-VN", { maximumFractionDigits: 0 });
 
 const BookingModal = ({ show, onClose }) => {
   const navigate = useNavigate();
@@ -74,6 +78,11 @@ const BookingModal = ({ show, onClose }) => {
   const [viewingDoctor, setViewingDoctor] = useState(null); // Bác sĩ đang xem chi tiết (chưa chọn)
   const [showDoctorCard, setShowDoctorCard] = useState(false);
   const [showDoctorSelectModal, setShowDoctorSelectModal] = useState(false);
+  const [depositModalInfo, setDepositModalInfo] = useState(null);
+  const [showDepositNotice, setShowDepositNotice] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState(null);
+  const [postBookingInfo, setPostBookingInfo] = useState(null);
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(6); // Hiển thị 6 bác sĩ mỗi trang
   
@@ -248,10 +257,13 @@ const BookingModal = ({ show, onClose }) => {
     setShowDoctorSelectModal(false);
     setAiSuggestions(null);
     setShowAiSuggestions(false);
+    setShowDepositNotice(false);
+    setPendingPayload(null);
   };
 
   const handleClose = () => {
     resetForm();
+    setPostBookingInfo(null);
     onClose();
   };
 
@@ -303,7 +315,6 @@ const BookingModal = ({ show, onClose }) => {
       return;
     }
 
-    try {
       const payload = {
         id_bac_si: doctor.id_bac_si,
         id_chuyen_khoa: specialty,
@@ -314,19 +325,62 @@ const BookingModal = ({ show, onClose }) => {
         trieu_chung: trieuChung || null,
       };
 
-      await apiCuocHenKhamBenh.create(payload);
+    setPendingPayload(payload);
+    setShowDepositNotice(true);
+  };
 
-      toast.success("Đặt lịch thành công!");
-      resetForm(); // Reset form sau khi đặt thành công
-      onClose();
+  const submitBooking = async () => {
+    if (!pendingPayload) return;
+    try {
+      const booking = await apiCuocHenKhamBenh.create(pendingPayload);
+      const depositInfo = booking?.deposit;
+
+      toast.success(
+        "Đã gửi yêu cầu đặt lịch. Vui lòng thanh toán cọc trong 1 ngày!"
+      );
+
+      if (booking?.id_cuoc_hen && depositInfo) {
+        setPostBookingInfo({
+          id_cuoc_hen: booking.id_cuoc_hen,
+          deposit: depositInfo,
+        });
+      }
+
+      // Giữ BookingModal mở để 2 popup thanh toán vẫn hiển thị
+      resetForm();
     } catch (err) {
       console.error(err);
-      // Toast đã được hiển thị tự động bởi axios interceptor với message từ API
-      // toast.error("Có lỗi khi đặt lịch!");
+    } finally {
+      setPendingPayload(null);
+    }
+  };
+
+  const handleStartDepositPayment = async () => {
+    if (!postBookingInfo?.id_cuoc_hen) return;
+    try {
+      setIsCreatingPayment(true);
+      const session = await apiCuocHenKhamBenh.initDepositPayment(
+        postBookingInfo.id_cuoc_hen
+      );
+
+      if (session?.paymentUrl) {
+        window.open(session.paymentUrl, "_blank", "noopener");
+      }
+
+      toast.success("Đã mở trang thanh toán. Vui lòng hoàn tất trên MoMo.");
+
+      setPostBookingInfo(null);
+      handleClose(); // đóng luôn modal đặt lịch sau khi chọn thanh toán ngay
+    } catch (error) {
+      console.error("Error starting deposit payment:", error);
+      toast.error("Không thể khởi tạo thanh toán. Vui lòng thử lại sau.");
+    } finally {
+      setIsCreatingPayment(false);
     }
   };
 
   return (
+    <>
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-wrapper">
@@ -1422,6 +1476,66 @@ const BookingModal = ({ show, onClose }) => {
         }}
       />
     </div>
+    <Modal
+      open={showDepositNotice}
+      onCancel={() => {
+        setShowDepositNotice(false);
+        setPendingPayload(null);
+      }}
+      onOk={() => {
+        setShowDepositNotice(false);
+        submitBooking();
+      }}
+      okText="Tôi đồng ý"
+      cancelText="Để tôi xem lại"
+      zIndex={3000}
+    >
+      <div style={{ marginBottom: 4, fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: "#64748b" }}>
+        HospitalCare – Chính sách phí giữ chỗ
+      </div>
+      <h3 style={{ marginBottom: 8, fontSize: 18, fontWeight: 600, color: "#0f172a" }}>
+        Phí đặt lịch khám 100.000 VNĐ
+      </h3>
+      <div style={{ padding: "10px 12px", borderRadius: 10, background: "#f8fafc", marginBottom: 10, fontSize: 14, color: "#475569" }}>
+        <ul style={{ paddingLeft: 18, margin: 0, lineHeight: 1.6 }}>
+          <li>Mỗi lịch khám cần thanh toán trước <strong>100.000 VNĐ</strong> để giữ chỗ trong <strong>{DEPOSIT_HOLD_LABEL}</strong>.</li>
+          <li>Nếu bạn <strong>hủy trước 7 ngày</strong> so với thời gian hẹn, khoản cọc sẽ được <strong>hoàn lại đầy đủ</strong>.</li>
+          <li>Nếu hủy muộn hơn, không đến khám hoặc vắng mặt, khoản cọc được xem là <strong>phí giữ chỗ</strong> và <strong>không hoàn lại</strong>.</li>
+        </ul>
+      </div>
+      <p style={{ lineHeight: 1.6, color: "#475569", fontSize: 13 }}>
+        Bằng việc chọn <strong>“Tôi đồng ý”</strong>, bạn xác nhận đã đọc và đồng ý với chính sách phí đặt lịch của <strong>HospitalCare</strong>.
+      </p>
+    </Modal>
+    <Modal
+      open={!!postBookingInfo}
+      onCancel={() => {
+        setPostBookingInfo(null);
+        handleClose(); // Để sau -> đóng modal đặt lịch
+      }}
+      okText="Thanh toán ngay"
+      cancelText="Để sau"
+      confirmLoading={isCreatingPayment}
+      onOk={handleStartDepositPayment}
+      zIndex={3100}
+    >
+      <h3 style={{ marginBottom: 12 }}>Thanh toán tiền cọc</h3>
+      <p style={{ lineHeight: 1.6, color: "#475569" }}>
+        Bạn có muốn thanh toán ngay {formatCurrency(postBookingInfo?.deposit?.amount || 100000)} VNĐ
+        để hoàn tất việc giữ lịch trong {DEPOSIT_HOLD_LABEL} không? Nếu chưa tiện, bạn có thể thanh toán sau
+        bất cứ lúc nào trong mục “Hóa đơn”.
+      </p>
+      <p style={{ lineHeight: 1.6, color: "#475569" }}>
+        Nếu tạm thời bỏ qua, hãy hoàn tất thanh toán trong {DEPOSIT_HOLD_LABEL} để lịch hẹn không bị hủy tự động.
+      </p>
+    </Modal>
+    {depositModalInfo && (
+      <DepositPaymentModal
+        deposit={depositModalInfo}
+        onClose={() => setDepositModalInfo(null)}
+      />
+    )}
+    </>
   );
 };
 

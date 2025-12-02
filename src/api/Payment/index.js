@@ -15,6 +15,20 @@ const apiPayment = {
       throw err;
     }
   },
+
+  // Xác nhận thanh toán Momo thông qua dữ liệu redirect
+  confirmMomoPayment: async (payload = {}) => {
+    try {
+      const res = await axiosInstance.post(
+        `${API_CONFIG.BASE_URL}api/payment/callback/momo/confirm`,
+        payload
+      );
+      return res.data;
+    } catch (err) {
+      console.error("Error confirming Momo payment:", err);
+      throw err;
+    }
+  },
 };
 
 export default apiPayment;

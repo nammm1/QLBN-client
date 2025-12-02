@@ -15,6 +15,17 @@ const apiCuocHenTuVan = {
       throw err;
     }
   },
+  initDepositPayment: async (id_cuoc_hen) => {
+    try {
+      const res = await axiosInstance.post(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenTuVan}/${id_cuoc_hen}/deposit-payment`
+      );
+      return res.data.data;
+    } catch (err) {
+      console.error("Error initializing consultation deposit payment:", err);
+      throw err;
+    }
+  },
 
   // Lấy cuộc hẹn tư vấn theo ID
   getById: async (id_cuoc_hen) => {

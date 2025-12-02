@@ -13,6 +13,7 @@ import apiCuocHenTuVan from "../../api/CuocHenTuVan";
 import nutritionAnalysisService from "../../api/NutritionAnalysis";
 import { Modal, Card, Pagination, Tag, Empty } from "antd";
 import LoginRequiredModal from "../LoginRequiredModal/LoginRequiredModal";
+import DepositPaymentModal from "../Payment/DepositPaymentModal";
 import { useNavigate } from "react-router-dom";
 
 const BookingModalChuyenGia = ({ show, onClose }) => {
@@ -41,6 +42,11 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
   const [showExpertSelectModal, setShowExpertSelectModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(6); // Hiển thị 6 chuyên gia mỗi trang
+  const [depositModalInfo, setDepositModalInfo] = useState(null);
+  const [showDepositNotice, setShowDepositNotice] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState(null);
+  const [postBookingInfo, setPostBookingInfo] = useState(null);
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
 
   // ✅ Hàm format ngày local (YYYY-MM-DD)
   const formatDateLocal = (dateObj) => {
@@ -49,6 +55,9 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
     const d = String(dateObj.getDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
   };
+  const DEPOSIT_HOLD_LABEL = "24 giờ";
+  const formatCurrency = (value) =>
+    Number(value || 0).toLocaleString("vi-VN", { maximumFractionDigits: 0 });
 
   // load chuyên ngành dinh dưỡng
   useEffect(() => {
@@ -242,10 +251,13 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
     setShowExpertSelectModal(false);
     setAiSuggestions(null);
     setShowAiSuggestions(false);
+    setShowDepositNotice(false);
+    setPendingPayload(null);
   };
 
   const handleClose = () => {
     resetForm();
+    setPostBookingInfo(null);
     onClose();
   };
 
@@ -264,9 +276,10 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
       return;
     }
 
-    try {
       // Lấy tên chuyên ngành từ danh sách
-      const selectedChuyenNganh = chuyenNganhList.find(cn => cn.id_chuyen_nganh === chuyenNganh);
+    const selectedChuyenNganh = chuyenNganhList.find(
+      (cn) => cn.id_chuyen_nganh === chuyenNganh
+    );
       
       const payload = {
         id_chuyen_gia: expert.id_chuyen_gia,
@@ -277,19 +290,62 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
         ly_do_tu_van: desc,
       };
 
-      await apiCuocHenTuVan.create(payload);
+    setPendingPayload(payload);
+    setShowDepositNotice(true);
+  };
 
-      toast.success("Đặt lịch tư vấn thành công!");
+  const submitConsultationBooking = async () => {
+    if (!pendingPayload) return;
+    try {
+      const booking = await apiCuocHenTuVan.create(pendingPayload);
+      const depositInfo = booking?.deposit;
+
+      toast.success(
+        "Đã gửi yêu cầu tư vấn. Vui lòng thanh toán cọc trong 1 ngày!"
+      );
+
+      if (booking?.id_cuoc_hen && depositInfo) {
+        setPostBookingInfo({
+          id_cuoc_hen: booking.id_cuoc_hen,
+          deposit: depositInfo,
+        });
+      }
+
+      // Giữ modal đặt lịch mở để các popup thanh toán hiển thị đúng lớp
       resetForm();
-      onClose();
     } catch (err) {
       console.error(err);
-      // Toast đã được hiển thị tự động bởi axios interceptor với message từ API
-      // toast.error("Có lỗi khi đặt lịch tư vấn!");
+    } finally {
+      setPendingPayload(null);
+    }
+  };
+
+  const handleStartConsultDepositPayment = async () => {
+    if (!postBookingInfo?.id_cuoc_hen) return;
+    try {
+      setIsCreatingPayment(true);
+      const session = await apiCuocHenTuVan.initDepositPayment(
+        postBookingInfo.id_cuoc_hen
+      );
+
+      if (session?.paymentUrl) {
+        window.open(session.paymentUrl, "_blank", "noopener");
+      }
+
+      toast.success("Đã mở trang thanh toán. Vui lòng hoàn tất trên MoMo.");
+
+      setPostBookingInfo(null);
+      handleClose(); // đóng modal đặt lịch tư vấn sau khi chọn thanh toán ngay
+    } catch (error) {
+      console.error("Error starting consultation deposit payment:", error);
+      toast.error("Không thể khởi tạo thanh toán. Vui lòng thử lại!");
+    } finally {
+      setIsCreatingPayment(false);
     }
   };
 
   return (
+    <>
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-wrapper">
@@ -685,7 +741,7 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
                             transition: "all 0.3s",
                             cursor: "pointer"
                           }}
-                          bodyStyle={{ padding: "20px" }}
+                          styles={{ body: { padding: "20px" } }}
                         >
                           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                             {/* Header với Avatar và Tên */}
@@ -1258,6 +1314,66 @@ const BookingModalChuyenGia = ({ show, onClose }) => {
         }}
       />
     </div>
+    <Modal
+      open={showDepositNotice}
+      onCancel={() => {
+        setShowDepositNotice(false);
+        setPendingPayload(null);
+      }}
+      onOk={() => {
+        setShowDepositNotice(false);
+        submitConsultationBooking();
+      }}
+      okText="Tôi đồng ý"
+      cancelText="Để tôi xem lại"
+      zIndex={3000}
+    >
+      <div style={{ marginBottom: 4, fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: "#64748b" }}>
+        HospitalCare – Phí giữ chỗ tư vấn dinh dưỡng
+      </div>
+      <h3 style={{ marginBottom: 8, fontSize: 18, fontWeight: 600, color: "#0f172a" }}>
+        Phí đặt lịch tư vấn 100.000 VNĐ
+      </h3>
+      <div style={{ padding: "10px 12px", borderRadius: 10, background: "#f8fafc", marginBottom: 10, fontSize: 14, color: "#475569" }}>
+        <ul style={{ paddingLeft: 18, margin: 0, lineHeight: 1.6 }}>
+          <li>Mỗi lịch tư vấn cần thanh toán trước <strong>100.000 VNĐ</strong> để giữ chỗ trong <strong>{DEPOSIT_HOLD_LABEL}</strong>.</li>
+          <li>Nếu bạn <strong>hủy trước 7 ngày</strong> so với thời gian tư vấn, khoản cọc sẽ được <strong>hoàn lại đầy đủ</strong>.</li>
+          <li>Nếu hủy muộn, không tham gia buổi tư vấn hoặc vắng mặt, khoản cọc được xem là <strong>phí giữ chỗ</strong> và <strong>không hoàn lại</strong>.</li>
+        </ul>
+      </div>
+      <p style={{ lineHeight: 1.6, color: "#475569", fontSize: 13 }}>
+        Khi chọn <strong>“Tôi đồng ý”</strong>, bạn đồng ý với chính sách phí đặt lịch tư vấn của <strong>HospitalCare</strong>.
+      </p>
+    </Modal>
+    <Modal
+      open={!!postBookingInfo}
+      onCancel={() => {
+        setPostBookingInfo(null);
+        handleClose(); // Để sau -> đóng modal đặt lịch tư vấn
+      }}
+      okText="Thanh toán ngay"
+      cancelText="Để sau"
+      confirmLoading={isCreatingPayment}
+      onOk={handleStartConsultDepositPayment}
+      zIndex={3100}
+    >
+      <h3 style={{ marginBottom: 12 }}>Thanh toán tiền cọc</h3>
+      <p style={{ lineHeight: 1.6, color: "#475569" }}>
+        Bạn có muốn thanh toán ngay {formatCurrency(postBookingInfo?.deposit?.amount || 100000)} VNĐ
+        để hoàn tất giữ chỗ tư vấn trong {DEPOSIT_HOLD_LABEL} không? Nếu chưa sẵn sàng, bạn có thể thanh toán
+        sau trong mục “Hóa đơn” của mình.
+      </p>
+      <p style={{ lineHeight: 1.6, color: "#475569" }}>
+        Nếu bạn bỏ qua, vui lòng thanh toán trong {DEPOSIT_HOLD_LABEL} để cuộc hẹn không bị hủy tự động.
+      </p>
+    </Modal>
+    {depositModalInfo && (
+      <DepositPaymentModal
+        deposit={depositModalInfo}
+        onClose={() => setDepositModalInfo(null)}
+      />
+    )}
+    </>
   );
 };
 

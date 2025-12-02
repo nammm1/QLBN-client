@@ -97,6 +97,43 @@ class SocketService {
     this.socket.on('user_offline', (data) => {
       this.emit('user_offline', data);
     });
+
+    // Video call signaling events
+    this.socket.on('video_call_offer', (data) => {
+      this.emit('video_call_offer', data);
+    });
+
+    this.socket.on('video_call_offer_ack', (data) => {
+      this.emit('video_call_offer_ack', data);
+    });
+
+    this.socket.on('video_call_answer', (data) => {
+      this.emit('video_call_answer', data);
+    });
+
+    this.socket.on('video_call_ice_candidate', (data) => {
+      this.emit('video_call_ice_candidate', data);
+    });
+
+    this.socket.on('video_call_rejected', (data) => {
+      this.emit('video_call_rejected', data);
+    });
+
+    this.socket.on('video_call_cancelled', (data) => {
+      this.emit('video_call_cancelled', data);
+    });
+
+    this.socket.on('video_call_ended', (data) => {
+      this.emit('video_call_ended', data);
+    });
+
+    this.socket.on('video_call_busy', (data) => {
+      this.emit('video_call_busy', data);
+    });
+
+    this.socket.on('video_call_error', (data) => {
+      this.emit('video_call_error', data);
+    });
   }
 
   /**
@@ -189,6 +226,41 @@ class SocketService {
    */
   getConnectionStatus() {
     return this.isConnected && this.socket?.connected;
+  }
+
+  /**
+   * Emit custom event to server
+   */
+  emitToServer(event, payload) {
+    if (!this.socket || !this.socket.connected) {
+      console.warn(`Socket not connected. Cannot emit ${event}`);
+      return;
+    }
+    this.socket.emit(event, payload);
+  }
+
+  startVideoCall(payload) {
+    this.emitToServer('video_call_offer', payload);
+  }
+
+  answerVideoCall(payload) {
+    this.emitToServer('video_call_answer', payload);
+  }
+
+  sendVideoIceCandidate(payload) {
+    this.emitToServer('video_call_ice_candidate', payload);
+  }
+
+  rejectVideoCall(payload) {
+    this.emitToServer('video_call_reject', payload);
+  }
+
+  cancelVideoCall(payload) {
+    this.emitToServer('video_call_cancel', payload);
+  }
+
+  endVideoCall(payload) {
+    this.emitToServer('video_call_end', payload);
   }
 }
 
