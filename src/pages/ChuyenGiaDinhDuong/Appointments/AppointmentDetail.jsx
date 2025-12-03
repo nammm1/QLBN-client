@@ -29,7 +29,7 @@ import {
   Statistic,
   Steps,
   message,
-  Tooltip
+  Tooltip,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -53,6 +53,7 @@ import {
   LockOutlined,
   VideoCameraOutlined,
   HomeOutlined,
+  MessageOutlined,
 } from "@ant-design/icons";
 import apiCuocHenTuVan from "../../../api/CuocHenTuVan";
 import apiBenhNhan from "../../../api/BenhNhan"; 
@@ -157,6 +158,24 @@ const NutritionistAppointmentDetail = () => {
 
   const getGenderColor = (gender) => {
     return gender?.toLowerCase() === 'nam' ? 'blue' : 'pink';
+  };
+
+  // Lấy id tài khoản người dùng của bệnh nhân để mở cuộc trò chuyện
+  // id_benh_nhan cũng là id_nguoi_dung của bệnh nhân trong hệ thống,
+  // nên có thể dùng trực tiếp cho chat.
+  const patientUserId =
+    appointment?.id_benh_nhan ||
+    appointment?.benhNhan?.id_nguoi_dung ||
+    appointment?.benhNhan?.nguoi_dung?.id_nguoi_dung;
+
+  // Bong bóng chat inline cho chuyên gia dinh dưỡng
+  const [chatBubbleOpen, setChatBubbleOpen] = useState(false);
+
+  const getChatUrl = () => {
+    if (patientUserId) {
+      return `/embedded-chat?embedded=1&user=${patientUserId}`;
+    }
+    return `/embedded-chat?embedded=1`;
   };
 
   const fetchData = async () => {
@@ -1371,6 +1390,13 @@ const NutritionistAppointmentDetail = () => {
               } 
             />
             <Text type="secondary">Mã: {id_cuoc_hen}</Text>
+            <Button
+              type="default"
+              icon={<MessageOutlined />}
+              onClick={() => setChatBubbleOpen(true)}
+            >
+              Mở khung chat
+            </Button>
           </Space>
         </div>
       </Card>
@@ -1982,6 +2008,93 @@ const NutritionistAppointmentDetail = () => {
           </Row>
         </Col>
       </Row>
+
+      {/* Bong bóng chat: cửa sổ nhỏ cố định ở góc, chứa full màn hình Chat (có cả gọi video) */}
+      <Button
+        type="primary"
+        shape="circle"
+        size="large"
+        icon={<MessageOutlined />}
+        style={{
+          position: "fixed",
+          right: 24,
+          bottom: 24,
+          zIndex: 1100,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+        }}
+        onClick={() => setChatBubbleOpen((prev) => !prev)}
+      />
+
+      {chatBubbleOpen && (
+        <div
+          style={{
+            position: "fixed",
+            right: 24,
+            bottom: 90,
+            width: 600,
+            height: 650,
+            background: "#fff",
+            borderRadius: 12,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            zIndex: 1100,
+            maxWidth: "90vw",
+            maxHeight: "85vh",
+          }}
+        >
+          <div
+            style={{
+              padding: "8px 12px",
+              borderBottom: "1px solid #f0f0f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              background: "#1890ff",
+              color: "#fff",
+            }}
+          >
+            <span style={{ fontWeight: 500 }}>
+              Trao đổi với bệnh nhân
+            </span>
+            <Space size={8}>
+              <Button
+                size="small"
+                type="text"
+                style={{ color: "#e6f7ff", textDecoration: "underline" }}
+                onClick={() => navigate("/nutritionist/chat")}
+              >
+                Mở trang chat đầy đủ
+              </Button>
+              {!patientUserId && (
+                <Text style={{ fontSize: 11, color: "#e6f7ff" }}>
+                  Không tìm thấy tài khoản, đang mở trang chat chung
+                </Text>
+              )}
+              <Button
+                size="small"
+                type="text"
+                style={{ color: "#fff" }}
+                onClick={() => setChatBubbleOpen(false)}
+              >
+                Đóng
+              </Button>
+            </Space>
+          </div>
+          <div style={{ flex: 1 }}>
+            <iframe
+              title="Cuộc trò chuyện với bệnh nhân"
+              src={getChatUrl()}
+              style={{
+                border: "none",
+                width: "100%",
+                height: "100%",
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Modal Hồ sơ - GIỮ NGUYÊN */}
       <Modal

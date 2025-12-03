@@ -119,7 +119,8 @@ function App() {
           <Route path="/nutrition-records" element={<NutritionRecords />} />
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/invoices" element={<Invoices />} />
-          <Route path="/chat" element={<PatientChat />} />
+          {/* Sử dụng component Chat có tích hợp video call cho trang /chat của bệnh nhân */}
+          <Route path="/chat" element={<Chat />} />
           <Route path="/notifications" element={<PatientNotifications />} />
           <Route path="/doctor-function" element={<DoctorFunction />} />
           <Route path="/doctor-medical-records" element={<DoctorMedicalRecords />} />
@@ -131,6 +132,9 @@ function App() {
           <Route path="/payment/callback/momo" element={<MomoCallback />} />
           <Route path="/payment/callback/vnpay" element={<VNPayCallback />} />
         </Route>
+
+        {/* Trang chat tối giản dùng cho bong bóng chat (không bọc trong layout role) */}
+        <Route path="/embedded-chat" element={<Chat embedded />} />
 
         <Route path="/doctor" element={<DoctorLayout />}>
           <Route index element={<DoctorDashboard />} />

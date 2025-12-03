@@ -42,10 +42,11 @@ const DashboardAPI = {
   },
 
   // Dashboard admin
-  getAdminDashboard: async () => {
+  getAdminDashboard: async (params = {}) => {
     try {
       const res = await axiosInstance.get(
-        `${API_CONFIG.BASE_URL}dashboard/admin`
+        `${API_CONFIG.BASE_URL}dashboard/admin`,
+        { params }
       );
       return res.data;
     } catch (err) {

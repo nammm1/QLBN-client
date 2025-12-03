@@ -313,10 +313,10 @@ const Nutritionist = () => {
                           }}
                           styles={{
                             body: {
-                              padding: 24,
-                              display: "flex",
-                              flexDirection: "column",
-                              flex: 1,
+                            padding: 24, 
+                            display: "flex",
+                            flexDirection: "column",
+                            flex: 1,
                               height: "100%",
                             },
                           }}
@@ -746,8 +746,8 @@ const Nutritionist = () => {
                       </Card>
                     </Col>
                     {selectedNutritionist.email && (
-                    <Col xs={24} sm={12}>
-                      <Card
+                      <Col xs={24} sm={12}>
+                        <Card
                           className="info-card"
                           style={{
                             borderRadius: 16,

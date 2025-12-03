@@ -33,7 +33,7 @@ const { Text } = Typography;
 
 const INCOMING_CALL_TOAST_KEY = "incoming-call";
 
-const Chat = () => {
+const Chat = ({ embedded = false }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
@@ -86,6 +86,7 @@ const Chat = () => {
   const savedUserInfo = JSON.parse(localStorage.getItem("userInfo"));
   const userInfo = savedUserInfo?.user || savedUserInfo; // Hỗ trợ cả 2 format
   const [messageApi, contextHolder] = message.useMessage();
+  const isEmbedded = embedded || searchParams.get("embedded") === "1";
   const hideIncomingCallToast = useCallback(() => {
     messageApi.destroy(INCOMING_CALL_TOAST_KEY);
   }, [messageApi]);
@@ -1592,7 +1593,18 @@ const Chat = () => {
   return (
     <>
       {contextHolder}
-    <Layout className="chat-layout">
+    <Layout
+      className="chat-layout"
+      style={
+        isEmbedded
+          ? {
+              height: "100%",
+              minHeight: 0,
+            }
+          : undefined
+      }
+    >
+      {!isEmbedded && (
       <Sider width={350} className="chat-sidebar">
         <div className="chat-sidebar-header">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1703,8 +1715,18 @@ const Chat = () => {
           )}
         </div>
       </Sider>
+      )}
 
-      <Content className="chat-content">
+      <Content
+        className="chat-content"
+        style={
+          isEmbedded
+            ? {
+                padding: "8px 8px 12px",
+              }
+            : undefined
+        }
+      >
         {selectedConversation ? (
           <>
             <div className="chat-header">

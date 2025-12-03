@@ -501,10 +501,10 @@ const Doctors = () => {
                           }}
                           styles={{
                             body: {
-                              padding: 24,
-                              display: "flex",
-                              flexDirection: "column",
-                              flex: 1,
+                            padding: 24, 
+                            display: "flex",
+                            flexDirection: "column",
+                            flex: 1,
                               height: "100%",
                             },
                           }}

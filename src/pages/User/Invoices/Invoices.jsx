@@ -144,9 +144,9 @@ const Invoices = () => {
     try {
       setSelectedInvoice(record);
       try {
-        const response = await apiChiTietHoaDon.getByHoaDon(record.id_hoa_don);
-        const details = response?.data || response || [];
-        setInvoiceDetails(Array.isArray(details) ? details : []);
+      const response = await apiChiTietHoaDon.getByHoaDon(record.id_hoa_don);
+      const details = response?.data || response || [];
+      setInvoiceDetails(Array.isArray(details) ? details : []);
       } catch (error) {
         // Nếu không có chi tiết (404) thì vẫn cho mở modal, chỉ không có bảng dịch vụ
         if (error?.response?.status === 404) {

@@ -413,16 +413,16 @@ const Appointments = () => {
           </Button>
           {record._raw_trang_thai !== "da_huy" &&
             record._raw_trang_thai !== "da_hoan_thanh" && (
-              <Popconfirm
-                title="Bạn có chắc muốn hủy lịch khám này?"
-                onConfirm={() => handleCancelKham(record.id)}
-                okText="Có"
-                cancelText="Không"
-              >
+          <Popconfirm
+            title="Bạn có chắc muốn hủy lịch khám này?"
+            onConfirm={() => handleCancelKham(record.id)}
+            okText="Có"
+            cancelText="Không"
+          >
                 <Button danger icon={<CloseCircleOutlined />} size="small">
-                  Hủy
-                </Button>
-              </Popconfirm>
+              Hủy
+            </Button>
+          </Popconfirm>
             )}
         </Space>
       ),
@@ -494,16 +494,16 @@ const Appointments = () => {
           </Button>
           {record._raw_trang_thai !== "da_huy" &&
             record._raw_trang_thai !== "da_hoan_thanh" && (
-              <Popconfirm
-                title="Bạn có chắc muốn hủy lịch tư vấn này?"
-                onConfirm={() => handleCancelTuVan(record.id)}
-                okText="Có"
-                cancelText="Không"
-              >
+          <Popconfirm
+            title="Bạn có chắc muốn hủy lịch tư vấn này?"
+            onConfirm={() => handleCancelTuVan(record.id)}
+            okText="Có"
+            cancelText="Không"
+          >
                 <Button danger icon={<CloseCircleOutlined />} size="small">
-                  Hủy
-                </Button>
-              </Popconfirm>
+              Hủy
+            </Button>
+          </Popconfirm>
             )}
         </Space>
       ),

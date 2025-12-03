@@ -44,18 +44,45 @@ const AdminReports = () => {
     newPatientsThisMonth: 0,
     completionRate: 0,
   });
+  const [revenueStats, setRevenueStats] = useState({
+    rangeStart: null,
+    rangeEnd: null,
+    revenueToday: 0,
+    monthlyRevenue: 0,
+    revenueByPaymentMethod: {},
+    revenueByInvoiceType: {},
+  });
+  const [appointmentStats, setAppointmentStats] = useState({
+    totalAppointments: 0,
+    completedAppointments: 0,
+    completionRate: 0,
+    byStatus: {},
+    byType: { kham: 0, tu_van: 0 },
+  });
   const [dateRange, setDateRange] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await DashboardAPI.getAdminDashboard();
+      const params = {};
+      if (dateRange && dateRange.length === 2) {
+        params.start_date = dateRange[0].format("YYYY-MM-DD");
+        params.end_date = dateRange[1].format("YYYY-MM-DD");
+      }
+      const response = await DashboardAPI.getAdminDashboard(params);
       if (response.success && response.data) {
         setStats(response.data.stats || stats);
+        if (response.data.revenueStats) {
+          setRevenueStats(response.data.revenueStats);
+        }
+        if (response.data.appointmentStats) {
+          setAppointmentStats(response.data.appointmentStats);
+        }
       }
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -160,6 +187,53 @@ const AdminReports = () => {
     },
   ];
 
+  const paymentMethodRows = Object.entries(
+    revenueStats.revenueByPaymentMethod || {}
+  ).map(([method, value]) => ({
+    key: method,
+    method,
+    value,
+  }));
+
+  const invoiceTypeRows = Object.entries(
+    revenueStats.revenueByInvoiceType || {}
+  ).map(([type, value]) => ({
+    key: type,
+    type,
+    value,
+  }));
+
+  const appointmentStatusRows = Object.entries(
+    appointmentStats.byStatus || {}
+  ).map(([status, value]) => ({
+    key: status,
+    status,
+    value,
+  }));
+
+  const mapPaymentMethodLabel = (method) => {
+    const map = {
+      tien_mat: "Tiền mặt",
+      chuyen_khoan: "Chuyển khoản",
+      the: "Thẻ",
+      vi_dien_tu: "Ví điện tử",
+      momo: "Momo",
+      vnpay: "VNPay",
+      khac: "Khác",
+      null: "Không xác định",
+    };
+    return map[method] || method || "Không xác định";
+  };
+
+  const mapInvoiceTypeLabel = (type) => {
+    const map = {
+      dich_vu: "Dịch vụ",
+      dat_coc: "Đặt cọc",
+      hoan_dat_coc: "Hoàn đặt cọc",
+    };
+    return map[type] || type || "Khác";
+  };
+
   return (
     <div className="admin-reports-container">
       {/* Header */}
@@ -183,6 +257,7 @@ const AdminReports = () => {
             <Space>
               <RangePicker
                 format="DD/MM/YYYY"
+                value={dateRange}
                 onChange={(dates) => setDateRange(dates)}
                 placeholder={["Ngày bắt đầu", "Ngày kết thúc"]}
               />
@@ -297,17 +372,21 @@ const AdminReports = () => {
           <Card className="shadow-card">
             <Title level={4}>
               <DollarCircleOutlined style={{ color: "#9b59b6", marginRight: 8 }} />
-              Doanh thu tháng này
+              Doanh thu trong khoảng thời gian
             </Title>
             <Divider />
             <Statistic
-              value={stats.monthlyRevenue}
+              value={revenueStats.monthlyRevenue || stats.monthlyRevenue}
               prefix={<DollarCircleOutlined />}
               suffix="đ"
               valueStyle={{ fontSize: "36px", fontWeight: "bold", color: "#9b59b6" }}
             />
             <Progress
-              percent={Math.min((stats.monthlyRevenue / 100000000) * 100, 100)}
+              percent={Math.min(
+                ((revenueStats.monthlyRevenue || stats.monthlyRevenue) / 100000000) *
+                  100,
+                100
+              )}
               strokeColor={{
                 "0%": "#9b59b6",
                 "100%": "#8e44ad",
@@ -326,7 +405,7 @@ const AdminReports = () => {
             <Divider />
             <Progress
               type="dashboard"
-              percent={stats.completionRate}
+              percent={appointmentStats.completionRate || stats.completionRate}
               strokeColor={{
                 "0%": "#108ee9",
                 "100%": "#87d068",
@@ -336,6 +415,16 @@ const AdminReports = () => {
             <Text type="secondary" style={{ display: "block", marginTop: 16, textAlign: "center" }}>
               Tổng số cuộc hẹn đã hoàn thành
             </Text>
+            <Space
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: 12,
+              }}
+            >
+              <Text>Tổng cuộc hẹn trong khoảng:</Text>
+              <Text strong>{appointmentStats.totalAppointments || 0}</Text>
+            </Space>
           </Card>
         </Col>
       </Row>
@@ -344,7 +433,7 @@ const AdminReports = () => {
       <Card className="shadow-card">
         <Title level={4}>
           <BarChartOutlined style={{ color: "#1890ff", marginRight: 8 }} />
-          Bảng thống kê chi tiết
+          Bảng thống kê tổng quan
         </Title>
         <Table
           columns={reportColumns}
@@ -354,6 +443,89 @@ const AdminReports = () => {
           className="report-table"
         />
       </Card>
+
+      {/* Revenue & Appointment breakdown */}
+      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+        <Col xs={24} lg={12}>
+          <Card className="shadow-card" title="Doanh thu theo phương thức thanh toán">
+            <Table
+              size="small"
+              pagination={false}
+              dataSource={paymentMethodRows}
+              rowKey="key"
+              columns={[
+                {
+                  title: "Phương thức",
+                  dataIndex: "method",
+                  key: "method",
+                  render: (m) => mapPaymentMethodLabel(m),
+                },
+                {
+                  title: "Doanh thu",
+                  dataIndex: "value",
+                  key: "value",
+                  render: (v) => formatCurrency(v),
+                },
+              ]}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card className="shadow-card" title="Doanh thu theo loại hóa đơn">
+            <Table
+              size="small"
+              pagination={false}
+              dataSource={invoiceTypeRows}
+              rowKey="key"
+              columns={[
+                {
+                  title: "Loại hóa đơn",
+                  dataIndex: "type",
+                  key: "type",
+                  render: (t) => mapInvoiceTypeLabel(t),
+                },
+                {
+                  title: "Doanh thu",
+                  dataIndex: "value",
+                  key: "value",
+                  render: (v) => formatCurrency(v),
+                },
+              ]}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+        <Col xs={24} lg={12}>
+          <Card className="shadow-card" title="Cuộc hẹn theo trạng thái (trong khoảng thời gian)">
+            <Table
+              size="small"
+              pagination={false}
+              dataSource={appointmentStatusRows}
+              rowKey="key"
+              columns={[
+                { title: "Trạng thái", dataIndex: "status", key: "status" },
+                { title: "Số lượng", dataIndex: "value", key: "value" },
+              ]}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card className="shadow-card" title="Cuộc hẹn theo loại (trong khoảng thời gian)">
+            <Space direction="vertical" style={{ width: "100%" }}>
+              <Space style={{ justifyContent: "space-between", width: "100%" }}>
+                <Text strong>Khám bệnh</Text>
+                <Text>{appointmentStats.byType?.kham || 0}</Text>
+              </Space>
+              <Space style={{ justifyContent: "space-between", width: "100%" }}>
+                <Text strong>Tư vấn dinh dưỡng</Text>
+                <Text>{appointmentStats.byType?.tu_van || 0}</Text>
+              </Space>
+            </Space>
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 };
