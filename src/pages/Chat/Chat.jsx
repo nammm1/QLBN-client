@@ -307,10 +307,28 @@ const Chat = ({ embedded = false }) => {
       };
 
       pc.onconnectionstatechange = () => {
+        console.log("Peer connection state changed:", pc.connectionState);
+        const currentCall = currentCallRef.current;
         if (
           ["disconnected", "failed", "closed"].includes(pc.connectionState)
         ) {
-          cleanupCallState({ notifyServer: false, reason: pc.connectionState });
+          console.warn("Peer connection ended:", pc.connectionState, "Current call:", currentCall);
+          // Chỉ cleanup nếu có cuộc gọi đang diễn ra
+          if (currentCall) {
+            cleanupCallState({ notifyServer: false, reason: pc.connectionState });
+          }
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log("ICE connection state changed:", pc.iceConnectionState);
+        if (pc.iceConnectionState === "failed") {
+          console.warn("ICE connection failed, attempting restart...");
+          // Có thể thử restart ICE connection
+        } else if (pc.iceConnectionState === "disconnected") {
+          console.warn("ICE connection disconnected");
+        } else if (pc.iceConnectionState === "connected") {
+          console.log("ICE connection established successfully");
         }
       };
 
@@ -382,15 +400,34 @@ const Chat = ({ embedded = false }) => {
       return;
     }
     try {
+      console.log("Accepting incoming call:", incomingCall);
       setCallState("starting");
       const { conversationId, callId, offer, callerInfo } = incomingCall;
+      
+      console.log("Getting local stream...");
       const stream = await ensureLocalStream();
+      console.log("Local stream obtained:", stream.getTracks().length, "tracks");
+      
+      console.log("Creating peer connection...");
       const pc = createPeerConnection(conversationId, callId);
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      stream.getTracks().forEach((track) => {
+        console.log("Adding track:", track.kind);
+        pc.addTrack(track, stream);
+      });
+      
+      console.log("Setting remote description...");
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      console.log("Remote description set, signaling state:", pc.signalingState);
+      
+      console.log("Creating answer...");
       const answer = await pc.createAnswer();
+      console.log("Answer created, setting local description...");
       await pc.setLocalDescription(answer);
+      console.log("Local description set, signaling state:", pc.signalingState);
+      
+      console.log("Sending answer to server...");
       socketService.answerVideoCall({ conversationId, callId, answer });
+      
       setCurrentCallInfo({
         callId,
         conversationId,
@@ -400,6 +437,7 @@ const Chat = ({ embedded = false }) => {
       setIncomingCall(null);
       setCallModalVisible(true);
       setCallState("connecting");
+      console.log("Call accepted successfully, waiting for connection...");
     } catch (error) {
       console.error("handleAcceptIncomingCall error:", error);
       
