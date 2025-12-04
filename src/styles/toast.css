@@ -4,6 +4,28 @@
 .ant-message {
   top: 24px !important;
   z-index: 1100 !important; /* Cao hơn modal (1050) để hiển thị trên modal */
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  max-width: 480px !important;
+}
+
+@media (max-width: 768px) {
+  .ant-message {
+    top: 16px !important;
+    left: 16px !important;
+    right: 16px !important;
+    transform: none !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .ant-message {
+    top: 12px !important;
+    left: 12px !important;
+    right: 12px !important;
+    max-width: calc(100vw - 24px) !important;
+  }
 }
 
 /* Toast item */
@@ -219,45 +241,79 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
 
-/* Responsive */
+/* Responsive - Tablet và Mobile */
 @media (max-width: 768px) {
   .ant-message-notice-content {
-    padding: 16px 20px !important;
+    padding: 14px 18px !important;
     min-height: 56px !important;
     font-size: 14px !important;
-    max-width: calc(100vw - 32px) !important;
-  }
-
-  .ant-message-notice-content .anticon {
-    font-size: 22px !important;
-    width: 28px !important;
-    height: 28px !important;
-    margin-right: 12px !important;
-  }
-
-  .ant-message-notice-content .ant-message-custom-content {
-    font-size: 14px !important;
-  }
-}
-
-@media (max-width: 576px) {
-  .ant-message {
-    top: 16px !important;
-    left: 16px !important;
-    right: 16px !important;
-  }
-
-  .ant-message-notice-content {
-    padding: 14px 18px !important;
-    min-height: 52px !important;
+    max-width: 100% !important;
     border-radius: 10px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1) !important;
   }
 
   .ant-message-notice-content .anticon {
     font-size: 20px !important;
     width: 26px !important;
     height: 26px !important;
+    margin-right: 12px !important;
+  }
+
+  .ant-message-notice-content .ant-message-custom-content {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Giảm animation trên mobile để tiết kiệm pin */
+  .ant-message-notice-content .anticon {
+    animation: none !important;
+  }
+}
+
+/* Responsive - Mobile nhỏ */
+@media (max-width: 576px) {
+  .ant-message-notice-content {
+    padding: 12px 16px !important;
+    min-height: 50px !important;
+    font-size: 13px !important;
+    border-radius: 8px !important;
+  }
+
+  .ant-message-notice-content .anticon {
+    font-size: 18px !important;
+    width: 24px !important;
+    height: 24px !important;
     margin-right: 10px !important;
+  }
+
+  .ant-message-notice-content .ant-message-custom-content {
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Giảm margin giữa các toast trên mobile */
+  .ant-message-notice {
+    margin-bottom: 12px !important;
+  }
+}
+
+/* Responsive - Mobile rất nhỏ */
+@media (max-width: 375px) {
+  .ant-message-notice-content {
+    padding: 10px 14px !important;
+    min-height: 48px !important;
+    font-size: 12px !important;
+  }
+
+  .ant-message-notice-content .anticon {
+    font-size: 16px !important;
+    width: 22px !important;
+    height: 22px !important;
+    margin-right: 8px !important;
+  }
+
+  .ant-message-notice-content .ant-message-custom-content {
+    font-size: 12px !important;
   }
 }
 

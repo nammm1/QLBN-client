@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge, Dropdown, List, Empty, Button, Space, Typography, Divider } from "antd";
 import { BellOutlined, CheckOutlined, DeleteOutlined } from "@ant-design/icons";
 import apiThongBao from "../../api/ThongBao";
+import useMedia from "../../hooks/useMedia";
 import "./NotificationDropdown.css";
 
 const { Text } = Typography;
@@ -12,14 +13,17 @@ const NotificationDropdown = ({ userId }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const isMobile = useMedia("(max-width: 768px)");
 
-  // Fetch notifications
-  const fetchNotifications = async () => {
+  // Fetch notifications - Giới hạn số lượng hiển thị
+  const fetchNotifications = useCallback(async () => {
     if (!userId) return;
     
     try {
       setLoading(true);
-      const res = await apiThongBao.getByUser(userId, { limit: 10 });
+      // Giới hạn 5 thông báo trên mobile, 10 trên desktop
+      const limit = isMobile ? 5 : 10;
+      const res = await apiThongBao.getByUser(userId, { limit });
       if (res.success) {
         setNotifications(res.data || []);
       }
@@ -28,7 +32,7 @@ const NotificationDropdown = ({ userId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, isMobile]);
 
   // Fetch unread count
   const fetchUnreadCount = async () => {
@@ -188,7 +192,7 @@ const NotificationDropdown = ({ userId }) => {
 
       return () => clearInterval(interval);
     }
-  }, [userId]);
+  }, [userId, fetchNotifications]);
 
   const getNotificationIcon = (loai_thong_bao) => {
     switch (loai_thong_bao) {
@@ -219,74 +223,87 @@ const NotificationDropdown = ({ userId }) => {
   };
 
   const dropdownContent = (
-    <div className="notification-dropdown">
+    <div className={`notification-dropdown ${isMobile ? 'mobile' : ''}`}>
       <div className="notification-header">
-        <Text strong>Thông báo</Text>
+        <Text strong style={{ fontSize: isMobile ? '14px' : '16px' }}>
+          Thông báo
+        </Text>
         {unreadCount > 0 && (
           <Button 
             type="link" 
             size="small" 
             onClick={handleMarkAllAsRead}
             icon={<CheckOutlined />}
+            style={{ fontSize: isMobile ? '12px' : '14px', padding: isMobile ? '0 4px' : '0 8px' }}
           >
-            Đánh dấu tất cả đã đọc
+            {isMobile ? 'Đã đọc' : 'Đánh dấu tất cả đã đọc'}
           </Button>
         )}
       </div>
-      <Divider style={{ margin: '8px 0' }} />
-      <List
-        loading={loading}
-        dataSource={notifications}
-        locale={{ emptyText: <Empty description="Không có thông báo" /> }}
-        renderItem={(item) => (
-          <List.Item
-            className={`notification-item ${item.trang_thai === 'chua_doc' ? 'unread' : ''} ${item.id_lien_ket ? 'clickable' : ''}`}
-            onClick={() => handleNotificationClick(item)}
-            style={{ cursor: item.id_lien_ket ? 'pointer' : 'default' }}
-          >
-            <List.Item.Meta
-              avatar={
-                <div className="notification-icon">
-                  {getNotificationIcon(item.loai_thong_bao)}
-                </div>
-              }
-              title={
-                <Space>
-                  <Text strong={item.trang_thai === 'chua_doc'}>
-                    {item.tieu_de}
-                  </Text>
-                  {item.trang_thai === 'chua_doc' && (
-                    <Badge status="processing" />
-                  )}
-                </Space>
-              }
-              description={
-                <div>
-                  <Text type="secondary" style={{ fontSize: '13px' }}>
-                    {item.noi_dung}
-                  </Text>
-                  <div style={{ marginTop: '4px' }}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                      {formatTime(item.thoi_gian_tao)}
-                    </Text>
-                    <Button
-                      type="text"
-                      size="small"
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(item.id_thong_bao);
-                      }}
-                      style={{ float: 'right' }}
-                    />
+      <Divider style={{ margin: isMobile ? '4px 0' : '8px 0' }} />
+      <div className="notification-list-container">
+        <List
+          loading={loading}
+          dataSource={notifications}
+          locale={{ emptyText: <Empty description="Không có thông báo" style={{ padding: isMobile ? '20px 10px' : '40px 20px' }} /> }}
+          renderItem={(item) => (
+            <List.Item
+              className={`notification-item ${item.trang_thai === 'chua_doc' ? 'unread' : ''} ${item.id_lien_ket ? 'clickable' : ''}`}
+              onClick={() => handleNotificationClick(item)}
+              style={{ cursor: item.id_lien_ket ? 'pointer' : 'default' }}
+            >
+              <List.Item.Meta
+                avatar={
+                  <div className="notification-icon">
+                    {getNotificationIcon(item.loai_thong_bao)}
                   </div>
-                </div>
-              }
-            />
-          </List.Item>
-        )}
-      />
+                }
+                title={
+                  <Space wrap>
+                    <Text 
+                      strong={item.trang_thai === 'chua_doc'}
+                      style={{ fontSize: isMobile ? '13px' : '14px' }}
+                      ellipsis={{ tooltip: item.tieu_de }}
+                    >
+                      {item.tieu_de}
+                    </Text>
+                    {item.trang_thai === 'chua_doc' && (
+                      <Badge status="processing" size={isMobile ? 'small' : 'default'} />
+                    )}
+                  </Space>
+                }
+                description={
+                  <div>
+                    <Text 
+                      type="secondary" 
+                      style={{ fontSize: isMobile ? '12px' : '13px' }}
+                      ellipsis={{ tooltip: item.noi_dung, rows: isMobile ? 1 : 2 }}
+                    >
+                      {item.noi_dung}
+                    </Text>
+                    <div style={{ marginTop: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text type="secondary" style={{ fontSize: isMobile ? '11px' : '12px' }}>
+                        {formatTime(item.thoi_gian_tao)}
+                      </Text>
+                      <Button
+                        type="text"
+                        size="small"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(item.id_thong_bao);
+                        }}
+                        style={{ padding: isMobile ? '0 4px' : '0 8px' }}
+                      />
+                    </div>
+                  </div>
+                }
+              />
+            </List.Item>
+          )}
+        />
+      </div>
       {notifications.length > 0 && (
         <>
           <Divider style={{ margin: '8px 0' }} />
@@ -315,7 +332,7 @@ const NotificationDropdown = ({ userId }) => {
     <Dropdown
       popupRender={() => dropdownContent}
       trigger={['click']}
-      placement="bottomRight"
+      placement={isMobile ? "bottom" : "bottomRight"}
       overlayClassName="notification-dropdown-overlay"
       onOpenChange={(open) => {
         if (open) {
@@ -324,13 +341,13 @@ const NotificationDropdown = ({ userId }) => {
         }
       }}
     >
-      <Badge count={unreadCount} size="small" offset={[-5, 5]}>
+      <Badge count={unreadCount > 99 ? '99+' : unreadCount} size="small" offset={isMobile ? [-3, 3] : [-5, 5]}>
         <Button
           type="text"
-          icon={<BellOutlined style={{ fontSize: '18px' }} />}
+          icon={<BellOutlined style={{ fontSize: isMobile ? '16px' : '18px' }} />}
           style={{
-            width: '40px',
-            height: '40px',
+            width: isMobile ? '36px' : '40px',
+            height: isMobile ? '36px' : '40px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
