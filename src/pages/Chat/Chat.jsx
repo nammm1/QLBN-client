@@ -162,18 +162,48 @@ const Chat = ({ embedded = false }) => {
     if (!navigator?.mediaDevices?.getUserMedia) {
       throw new Error("Thiết bị không hỗ trợ cuộc gọi video");
     }
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-    localStreamRef.current = stream;
-    setLocalStream(stream);
-    setIsMicMuted(false);
-    setIsCameraOff(false);
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = stream;
+    
+    try {
+      // Thử lấy cả video và audio
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+      localStreamRef.current = stream;
+      setLocalStream(stream);
+      setIsMicMuted(false);
+      setIsCameraOff(false);
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      return stream;
+    } catch (error) {
+      console.error("getUserMedia error:", error);
+      
+      // Nếu lỗi do không có video, thử chỉ lấy audio
+      if (error?.name === "NotFoundError" || error?.name === "DevicesNotFoundError") {
+        try {
+          const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: true,
+          });
+          localStreamRef.current = audioOnlyStream;
+          setLocalStream(audioOnlyStream);
+          setIsMicMuted(false);
+          setIsCameraOff(true);
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = null;
+          }
+          messageApi.warning("Không tìm thấy camera, chỉ sử dụng audio");
+          return audioOnlyStream;
+        } catch (audioError) {
+          console.error("getUserMedia audio fallback error:", audioError);
+          throw error; // Throw lỗi gốc
+        }
+      }
+      
+      throw error;
     }
-    return stream;
   }, []);
 
   const attemptApplyRemoteAnswer = useCallback(async () => {
@@ -372,11 +402,22 @@ const Chat = ({ embedded = false }) => {
       setCallState("connecting");
     } catch (error) {
       console.error("handleAcceptIncomingCall error:", error);
-      messageApi.error("Không thể tham gia cuộc gọi. Vui lòng thử lại.");
+      
+      // Hiển thị thông báo lỗi chi tiết hơn
+      let errorMessage = "Không thể tham gia cuộc gọi. Vui lòng thử lại.";
+      if (error?.name === "NotAllowedError" || error?.name === "PermissionDeniedError") {
+        errorMessage = "Vui lòng cấp quyền truy cập camera và micro để tham gia cuộc gọi.";
+      } else if (error?.name === "NotFoundError" || error?.name === "DevicesNotFoundError") {
+        errorMessage = "Không tìm thấy camera hoặc micro. Vui lòng kiểm tra thiết bị.";
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      messageApi.error(errorMessage);
       socketService.rejectVideoCall({
         conversationId: incomingCall.conversationId,
         callId: incomingCall.callId,
-        reason: "failed_to_connect",
+        reason: error?.name || "failed_to_connect",
       });
       setIncomingCall(null);
       cleanupCallState({ notifyServer: false, reason: "failed_to_connect" });
