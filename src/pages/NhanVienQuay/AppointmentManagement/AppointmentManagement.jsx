@@ -335,15 +335,23 @@ const AppointmentManagement = () => {
       onOk: async () => {
         try {
           const isTuVan = record.loai_hen === 'tu_van_dinh_duong' || record.id_chuyen_gia;
+          let response;
           if (isTuVan) {
-            await apiCuocHenTuVan.update(record.id_cuoc_hen, { trang_thai: "da_huy" });
+            response = await apiCuocHenTuVan.update(record.id_cuoc_hen, { trang_thai: "da_huy" });
           } else {
-            await apiCuocHenKhamBenh.update(record.id_cuoc_hen, { trang_thai: "da_huy" });
+            response = await apiCuocHenKhamBenh.update(record.id_cuoc_hen, { trang_thai: "da_huy" });
           }
-          message.success("Đã hủy lịch hẹn");
+          
+          // Hiển thị thông báo hoàn tiền nếu có
+          if (response?.refundInfo?.message) {
+            message.success(response.refundInfo.message, 5);
+          } else {
+            message.success("Đã hủy lịch hẹn");
+          }
           fetchData();
         } catch (error) {
-          message.error("Không thể hủy lịch hẹn");
+          const errorMessage = error?.response?.data?.message || "Không thể hủy lịch hẹn";
+          message.error(errorMessage);
           console.error(error);
         }
       },

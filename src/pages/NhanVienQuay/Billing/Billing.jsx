@@ -92,6 +92,7 @@ const Billing = () => {
   const [isQRScannerVisible, setIsQRScannerVisible] = useState(false);
   const [isPrintModalVisible, setIsPrintModalVisible] = useState(false);
   const qrScannerRef = useRef(null);
+  const paymentSuccessShownRef = useRef(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [invoiceDetails, setInvoiceDetails] = useState([]);
   const [filterForm] = Form.useForm();
@@ -254,30 +255,48 @@ const Billing = () => {
   };
 
   useEffect(() => {
-    if (!location.state?.paymentSuccess) {
+    if (!location.state?.paymentSuccess || paymentSuccessShownRef.current) {
       return;
     }
 
+    paymentSuccessShownRef.current = true;
     const successMessage = location.state.orderId
       ? `Hóa đơn ${location.state.orderId} đã thanh toán thành công`
       : "Thanh toán Momo thành công";
     message.success(successMessage);
     fetchData();
-    navigate(location.pathname, { replace: true });
+    // Clear state để tránh hiển thị lại khi component re-render
+    navigate(location.pathname, { replace: true, state: {} });
+    // Reset ref sau 1 giây để cho phép hiển thị lại nếu có payment mới
+    setTimeout(() => {
+      paymentSuccessShownRef.current = false;
+    }, 1000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state, location.pathname, navigate]);
+  }, [location.state?.paymentSuccess, location.state?.orderId, location.pathname, navigate]);
 
   const handleViewDetail = async (record) => {
     try {
       setSelectedInvoice(record);
-      // Fetch chi tiết hóa đơn
-      const response = await apiChiTietHoaDon.getByHoaDon(record.id_hoa_don);
-      const details = response?.data || response || [];
-      setInvoiceDetails(Array.isArray(details) ? details : []);
+      try {
+        // Fetch chi tiết hóa đơn
+        const response = await apiChiTietHoaDon.getByHoaDon(record.id_hoa_don);
+        const details = response?.data || response || [];
+        setInvoiceDetails(Array.isArray(details) ? details : []);
+      } catch (error) {
+        // Nếu không có chi tiết (404 hoặc 200 với mảng rỗng) thì vẫn cho mở modal
+        if (error?.response?.status === 404 || error?.response?.status === 200) {
+          setInvoiceDetails([]);
+        } else {
+          // Chỉ log lỗi, không hiển thị message cho user vì hóa đơn đặt cọc là hợp lệ
+          console.warn("Không thể tải chi tiết hóa đơn:", error);
+          setInvoiceDetails([]);
+        }
+      }
       setIsDetailModalVisible(true);
     } catch (error) {
-      message.error("Không thể tải chi tiết hóa đơn");
-      console.error(error);
+      // Không hiển thị lỗi nếu là hóa đơn đặt cọc (không có chi tiết là bình thường)
+      console.warn("Error loading invoice details:", error);
+      setIsDetailModalVisible(true);
     }
   };
 
@@ -889,6 +908,13 @@ const Billing = () => {
                   {selectedInvoice.id_hoa_don}
                 </Text>
               </Descriptions.Item>
+              {(selectedInvoice.loai_hoa_don === 'dat_coc' || selectedInvoice.loai_hoa_don === 'hoan_dat_coc') && (
+                <Descriptions.Item label="Loại hóa đơn" span={2}>
+                  <Tag color="orange" icon={<DollarOutlined />}>
+                    {selectedInvoice.loai_hoa_don === 'dat_coc' ? 'Hóa đơn đặt cọc' : 'Hóa đơn hoàn tiền cọc'}
+                  </Tag>
+                </Descriptions.Item>
+              )}
               <Descriptions.Item label="Ngày tạo">
                 {moment(selectedInvoice.thoi_gian_tao || selectedInvoice.ngay_tao).format("DD/MM/YYYY HH:mm")}
               </Descriptions.Item>
@@ -907,6 +933,10 @@ const Billing = () => {
                     ? "Tiền mặt"
                     : selectedInvoice.phuong_thuc_thanh_toan === "chuyen_khoan"
                     ? "Chuyển khoản"
+                    : selectedInvoice.phuong_thuc_thanh_toan === "momo"
+                    ? "Momo"
+                    : selectedInvoice.phuong_thuc_thanh_toan === "vnpay"
+                    ? "VNPay"
                     : selectedInvoice.phuong_thuc_thanh_toan === "the"
                     ? "Thẻ"
                     : "Ví điện tử"}
@@ -915,6 +945,11 @@ const Billing = () => {
               {selectedInvoice.thoi_gian_thanh_toan && (
                 <Descriptions.Item label="Ngày thanh toán" span={2}>
                   {moment(selectedInvoice.thoi_gian_thanh_toan).format("DD/MM/YYYY HH:mm")}
+                </Descriptions.Item>
+              )}
+              {selectedInvoice.thoi_han_thanh_toan && (
+                <Descriptions.Item label="Hạn thanh toán" span={2}>
+                  {moment(selectedInvoice.thoi_han_thanh_toan).format("DD/MM/YYYY HH:mm")}
                 </Descriptions.Item>
               )}
               {/* Thông tin bệnh nhân */}
@@ -1011,7 +1046,28 @@ const Billing = () => {
                 ]}
               />
             ) : (
-              <Empty description="Không có chi tiết dịch vụ" />
+              <div>
+                {(selectedInvoice.loai_hoa_don === 'dat_coc' || selectedInvoice.loai_hoa_don === 'hoan_dat_coc') ? (
+                  <div style={{ 
+                    padding: "24px", 
+                    textAlign: "center",
+                    backgroundColor: "#fff7e6",
+                    borderRadius: "8px",
+                    border: "1px solid #ffd591"
+                  }}>
+                    <Text type="secondary" style={{ fontSize: "14px", display: "block", marginBottom: "8px" }}>
+                      💰 Đây là hóa đơn {selectedInvoice.loai_hoa_don === 'dat_coc' ? 'đặt cọc' : 'hoàn tiền cọc'} cho cuộc hẹn
+                    </Text>
+                    <Text type="secondary" style={{ fontSize: "12px" }}>
+                      Hóa đơn này không có chi tiết dịch vụ vì đây là khoản tiền cọc để giữ chỗ cho cuộc hẹn khám bệnh/tư vấn.
+                      {selectedInvoice.id_cuoc_hen_kham && " Sau khi hoàn thành khám bệnh, bệnh nhân sẽ nhận được hóa đơn dịch vụ chi tiết."}
+                      {selectedInvoice.id_cuoc_hen_tu_van && " Sau khi hoàn thành tư vấn, bệnh nhân sẽ nhận được hóa đơn dịch vụ chi tiết."}
+                    </Text>
+                  </div>
+                ) : (
+                  <Empty description="Không có chi tiết dịch vụ" />
+                )}
+              </div>
             )}
 
             <Divider />

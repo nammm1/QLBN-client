@@ -96,7 +96,8 @@ const apiCuocHenKhamBenh = {
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenKhamBenh}/${id_cuoc_hen}/trang-thai`,
         { trang_thai }
       );
-      return res.data.data;
+      // Trả về toàn bộ response để có thể truy cập refundInfo
+      return { ...res.data.data, refundInfo: res.data.refundInfo };
     } catch (err) {
       console.error("Error updating trang thai cuoc hen:", err);
       throw err;
@@ -151,6 +152,25 @@ const apiCuocHenKhamBenh = {
       return res.data.data || [];
     } catch (err) {
       console.error("Error fetching all cuoc hen kham:", err);
+      throw err;
+    }
+  },
+
+  // Cập nhật cuộc hẹn khám (alias cho updateTrangThai để tương thích)
+  update: async (id_cuoc_hen, data) => {
+    try {
+      if (data.trang_thai) {
+        const res = await axiosInstance.put(
+          `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenKhamBenh}/${id_cuoc_hen}/trang-thai`,
+          { trang_thai: data.trang_thai }
+        );
+        // Trả về toàn bộ response để có thể truy cập refundInfo
+        return { ...res.data.data, refundInfo: res.data.refundInfo };
+      }
+      // Nếu có các trường khác, có thể mở rộng sau
+      throw new Error("Chỉ hỗ trợ cập nhật trạng thái");
+    } catch (err) {
+      console.error("Error updating cuoc hen kham:", err);
       throw err;
     }
   },

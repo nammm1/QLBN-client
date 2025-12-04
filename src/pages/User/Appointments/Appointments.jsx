@@ -89,7 +89,7 @@ const Appointments = () => {
       : res?.data ?? res ?? [];
 
   // ======================= LOAD LỊCH KHÁM BỆNH ==========================
-  const loadLichKhamBenh = async (chuyenKhoaMap) => {
+  const loadLichKhamBenh = async (chuyenKhoaMap, khungGioMap, nguoiDungMap) => {
     setLoadingKham(true);
     try {
       let resp;
@@ -99,76 +99,81 @@ const Appointments = () => {
 
       const raw = unwrap(resp) || [];
 
-      const enriched = await Promise.all(
-        raw.map(async (it) => {
-          const id =
-            it.id_cuoc_hen ||
-            it.id ||
-            it._id ||
-            it.id_cuoc_hen_kham_benh;
+      const enriched = raw.map((it) => {
+        const id =
+          it.id_cuoc_hen ||
+          it.id ||
+          it._id ||
+          it.id_cuoc_hen_kham_benh;
 
-          let gio_bat_dau = "—",
-            gio_ket_thuc = "—";
-          if (it.id_khung_gio && apiKhungGioKham.getById) {
-            try {
-              const kres = await apiKhungGioKham.getById(it.id_khung_gio);
-              const khung = unwrap(kres);
-              if (khung) {
-                gio_bat_dau = khung.gio_bat_dau || "—";
-                gio_ket_thuc = khung.gio_ket_thuc || "—";
-              }
-            } catch {}
-          }
+        // Sử dụng khung giờ từ response hoặc từ map cache
+        let gio_bat_dau = "—",
+          gio_ket_thuc = "—";
+        if (it.khungGio) {
+          gio_bat_dau = it.khungGio.gio_bat_dau || "—";
+          gio_ket_thuc = it.khungGio.gio_ket_thuc || "—";
+        } else if (it.id_khung_gio && khungGioMap[it.id_khung_gio]) {
+          const khung = khungGioMap[it.id_khung_gio];
+          gio_bat_dau = khung.gio_bat_dau || "—";
+          gio_ket_thuc = khung.gio_ket_thuc || "—";
+        }
 
-          let ten_bac_si = "—";
-          const bsId =
-            it.id_bac_si ||
-            it.id_nguoi_dung_bac_si ||
-            it.id_nguoi_dung;
-          if (bsId && apiNguoiDung.getUserById) {
-            try {
-              const bres = await apiNguoiDung.getUserById(bsId);
-              const bdata = unwrap(bres);
-              ten_bac_si = bdata?.ho_ten || bdata?.ten || "—";
-            } catch {}
-          }
+        // Sử dụng thông tin từ response hoặc từ map cache
+        let ten_bac_si = "—";
+        const bsId =
+          it.id_bac_si ||
+          it.id_nguoi_dung_bac_si ||
+          it.id_nguoi_dung;
+        if (it.bacSi?.ho_ten) {
+          ten_bac_si = it.bacSi.ho_ten;
+        } else if (bsId && nguoiDungMap[bsId]) {
+          ten_bac_si = nguoiDungMap[bsId].ho_ten || nguoiDungMap[bsId].ten || "—";
+        }
 
-          let ten_chuyen_khoa = "—";
-          const ckId =
-            it.id_chuyen_khoa ||
-            it.id_khoa ||
-            it.chuyen_khoa_id;
-          if (ckId && chuyenKhoaMap[ckId]) {
-            ten_chuyen_khoa =
-              chuyenKhoaMap[ckId].ten_chuyen_khoa ||
-              chuyenKhoaMap[ckId].ten ||
-              "—";
-          }
+        let ten_chuyen_khoa = "—";
+        const ckId =
+          it.id_chuyen_khoa ||
+          it.id_khoa ||
+          it.chuyen_khoa_id;
+        if (it.chuyenKhoa?.ten_chuyen_khoa) {
+          ten_chuyen_khoa = it.chuyenKhoa.ten_chuyen_khoa;
+        } else if (ckId && chuyenKhoaMap[ckId]) {
+          ten_chuyen_khoa =
+            chuyenKhoaMap[ckId].ten_chuyen_khoa ||
+            chuyenKhoaMap[ckId].ten ||
+            "—";
+        }
 
-          let phong_kham_label = "—";
-          if (it.phong_kham) {
-            const pk = it.phong_kham;
-            const parts = [];
-            if (pk.ten_phong) parts.push(pk.ten_phong);
-            if (pk.so_phong) parts.push(`P.${pk.so_phong}`);
-            if (pk.tang) parts.push(`Tầng ${pk.tang}`);
-            phong_kham_label = parts.join(" - ") || "—";
-          }
+        let phong_kham_label = "—";
+        if (it.phong_kham) {
+          const pk = it.phong_kham;
+          const parts = [];
+          if (pk.ten_phong) parts.push(pk.ten_phong);
+          if (pk.so_phong) parts.push(`P.${pk.so_phong}`);
+          if (pk.tang) parts.push(`Tầng ${pk.tang}`);
+          phong_kham_label = parts.join(" - ") || "—";
+        }
 
-          return {
-            id,
-            ngay_kham: it.ngay_kham,
-            gio_bat_dau,
-            gio_ket_thuc,
-            ten_bac_si,
-            ten_chuyen_khoa,
-            phong_kham: phong_kham_label,
-            loai_hen: loaiHenLabel(it.loai_hen),
-            trang_thai: statusLabel(it.trang_thai),
-            _raw_trang_thai: it.trang_thai,
-          };
-        })
-      );
+        return {
+          id,
+          ngay_kham: it.ngay_kham,
+          gio_bat_dau,
+          gio_ket_thuc,
+          ten_bac_si,
+          ten_chuyen_khoa,
+          phong_kham: phong_kham_label,
+          loai_hen: loaiHenLabel(it.loai_hen),
+          trang_thai: statusLabel(it.trang_thai),
+          _raw_trang_thai: it.trang_thai,
+        };
+      });
+
+      // Sort theo ngày (mới nhất trước)
+      enriched.sort((a, b) => {
+        const dateA = new Date(a.ngay_kham || 0);
+        const dateB = new Date(b.ngay_kham || 0);
+        return dateB - dateA; // Descending order
+      });
 
       setLichKham(enriched);
     } catch (err) {
@@ -179,7 +184,7 @@ const Appointments = () => {
   };
 
   // ======================= LOAD LỊCH TƯ VẤN DINH DƯỠNG ==========================
-  const loadLichTuVan = async () => {
+  const loadLichTuVan = async (khungGioMap, nguoiDungMap) => {
     setLoadingTuVan(true);
     try {
       let resp;
@@ -189,63 +194,66 @@ const Appointments = () => {
 
       const raw = unwrap(resp) || [];
 
-      const enriched = await Promise.all(
-        raw.map(async (it) => {
-          const id =
-            it.id_cuoc_hen ||
-            it.id ||
-            it._id ||
-            it.id_cuoc_hen_tu_van;
+      const enriched = raw.map((it) => {
+        const id =
+          it.id_cuoc_hen ||
+          it.id ||
+          it._id ||
+          it.id_cuoc_hen_tu_van;
 
-          let gio_bat_dau = "—",
-            gio_ket_thuc = "—";
-          if (it.id_khung_gio && apiKhungGioKham.getById) {
-            try {
-              const kres = await apiKhungGioKham.getById(it.id_khung_gio);
-              const khung = unwrap(kres);
-              if (khung) {
-                gio_bat_dau = khung.gio_bat_dau || "—";
-                gio_ket_thuc = khung.gio_ket_thuc || "—";
-              }
-            } catch {}
-          }
+        // Sử dụng khung giờ từ response hoặc từ map cache
+        let gio_bat_dau = "—",
+          gio_ket_thuc = "—";
+        if (it.khungGio) {
+          gio_bat_dau = it.khungGio.gio_bat_dau || "—";
+          gio_ket_thuc = it.khungGio.gio_ket_thuc || "—";
+        } else if (it.id_khung_gio && khungGioMap[it.id_khung_gio]) {
+          const khung = khungGioMap[it.id_khung_gio];
+          gio_bat_dau = khung.gio_bat_dau || "—";
+          gio_ket_thuc = khung.gio_ket_thuc || "—";
+        }
 
-          let ten_chuyen_gia = "—";
-          const cgId = it.id_chuyen_gia || it.id_nguoi_dung;
-          if (cgId && apiNguoiDung.getUserById) {
-            try {
-              const eres = await apiNguoiDung.getUserById(cgId);
-              const edata = unwrap(eres);
-              ten_chuyen_gia = edata?.ho_ten || edata?.ten || "—";
-            } catch {}
-          }
+        // Sử dụng thông tin từ response hoặc từ map cache
+        let ten_chuyen_gia = "—";
+        const cgId = it.id_chuyen_gia || it.id_nguoi_dung;
+        if (it.chuyenGia?.ho_ten) {
+          ten_chuyen_gia = it.chuyenGia.ho_ten;
+        } else if (cgId && nguoiDungMap[cgId]) {
+          ten_chuyen_gia = nguoiDungMap[cgId].ho_ten || nguoiDungMap[cgId].ten || "—";
+        }
 
-          const loai_dinh_duong = it.loai_dinh_duong || it.loai_tu_van || "—";
+        const loai_dinh_duong = it.loai_dinh_duong || it.loai_tu_van || "—";
 
-          let phong_kham_label = "—";
-          if (it.phong_kham) {
-            const pk = it.phong_kham;
-            const parts = [];
-            if (pk.ten_phong) parts.push(pk.ten_phong);
-            if (pk.so_phong) parts.push(`P.${pk.so_phong}`);
-            if (pk.tang) parts.push(`Tầng ${pk.tang}`);
-            phong_kham_label = parts.join(" - ") || "—";
-          }
+        let phong_kham_label = "—";
+        if (it.phong_kham) {
+          const pk = it.phong_kham;
+          const parts = [];
+          if (pk.ten_phong) parts.push(pk.ten_phong);
+          if (pk.so_phong) parts.push(`P.${pk.so_phong}`);
+          if (pk.tang) parts.push(`Tầng ${pk.tang}`);
+          phong_kham_label = parts.join(" - ") || "—";
+        }
 
-          return {
-            id,
-            ngay_kham: it.ngay_tu_van || it.ngay_kham,
-            gio_bat_dau,
-            gio_ket_thuc,
-            ten_chuyen_gia,
-            loai_dinh_duong,
-            phong_kham: phong_kham_label,
-            loai_hen: phuongThucLabel(it.loai_hen),
-            trang_thai: statusLabel(it.trang_thai),
-            _raw_trang_thai: it.trang_thai,
-          };
-        })
-      );
+        return {
+          id,
+          ngay_kham: it.ngay_tu_van || it.ngay_kham,
+          gio_bat_dau,
+          gio_ket_thuc,
+          ten_chuyen_gia,
+          loai_dinh_duong,
+          phong_kham: phong_kham_label,
+          loai_hen: phuongThucLabel(it.loai_hen),
+          trang_thai: statusLabel(it.trang_thai),
+          _raw_trang_thai: it.trang_thai,
+        };
+      });
+
+      // Sort theo ngày (mới nhất trước)
+      enriched.sort((a, b) => {
+        const dateA = new Date(a.ngay_kham || 0);
+        const dateB = new Date(b.ngay_kham || 0);
+        return dateB - dateA; // Descending order
+      });
 
       setLichTuVan(enriched);
     } catch (err) {
@@ -271,32 +279,112 @@ const Appointments = () => {
     }
   };
 
+  // ======================= LOAD KHUNG GIỜ (BATCH) ==========================
+  const loadKhungGioMap = async (rawAppointments) => {
+    try {
+      // Lấy tất cả id_khung_gio unique
+      const khungGioIds = new Set();
+      rawAppointments.forEach((apt) => {
+        if (apt.id_khung_gio) {
+          khungGioIds.add(apt.id_khung_gio);
+        }
+      });
+
+      if (khungGioIds.size === 0) return {};
+
+      // Load tất cả khung giờ một lần
+      const allKhungGio = await apiKhungGioKham.getAll();
+      const khungGioList = unwrap(allKhungGio) || [];
+
+      // Tạo map
+      const map = {};
+      khungGioList.forEach((kg) => {
+        const id = kg.id_khung_gio || kg.id;
+        if (id) map[id] = kg;
+      });
+
+      return map;
+    } catch (err) {
+      console.error("Lỗi load khung giờ:", err);
+      return {};
+    }
+  };
+
+  // ======================= LOAD NGƯỜI DÙNG (BATCH) ==========================
+  const loadNguoiDungMap = async (rawAppointments) => {
+    try {
+      // Lấy tất cả id người dùng unique (bác sĩ, chuyên gia)
+      const nguoiDungIds = new Set();
+      rawAppointments.forEach((apt) => {
+        const bsId = apt.id_bac_si || apt.id_nguoi_dung_bac_si || apt.id_nguoi_dung;
+        const cgId = apt.id_chuyen_gia || apt.id_nguoi_dung;
+        if (bsId) nguoiDungIds.add(bsId);
+        if (cgId) nguoiDungIds.add(cgId);
+      });
+
+      if (nguoiDungIds.size === 0) return {};
+
+      // Load từng người dùng (có thể tối ưu thêm bằng batch API nếu có)
+      const map = {};
+      await Promise.all(
+        Array.from(nguoiDungIds).map(async (id) => {
+          try {
+            const res = await apiNguoiDung.getUserById(id);
+            const data = unwrap(res);
+            if (data) map[id] = data;
+          } catch (err) {
+            // Ignore errors for individual users
+          }
+        })
+      );
+
+      return map;
+    } catch (err) {
+      console.error("Lỗi load người dùng:", err);
+      return {};
+    }
+  };
+
   // ======================= HỦY LỊCH ==========================
   const handleCancelKham = async (id) => {
     try {
-      await apiCuocHenKhamBenh.updateTrangThai(id, "da_huy");
+      const response = await apiCuocHenKhamBenh.updateTrangThai(id, "da_huy");
       setLichKham((prev) =>
         prev.map((it) =>
           it.id === id ? { ...it, trang_thai: "Đã hủy", _raw_trang_thai: "da_huy" } : it
         )
       );
-      toast.success("Hủy lịch khám thành công!");
+      
+      // Hiển thị thông báo hoàn tiền nếu có
+      if (response?.refundInfo?.message) {
+        toast.success(response.refundInfo.message, 5);
+      } else {
+        toast.success("Hủy lịch khám thành công!");
+      }
     } catch (err) {
-      toast.error("Hủy thất bại!");
+      const errorMessage = err?.response?.data?.message || "Hủy thất bại!";
+      toast.error(errorMessage);
     }
   };
 
   const handleCancelTuVan = async (id) => {
     try {
-      await apiCuocHenTuVan.updateTrangThai(id, "da_huy");
+      const response = await apiCuocHenTuVan.updateTrangThai(id, "da_huy");
       setLichTuVan((prev) =>
         prev.map((it) =>
           it.id === id ? { ...it, trang_thai: "Đã hủy", _raw_trang_thai: "da_huy" } : it
         )
       );
-      toast.success("Hủy lịch tư vấn thành công!");
+      
+      // Hiển thị thông báo hoàn tiền nếu có
+      if (response?.refundInfo?.message) {
+        toast.success(response.refundInfo.message, 5);
+      } else {
+        toast.success("Hủy lịch tư vấn thành công!");
+      }
     } catch (err) {
-      toast.error("Hủy thất bại!");
+      const errorMessage = err?.response?.data?.message || "Hủy thất bại!";
+      toast.error(errorMessage);
     }
   };
 
@@ -343,10 +431,55 @@ const Appointments = () => {
 
   // ======================= USE EFFECT ==========================
   useEffect(() => {
+    let isMounted = true;
+    
     (async () => {
-      const ckMap = await loadChuyenKhoaMap();
-      await Promise.all([loadLichKhamBenh(ckMap), loadLichTuVan()]);
+      try {
+        // Load chuyên khoa một lần
+        const ckMap = await loadChuyenKhoaMap();
+        if (!isMounted) return;
+
+        // Load tất cả appointments trước
+        let respKham, respTuVan;
+        if (patientId && apiCuocHenKhamBenh.getByBenhNhan) {
+          respKham = await apiCuocHenKhamBenh.getByBenhNhan(patientId);
+        } else {
+          respKham = await apiCuocHenKhamBenh.getAll();
+        }
+
+        if (patientId && apiCuocHenTuVan.getByBenhNhan) {
+          respTuVan = await apiCuocHenTuVan.getByBenhNhan(patientId);
+        } else {
+          respTuVan = await apiCuocHenTuVan.getAll();
+        }
+
+        if (!isMounted) return;
+
+        const rawKham = unwrap(respKham) || [];
+        const rawTuVan = unwrap(respTuVan) || [];
+
+        // Batch load khung giờ và người dùng cho cả hai loại
+        const allRaw = [...rawKham, ...rawTuVan];
+        const [khungGioMap, nguoiDungMap] = await Promise.all([
+          loadKhungGioMap(allRaw),
+          loadNguoiDungMap(allRaw),
+        ]);
+
+        if (!isMounted) return;
+
+        // Load dữ liệu đã được enrich
+        await Promise.all([
+          loadLichKhamBenh(ckMap, khungGioMap, nguoiDungMap),
+          loadLichTuVan(khungGioMap, nguoiDungMap),
+        ]);
+      } catch (err) {
+        console.error("Lỗi load dữ liệu:", err);
+      }
     })();
+
+    return () => {
+      isMounted = false;
+    };
   }, [patientId]);
 
   const khamColumns = [
@@ -656,7 +789,7 @@ const Appointments = () => {
                     {detailData.hoaDon.id_hoa_don}
                   </Descriptions.Item>
                   <Descriptions.Item label="Tổng tiền">
-                    {Number(detailData.hoaDon.tong_tien || 0).toLocaleString("vi-VN")} đ
+                    {parseFloat(detailData.hoaDon.tong_tien || 0).toLocaleString("vi-VN")} đ
                   </Descriptions.Item>
                   <Descriptions.Item label="Trạng thái hóa đơn">
                     {detailData.hoaDon.trang_thai}

@@ -1073,8 +1073,8 @@ const Chat = ({ embedded = false }) => {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        messageApi.error("File không được vượt quá 10MB");
+      if (file.size > 30 * 1024 * 1024) {
+        messageApi.error("File không được vượt quá 30MB");
         return;
       }
       handleSendMessage(file);

@@ -22,7 +22,7 @@ const MomoCallback = () => {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState(null);
-  const [redirectPath, setRedirectPath] = useState('/');
+  const [redirectPath, setRedirectPath] = useState('/invoices');
   const [countdown, setCountdown] = useState(3);
 
   const resultCode = searchParams.get('resultCode');
@@ -47,47 +47,50 @@ const MomoCallback = () => {
   }, [searchParams, normalizedExtraData]);
 
   useEffect(() => {
-    // Ưu tiên đường dẫn trả về cụ thể từ extraData (nếu có)
-    if (decodedExtraData?.redirectPath && decodedExtraData.redirectPath.startsWith('/')) {
-      setRedirectPath(decodedExtraData.redirectPath);
-      return;
-    }
-
-    // Nếu là thanh toán cọc (deposit) thì đưa về trang chủ
-    if (decodedExtraData?.deposit === true) {
-      setRedirectPath('/');
-      return;
-    }
-
-    // Mặc định cũ: thu ngân về trang thu ngân, bệnh nhân về trang hóa đơn
-    if (decodedExtraData?.source === 'cashier') {
-      setRedirectPath('/receptionist/billing');
-    } else {
-      setRedirectPath('/invoices');
-    }
+    const fallbackRedirect =
+      decodedExtraData?.redirectPath && decodedExtraData.redirectPath.startsWith('/')
+        ? decodedExtraData.redirectPath
+        : decodedExtraData?.source === 'cashier'
+        ? '/receptionist/billing'
+        : '/invoices';
+    setRedirectPath(fallbackRedirect);
   }, [decodedExtraData]);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const handleCallback = async () => {
       try {
         if (resultCode === '0' && orderId) {
           await apiPayment.confirmMomoPayment(rawCallbackPayload);
-          setPaymentStatus('success');
-          message.success('Thanh toán thành công!');
+          if (isMounted) {
+            setPaymentStatus('success');
+            // Không hiển thị message ở đây vì đã có Result component và trang đích sẽ hiển thị
+          }
         } else {
-          setPaymentStatus('failed');
-          message.error('Thanh toán thất bại hoặc đã bị hủy');
+          if (isMounted) {
+            setPaymentStatus('failed');
+            message.error('Thanh toán thất bại hoặc đã bị hủy');
+          }
         }
       } catch (error) {
         console.error('Error handling callback:', error);
-        message.warning('Thanh toán thành công nhưng chưa thể xác nhận với hệ thống. Vui lòng kiểm tra trạng thái hóa đơn.');
-        setPaymentStatus('success');
+        if (isMounted) {
+          message.warning('Thanh toán thành công nhưng chưa thể xác nhận với hệ thống. Vui lòng kiểm tra trạng thái hóa đơn.');
+          setPaymentStatus('success');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     handleCallback();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [resultCode, orderId, rawCallbackPayload, message]);
 
   useEffect(() => {

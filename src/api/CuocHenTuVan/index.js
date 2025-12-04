@@ -100,7 +100,8 @@ const apiCuocHenTuVan = {
         `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenTuVan}/${id_cuoc_hen}/trang-thai`,
         { trang_thai }
       );
-      return res.data.data;
+      // Trả về toàn bộ response để có thể truy cập refundInfo
+      return { ...res.data.data, refundInfo: res.data.refundInfo };
     } catch (err) {
       console.error("Error updating trang thai cuoc hen tu van:", err);
       throw err;
@@ -154,7 +155,8 @@ const apiCuocHenTuVan = {
           `${API_CONFIG.BASE_URL}${API_CONFIG.RESOURCES.CuocHenTuVan}/${id_cuoc_hen}/trang-thai`,
           { trang_thai: data.trang_thai }
         );
-        return res.data.data;
+        // Trả về toàn bộ response để có thể truy cập refundInfo
+        return { ...res.data.data, refundInfo: res.data.refundInfo };
       }
       // Nếu có các trường khác, có thể mở rộng sau
       throw new Error("Chỉ hỗ trợ cập nhật trạng thái");

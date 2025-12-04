@@ -355,11 +355,18 @@ const ConsultationAppointmentManagement = () => {
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
-          await apiCuocHenTuVan.update(record.id_cuoc_hen, { trang_thai: "da_huy" });
-          message.success("Đã hủy lịch hẹn");
+          const response = await apiCuocHenTuVan.update(record.id_cuoc_hen, { trang_thai: "da_huy" });
+          
+          // Hiển thị thông báo hoàn tiền nếu có
+          if (response?.refundInfo?.message) {
+            message.success(response.refundInfo.message, 5);
+          } else {
+            message.success("Đã hủy lịch hẹn");
+          }
           fetchData();
         } catch (error) {
-          message.error("Không thể hủy lịch hẹn");
+          const errorMessage = error?.response?.data?.message || "Không thể hủy lịch hẹn";
+          message.error(errorMessage);
           console.error(error);
         }
       },

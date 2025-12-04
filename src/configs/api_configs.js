@@ -1,5 +1,5 @@
 const API_CONFIG = {
-  BASE_URL: "http://localhost:5005/",
+  BASE_URL: "https://api.hopitalcare.io.vn/",
   RESOURCES: {
     // Người dùng & Tài khoản
     NguoiDung: "nguoi-dung",
