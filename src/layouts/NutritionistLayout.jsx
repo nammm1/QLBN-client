@@ -1,63 +1,94 @@
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { Button, Space } from "antd";
+import { Button, Space, Drawer } from "antd";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import NutritionistSidebar from "../components/Sidebar/NutritionistSidebar";
 import NotificationDropdown from "../components/Notification/NotificationDropdown";
+import useMedia from "../hooks/useMedia";
 
 const NutritionistLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileDrawerVisible, setMobileDrawerVisible] = useState(false);
+  const isMobile = useMedia("(max-width: 768px)");
 
   const toggleSidebar = () => {
-    setCollapsed(!collapsed);
+    if (isMobile) {
+      setMobileDrawerVisible(!mobileDrawerVisible);
+    } else {
+      setCollapsed(!collapsed);
+    }
+  };
+
+  const closeMobileDrawer = () => {
+    setMobileDrawerVisible(false);
   };
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", position: "relative" }}>
-      {/* Sidebar */}
-      <NutritionistSidebar collapsed={collapsed} />
+      {/* Sidebar - Desktop */}
+      {!isMobile && <NutritionistSidebar collapsed={collapsed} />}
+
+      {/* Sidebar - Mobile Drawer */}
+      {isMobile && (
+        <Drawer
+          title="Menu"
+          placement="left"
+          onClose={closeMobileDrawer}
+          open={mobileDrawerVisible}
+          bodyStyle={{ padding: 0 }}
+          width={280}
+          zIndex={1001}
+        >
+          <NutritionistSidebar collapsed={false} onNavigate={closeMobileDrawer} />
+        </Drawer>
+      )}
 
       {/* Nội dung chính */}
       <div
         style={{
           flexGrow: 1,
-          marginLeft: collapsed ? 80 : 300,
-          padding: "24px",
+          marginLeft: isMobile ? 0 : (collapsed ? 80 : 300),
+          padding: isMobile ? "16px" : "24px",
           backgroundColor: "#f5f6fa",
           minHeight: "100vh",
           transition: "margin-left 0.2s ease",
+          width: isMobile ? "100%" : "auto",
         }}
       >
         {/* Top bar với toggle và notification */}
         <div
           style={{
-            position: "fixed",
-            top: "16px",
-            left: collapsed ? "88px" : "316px",
-            right: "24px",
+            position: isMobile ? "sticky" : "fixed",
+            top: isMobile ? 0 : "16px",
+            left: isMobile ? 0 : (collapsed ? "88px" : "316px"),
+            right: isMobile ? 0 : "24px",
             zIndex: 999,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             transition: "left 0.2s ease",
+            padding: isMobile ? "12px 16px" : "0",
+            backgroundColor: isMobile ? "#fff" : "transparent",
+            boxShadow: isMobile ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
+            marginBottom: isMobile ? "16px" : 0,
           }}
         >
           <Button
             type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            icon={isMobile ? <MenuUnfoldOutlined /> : (collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />)}
             onClick={toggleSidebar}
             style={{
-              width: "40px",
-              height: "40px",
+              width: isMobile ? "36px" : "40px",
+              height: isMobile ? "36px" : "40px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: "#fff",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              backgroundColor: isMobile ? "transparent" : "#fff",
+              boxShadow: isMobile ? "none" : "0 2px 8px rgba(0,0,0,0.15)",
               borderRadius: "8px",
               cursor: "pointer",
             }}
-            title={collapsed ? "Mở sidebar" : "Đóng sidebar"}
+            title={isMobile ? "Mở menu" : (collapsed ? "Mở sidebar" : "Đóng sidebar")}
           />
           
           <Space>
@@ -69,7 +100,7 @@ const NutritionistLayout = () => {
           </Space>
         </div>
 
-        <div style={{ fontSize: '1.05rem', marginTop: '64px' }}>
+        <div style={{ fontSize: isMobile ? '0.95rem' : '1.05rem', marginTop: isMobile ? '0' : '64px' }}>
           <Outlet />
         </div>
       </div>
