@@ -435,6 +435,45 @@
   text-decoration: none !important;
 }
 
+/* Remove underline from links in menu items (including submenu/dropdown) */
+.ant-menu-item a,
+.ant-menu-item a:link,
+.ant-menu-item a:visited,
+.ant-menu-item a:hover,
+.ant-menu-item a:active,
+.ant-menu-item a:focus,
+.ant-menu-submenu-title a,
+.ant-menu-submenu-title a:link,
+.ant-menu-submenu-title a:visited,
+.ant-menu-submenu-title a:hover,
+.ant-menu-submenu-title a:active,
+.ant-menu-submenu-title a:focus {
+  text-decoration: none !important;
+}
+
+/* Remove underline from links in vertical menu (when collapsed) */
+.ant-menu-vertical .ant-menu-item a,
+.ant-menu-vertical .ant-menu-item a:link,
+.ant-menu-vertical .ant-menu-item a:visited,
+.ant-menu-vertical .ant-menu-item a:hover,
+.ant-menu-vertical .ant-menu-item a:active,
+.ant-menu-vertical .ant-menu-item a:focus,
+.ant-menu-vertical-left .ant-menu-item a,
+.ant-menu-vertical-right .ant-menu-item a,
+.ant-menu-inline .ant-menu-item a {
+  text-decoration: none !important;
+}
+
+/* Remove underline from all links in Ant Design Menu */
+.ant-menu a,
+.ant-menu a:link,
+.ant-menu a:visited,
+.ant-menu a:hover,
+.ant-menu a:active,
+.ant-menu a:focus {
+  text-decoration: none !important;
+}
+
 /* Remove underline from links in user dropdown menu */
 .ant-dropdown-menu-item a,
 .ant-dropdown-menu-item a:link,

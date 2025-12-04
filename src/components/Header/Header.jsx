@@ -267,52 +267,52 @@ const Header = () => {
     {
       key: "/",
       icon: <HomeOutlined />,
-      label: <Link to="/">Trang chủ</Link>,
+      label: <Link to="/" style={{ textDecoration: 'none' }}>Trang chủ</Link>,
     },
     {
       key: "/about",
       icon: <InfoCircleOutlined />,
-      label: <Link to="/about">Giới thiệu</Link>,
+      label: <Link to="/about" style={{ textDecoration: 'none' }}>Giới thiệu</Link>,
     },
     {
       key: "/news",
       icon: <FileTextOutlined />,
-      label: <Link to="/news">Tin tức</Link>,
+      label: <Link to="/news" style={{ textDecoration: 'none' }}>Tin tức</Link>,
     },
     {
       key: "/privacy",
       icon: <SafetyOutlined />,
-      label: <Link to="/privacy">Bảo mật</Link>,
+      label: <Link to="/privacy" style={{ textDecoration: 'none' }}>Bảo mật</Link>,
     },
     {
       key: "/terms",
       icon: <FileTextOutlined />,
-      label: <Link to="/terms">Điều khoản</Link>,
+      label: <Link to="/terms" style={{ textDecoration: 'none' }}>Điều khoản</Link>,
     },
     {
       key: "/faq",
       icon: <QuestionCircleOutlined />,
-      label: <Link to="/faq">FAQ</Link>,
+      label: <Link to="/faq" style={{ textDecoration: 'none' }}>FAQ</Link>,
     },
     {
       key: "/services",
       icon: <CustomerServiceOutlined />,
-      label: <Link to="/services">Dịch vụ</Link>,
+      label: <Link to="/services" style={{ textDecoration: 'none' }}>Dịch vụ</Link>,
     },
     {
       key: "/specialties",
       icon: <MedicineBoxOutlined />,
-      label: <Link to="/specialties">Chuyên khoa</Link>,
+      label: <Link to="/specialties" style={{ textDecoration: 'none' }}>Chuyên khoa</Link>,
     },
     {
       key: "/doctors",
       icon: <UserOutlined />,
-      label: <Link to="/doctors">Bác sĩ</Link>,
+      label: <Link to="/doctors" style={{ textDecoration: 'none' }}>Bác sĩ</Link>,
     },
     {
       key: "/nutritionists",
       icon: <AppleOutlined />,
-      label: <Link to="/nutritionists">Chuyên gia dinh dưỡng</Link>,
+      label: <Link to="/nutritionists" style={{ textDecoration: 'none' }}>Chuyên gia dinh dưỡng</Link>,
     },
     {
       key: "booking",
@@ -338,7 +338,7 @@ const Header = () => {
     {
       key: "/patient-function",
       icon: <TeamOutlined />,
-      label: <Link to="/patient-function">Dành cho Bệnh nhân</Link>,
+      label: <Link to="/patient-function" style={{ textDecoration: 'none' }}>Dành cho Bệnh nhân</Link>,
     },
   ];
 

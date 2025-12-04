@@ -498,6 +498,21 @@ const Appointments = () => {
       title: "Phòng / Tầng",
       dataIndex: "phong_kham",
       key: "phong_kham",
+      render: (text) => {
+        // Nếu phong_kham đã được format thành string từ backend
+        if (typeof text === 'string') {
+          return text || "—";
+        }
+        // Nếu phong_kham là object
+        if (text && typeof text === 'object') {
+          const parts = [];
+          if (text.ten_phong) parts.push(text.ten_phong);
+          if (text.so_phong) parts.push(`P.${text.so_phong}`);
+          if (text.tang) parts.push(`Tầng ${text.tang}`);
+          return parts.join(" - ") || "—";
+        }
+        return "—";
+      },
     },
     {
       title: "Bác sĩ",
@@ -578,6 +593,21 @@ const Appointments = () => {
       title: "Phòng / Tầng",
       dataIndex: "phong_kham",
       key: "phong_kham",
+      render: (text) => {
+        // Nếu phong_kham đã được format thành string từ backend
+        if (typeof text === 'string') {
+          return text || "—";
+        }
+        // Nếu phong_kham là object
+        if (text && typeof text === 'object') {
+          const parts = [];
+          if (text.ten_phong) parts.push(text.ten_phong);
+          if (text.so_phong) parts.push(`P.${text.so_phong}`);
+          if (text.tang) parts.push(`Tầng ${text.tang}`);
+          return parts.join(" - ") || "—";
+        }
+        return "—";
+      },
     },
     {
       title: "Chuyên gia",
