@@ -347,7 +347,11 @@ const Header = () => {
       key: "profile",
       icon: <UserOutlined />,
       label: (
-        <Link to="/updateprofile" onClick={() => setMobileMenuVisible(false)}>
+        <Link 
+          to="/updateprofile" 
+          onClick={() => setMobileMenuVisible(false)}
+          style={{ textDecoration: 'none' }}
+        >
           Thông tin cá nhân
         </Link>
       ),
@@ -356,7 +360,11 @@ const Header = () => {
       key: "chat",
       icon: <MessageOutlined />,
       label: (
-        <Link to="/chat" onClick={() => setMobileMenuVisible(false)}>
+        <Link 
+          to="/chat" 
+          onClick={() => setMobileMenuVisible(false)}
+          style={{ textDecoration: 'none' }}
+        >
           Tin nhắn
         </Link>
       ),
@@ -365,7 +373,11 @@ const Header = () => {
       key: "notifications",
       icon: <BellOutlined />,
       label: (
-        <Link to="/notifications" onClick={() => setMobileMenuVisible(false)}>
+        <Link 
+          to="/notifications" 
+          onClick={() => setMobileMenuVisible(false)}
+          style={{ textDecoration: 'none' }}
+        >
           Thông báo
         </Link>
       ),
@@ -373,7 +385,7 @@ const Header = () => {
     {
       key: "logout",
       icon: <LogoutOutlined />,
-      label: <span onClick={handleLogout}>Đăng xuất</span>,
+      label: <span onClick={handleLogout} style={{ textDecoration: 'none' }}>Đăng xuất</span>,
       danger: true,
     },
   ];

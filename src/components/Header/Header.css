@@ -434,3 +434,28 @@
 .header-menu .ant-menu-item a:active {
   text-decoration: none !important;
 }
+
+/* Remove underline from links in user dropdown menu */
+.ant-dropdown-menu-item a,
+.ant-dropdown-menu-item a:link,
+.ant-dropdown-menu-item a:visited,
+.ant-dropdown-menu-item a:hover,
+.ant-dropdown-menu-item a:active,
+.ant-dropdown-menu-item a:focus {
+  text-decoration: none !important;
+}
+
+/* Remove underline from all links in dropdown */
+.ant-dropdown-menu a,
+.ant-dropdown-menu a:link,
+.ant-dropdown-menu a:visited,
+.ant-dropdown-menu a:hover,
+.ant-dropdown-menu a:active,
+.ant-dropdown-menu a:focus {
+  text-decoration: none !important;
+}
+
+/* Remove underline from span in dropdown (for logout) */
+.ant-dropdown-menu-item span {
+  text-decoration: none !important;
+}
