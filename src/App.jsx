@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { App as AntdApp } from 'antd';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import Home from "./pages/Home/Home";
@@ -113,17 +114,89 @@ function App() {
           <Route path="/services" element={<PublicServices />} />
           <Route path="/doctors" element={<Doctors />} />
           <Route path="/nutritionists" element={<Nutritionist />} />
-          <Route path="/updateprofile" element={<UpdateProfile />} />
-          <Route path="/patient-function" element={<PatientFunction />} />
-          <Route path="/medical-records" element={<MedicalRecords />} />
-          <Route path="/nutrition-records" element={<NutritionRecords />} />
-          <Route path="/appointments" element={<Appointments />} />
-          <Route path="/invoices" element={<Invoices />} />
+          {/* Routes cho bệnh nhân - yêu cầu đăng nhập với role benh_nhan */}
+          <Route 
+            path="/updateprofile" 
+            element={
+              <ProtectedRoute allowedRoles={['benh_nhan']}>
+                <UpdateProfile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/patient-function" 
+            element={
+              <ProtectedRoute allowedRoles={['benh_nhan']}>
+                <PatientFunction />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/medical-records" 
+            element={
+              <ProtectedRoute allowedRoles={['benh_nhan']}>
+                <MedicalRecords />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/nutrition-records" 
+            element={
+              <ProtectedRoute allowedRoles={['benh_nhan']}>
+                <NutritionRecords />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/appointments" 
+            element={
+              <ProtectedRoute allowedRoles={['benh_nhan']}>
+                <Appointments />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/invoices" 
+            element={
+              <ProtectedRoute allowedRoles={['benh_nhan']}>
+                <Invoices />
+              </ProtectedRoute>
+            } 
+          />
           {/* Sử dụng component Chat có tích hợp video call cho trang /chat của bệnh nhân */}
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/notifications" element={<PatientNotifications />} />
-          <Route path="/doctor-function" element={<DoctorFunction />} />
-          <Route path="/doctor-medical-records" element={<DoctorMedicalRecords />} />
+          <Route 
+            path="/chat" 
+            element={
+              <ProtectedRoute allowedRoles={['benh_nhan']}>
+                <Chat />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/notifications" 
+            element={
+              <ProtectedRoute allowedRoles={['benh_nhan']}>
+                <PatientNotifications />
+              </ProtectedRoute>
+            } 
+          />
+          {/* Routes cho bác sĩ khi truy cập từ Layout công khai */}
+          <Route 
+            path="/doctor-function" 
+            element={
+              <ProtectedRoute allowedRoles={['bac_si']}>
+                <DoctorFunction />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/doctor-medical-records" 
+            element={
+              <ProtectedRoute allowedRoles={['bac_si']}>
+                <DoctorMedicalRecords />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfUse />} />
           <Route path="/faq" element={<FAQ />} />
@@ -136,7 +209,14 @@ function App() {
         {/* Trang chat tối giản dùng cho bong bóng chat (không bọc trong layout role) */}
         <Route path="/embedded-chat" element={<Chat embedded />} />
 
-        <Route path="/doctor" element={<DoctorLayout />}>
+        <Route 
+          path="/doctor" 
+          element={
+            <ProtectedRoute allowedRoles={['bac_si']}>
+              <DoctorLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<DoctorDashboard />} />
           <Route path="appointments" element={<DoctorAppointments />} />
           <Route path="appointment/:id_cuoc_hen" element={<DoctorAppointmentDetail />} />
@@ -147,7 +227,14 @@ function App() {
           <Route path="chat" element={<Chat />} />
         </Route>
 
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute allowedRoles={['quan_tri_vien']}>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<AdminDashboard />} />
           <Route path="accounts" element={<AdminAccounts />} />
           <Route path="accounts/:id_nguoi_dung" element={<AdminAccountDetail />} />
@@ -161,7 +248,14 @@ function App() {
           <Route path="reports" element={<AdminReports />} />
         </Route>
 
-        <Route path="/staff" element={<StaffLayout />}>
+        <Route 
+          path="/staff" 
+          element={
+            <ProtectedRoute allowedRoles={['nhan_vien_phan_cong']}>
+              <StaffLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<StaffDashboard />} />
           <Route path="work-schedule" element={<StaffWorkSchedule />} />
           <Route path="schedule-assignment" element={<ManageSchedule />} />
@@ -170,7 +264,14 @@ function App() {
           <Route path="profile" element={<StaffProfile />} />
         </Route>
 
-        <Route path="/receptionist" element={<ReceptionistLayout />}>
+        <Route 
+          path="/receptionist" 
+          element={
+            <ProtectedRoute allowedRoles={['nhan_vien_quay']}>
+              <ReceptionistLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<ReceptionistDashboard />} />
           <Route path="patients" element={<PatientManagement />} />
           <Route path="appointments" element={<AppointmentManagement />} />
@@ -181,7 +282,14 @@ function App() {
           <Route path="profile" element={<ReceptionistProfile />} />
         </Route>
 
-        <Route path="/nutritionist" element={<NutritionistLayout />}>
+        <Route 
+          path="/nutritionist" 
+          element={
+            <ProtectedRoute allowedRoles={['chuyen_gia_dinh_duong']}>
+              <NutritionistLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<NutritionistDashboard />} />
           <Route path="appointments" element={<NutritionistAppointments />} />
           <Route path="appointment/:id_cuoc_hen" element={<NutritionistAppointmentDetail />} />
@@ -192,7 +300,14 @@ function App() {
           <Route path="profile" element={<NutritionistProfile />} />
         </Route>
 
-        <Route path="/lab-staff" element={<LabStaffLayout />}>
+        <Route 
+          path="/lab-staff" 
+          element={
+            <ProtectedRoute allowedRoles={['nhan_vien_xet_nghiem']}>
+              <LabStaffLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<LabStaffDashboard />} />
           <Route path="test-orders" element={<TestOrders />} />
           <Route path="work-schedule" element={<LabStaffWorkSchedule />} />
