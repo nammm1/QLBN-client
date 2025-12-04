@@ -426,47 +426,81 @@ const Header = () => {
             apiDichVu.getAll(),
           ]);
 
-        const bacSi =
-          bacSiRes.status === "fulfilled" ? bacSiRes.value || [] : [];
-        const chuyenGia =
-          chuyenGiaRes.status === "fulfilled" ? chuyenGiaRes.value || [] : [];
-        const chuyenKhoa =
-          chuyenKhoaRes.status === "fulfilled" ? chuyenKhoaRes.value || [] : [];
-        const dichVu =
-          dichVuRes.status === "fulfilled" ? dichVuRes.value?.data || [] : [];
+        // Unwrap responses - API trả về data trực tiếp hoặc trong res.data.data
+        const unwrapData = (res) => {
+          if (res.status !== "fulfilled") return [];
+          const data = res.value;
+          if (!data) return [];
+          // Nếu có success và data
+          if (data.success && data.data) return Array.isArray(data.data) ? data.data : [];
+          // Nếu data là array trực tiếp
+          if (Array.isArray(data)) return data;
+          // Nếu có data property
+          if (data.data && Array.isArray(data.data)) return data.data;
+          return [];
+        };
 
-        // Filter client-side cho chuyên khoa và dịch vụ
-        const filteredChuyenKhoa = chuyenKhoa.filter(
-          (item) =>
-            item.ten_chuyen_khoa
-              ?.toLowerCase()
-              .includes(value.toLowerCase()) ||
-            item.mo_ta?.toLowerCase().includes(value.toLowerCase())
-        );
+        const bacSi = unwrapData(bacSiRes);
+        const chuyenGia = unwrapData(chuyenGiaRes);
+        const chuyenKhoa = unwrapData(chuyenKhoaRes);
+        const dichVu = unwrapData(dichVuRes);
 
-        const filteredDichVu = Array.isArray(dichVu)
-          ? dichVu.filter(
-              (item) =>
-                item.ten_dich_vu
-                  ?.toLowerCase()
-                  .includes(value.toLowerCase()) ||
-                item.mo_ta?.toLowerCase().includes(value.toLowerCase())
+        // Filter client-side cho chuyên khoa (nếu API không hỗ trợ search)
+        const filteredChuyenKhoa = Array.isArray(chuyenKhoa)
+          ? chuyenKhoa.filter(
+              (item) => {
+                const searchLower = value.toLowerCase();
+                return (
+                  item.ten_chuyen_khoa?.toLowerCase().includes(searchLower) ||
+                  item.mo_ta?.toLowerCase().includes(searchLower)
+                );
+              }
             )
           : [];
 
-        // Filter client-side cho chuyên gia nếu API không hỗ trợ search
+        // Filter client-side cho dịch vụ (nếu API không hỗ trợ search)
+        const filteredDichVu = Array.isArray(dichVu)
+          ? dichVu.filter(
+              (item) => {
+                const searchLower = value.toLowerCase();
+                return (
+                  item.ten_dich_vu?.toLowerCase().includes(searchLower) ||
+                  item.mo_ta?.toLowerCase().includes(searchLower)
+                );
+              }
+            )
+          : [];
+
+        // Filter client-side cho chuyên gia (nếu API không hỗ trợ search)
         const filteredChuyenGia = Array.isArray(chuyenGia)
           ? chuyenGia.filter(
-              (item) =>
-                item.ho_ten?.toLowerCase().includes(value.toLowerCase()) ||
-                item.chuyen_nganh_dinh_duong
-                  ?.toLowerCase()
-                  .includes(value.toLowerCase())
+              (item) => {
+                const searchLower = value.toLowerCase();
+                return (
+                  item.ho_ten?.toLowerCase().includes(searchLower) ||
+                  item.chuyen_nganh_dinh_duong?.toLowerCase().includes(searchLower)
+                );
+              }
+            )
+          : [];
+
+        // Filter client-side cho bác sĩ (nếu API không hỗ trợ search đầy đủ)
+        const filteredBacSi = Array.isArray(bacSi)
+          ? bacSi.filter(
+              (item) => {
+                const searchLower = value.toLowerCase();
+                return (
+                  item.ho_ten?.toLowerCase().includes(searchLower) ||
+                  item.chuyen_mon?.toLowerCase().includes(searchLower) ||
+                  item.ten_chuyen_khoa?.toLowerCase().includes(searchLower) ||
+                  item.chuc_danh?.toLowerCase().includes(searchLower)
+                );
+              }
             )
           : [];
 
         setSearchResults({
-          bac_si: Array.isArray(bacSi) ? bacSi.slice(0, 3) : [],
+          bac_si: filteredBacSi.slice(0, 3),
           chuyen_gia: filteredChuyenGia.slice(0, 3),
           chuyen_khoa: filteredChuyenKhoa.slice(0, 3),
           dich_vu: filteredDichVu.slice(0, 3),
@@ -498,11 +532,18 @@ const Header = () => {
     }
   };
 
-  const handleSearchBlur = () => {
-    // Delay để cho phép click vào dropdown
-    setTimeout(() => {
-      setShowSearchDropdown(false);
-    }, 200);
+  const handleSearchBlur = (e) => {
+    // Kiểm tra xem click có phải vào dropdown không
+    const relatedTarget = e.relatedTarget || document.activeElement;
+    const isClickingDropdown = relatedTarget?.closest('.search-dropdown-container') || 
+                               relatedTarget?.closest('.ant-list-item');
+    
+    if (!isClickingDropdown) {
+      // Delay để cho phép click vào dropdown
+      setTimeout(() => {
+        setShowSearchDropdown(false);
+      }, 200);
+    }
   };
 
   React.useEffect(() => {

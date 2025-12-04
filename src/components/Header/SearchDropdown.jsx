@@ -43,18 +43,40 @@ const SearchDropdown = ({ results, loading, visible, onItemClick }) => {
       onItemClick();
     }
 
+    // Lấy tên để search
+    let searchQuery = "";
     switch (type) {
       case "bac_si":
-        navigate(`/doctors`);
+        searchQuery = item.ho_ten || item.title || "";
+        if (searchQuery) {
+          navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+        } else {
+          navigate(`/doctors`);
+        }
         break;
       case "chuyen_gia":
-        navigate(`/nutritionists`);
+        searchQuery = item.ho_ten || item.title || "";
+        if (searchQuery) {
+          navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+        } else {
+          navigate(`/nutritionists`);
+        }
         break;
       case "chuyen_khoa":
-        navigate(`/specialties`);
+        searchQuery = item.ten_chuyen_khoa || item.title || "";
+        if (searchQuery) {
+          navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+        } else {
+          navigate(`/specialties`);
+        }
         break;
       case "dich_vu":
-        navigate(`/services`);
+        searchQuery = item.ten_dich_vu || item.title || "";
+        if (searchQuery) {
+          navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+        } else {
+          navigate(`/services`);
+        }
         break;
       default:
         break;
@@ -101,6 +123,7 @@ const SearchDropdown = ({ results, loading, visible, onItemClick }) => {
   return (
     <div
       ref={dropdownRef}
+      className="search-dropdown-container"
       style={{
         position: "absolute",
         top: "100%",
@@ -114,7 +137,10 @@ const SearchDropdown = ({ results, loading, visible, onItemClick }) => {
         padding: 16,
         minHeight: 100,
       }}
-      onMouseDown={(e) => e.preventDefault()}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
         <div style={{ textAlign: "center", padding: 20 }}>
           <Spin />
@@ -127,6 +153,7 @@ const SearchDropdown = ({ results, loading, visible, onItemClick }) => {
     return (
       <div
         ref={dropdownRef}
+        className="search-dropdown-container"
         style={{
           position: "absolute",
           top: "100%",
@@ -139,7 +166,10 @@ const SearchDropdown = ({ results, loading, visible, onItemClick }) => {
           zIndex: 1000,
           padding: 16,
         }}
-        onMouseDown={(e) => e.preventDefault()}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
       >
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -179,6 +209,7 @@ const SearchDropdown = ({ results, loading, visible, onItemClick }) => {
   return (
     <div
       ref={dropdownRef}
+      className="search-dropdown-container"
       style={{
         position: "absolute",
         top: "100%",
@@ -192,7 +223,13 @@ const SearchDropdown = ({ results, loading, visible, onItemClick }) => {
         maxHeight: 400,
         overflowY: "auto",
       }}
-      onMouseDown={(e) => e.preventDefault()}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
     >
       <List
         dataSource={allResults}
