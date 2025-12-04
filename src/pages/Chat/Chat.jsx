@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Layout, List, Input, Button, Avatar, Empty, Badge, message, Upload, Typography, Space, Card, Modal, Select, Tag, Skeleton } from "antd";
+import { Layout, List, Input, Button, Avatar, Empty, Badge, message, Upload, Typography, Space, Card, Modal, Select, Tag, Skeleton, Drawer } from "antd";
 
 import {
   SendOutlined,
@@ -12,11 +12,14 @@ import {
   VideoCameraOutlined,
   PhoneOutlined,
   CloseCircleOutlined,
+  MenuOutlined,
+  ArrowLeftOutlined,
 } from "@ant-design/icons";
 import apiChat from "../../api/Chat";
 import apiNguoiDung from "../../api/NguoiDung";
 import socketService from "../../services/socket/socketService";
 import VideoCallModal from "../../components/Chat/VideoCallModal.jsx";
+import useMedia from "../../hooks/useMedia";
 import "./Chat.css";
 
 const RTC_CONFIGURATION = {
@@ -87,6 +90,16 @@ const Chat = ({ embedded = false }) => {
   const userInfo = savedUserInfo?.user || savedUserInfo; // Hỗ trợ cả 2 format
   const [messageApi, contextHolder] = message.useMessage();
   const isEmbedded = embedded || searchParams.get("embedded") === "1";
+  const isMobile = useMedia("(max-width: 768px)");
+  const [mobileSidebarVisible, setMobileSidebarVisible] = useState(false);
+  
+  // Tự động mở sidebar trên mobile khi không có conversation được chọn
+  useEffect(() => {
+    if (isMobile && !isEmbedded && !selectedConversation && conversations.length > 0) {
+      setMobileSidebarVisible(true);
+    }
+  }, [isMobile, isEmbedded, selectedConversation, conversations.length]);
+
   const hideIncomingCallToast = useCallback(() => {
     messageApi.destroy(INCOMING_CALL_TOAST_KEY);
   }, [messageApi]);
@@ -1684,116 +1697,249 @@ const Chat = ({ embedded = false }) => {
       }
     >
       {!isEmbedded && (
-      <Sider width={350} className="chat-sidebar">
-        <div className="chat-sidebar-header">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Text strong style={{ fontSize: "18px" }}>
-              Tin nhắn
-            </Text>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              size="small"
-              onClick={handleOpenCreateModal}
-            >
-              Tạo mới
-            </Button>
-          </div>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm cuộc trò chuyện..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            style={{ marginTop: "12px" }}
-          />
-        </div>
-        <div className="chat-conversations-list">
-          {isInitialLoading && conversations.length === 0 ? (
-            <div style={{ padding: "16px" }}>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton
-                  key={i}
-                  active
-                  avatar={{ size: 48 }}
-                  title={false}
-                  paragraph={{ rows: 2 }}
-                  style={{ marginBottom: "16px" }}
-                />
-              ))}
-            </div>
-          ) : filteredConversations.length === 0 ? (
-            <Empty
-              description="Chưa có cuộc trò chuyện nào"
-              style={{ marginTop: "50px" }}
-            />
-          ) : (
-            <List
-              dataSource={filteredConversations}
-              loading={loading}
-              renderItem={(conversation) => {
-                const otherUser = getOtherUserInfo(conversation);
-                const unreadCount = conversation.so_tin_nhan_chua_doc || 0;
-                return (
-                  <List.Item
-                    className={`chat-conversation-item ${
-                      selectedConversation?.id_cuoc_tro_chuyen ===
-                      conversation.id_cuoc_tro_chuyen
-                        ? "active"
-                        : ""
-                    }`}
-                    onClick={() => handleSelectConversation(conversation)}
-                    style={{ cursor: "pointer", padding: "12px 16px" }}
+        <>
+          {/* Desktop Sidebar */}
+          {!isMobile && (
+            <Sider width={350} className="chat-sidebar">
+              <div className="chat-sidebar-header">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Text strong style={{ fontSize: "18px" }}>
+                    Tin nhắn
+                  </Text>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    size="small"
+                    onClick={handleOpenCreateModal}
                   >
-                    <List.Item.Meta
-                      avatar={
-                        <Badge count={unreadCount} size="small">
-                          <Avatar
-                            src={otherUser.avatar}
-                            icon={<UserOutlined />}
-                            size={48}
-                          />
-                        </Badge>
-                      }
-                      title={
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            flexWrap: "wrap",
-                          }}
+                    Tạo mới
+                  </Button>
+                </div>
+                <Input
+                  prefix={<SearchOutlined />}
+                  placeholder="Tìm kiếm cuộc trò chuyện..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ marginTop: "12px" }}
+                />
+              </div>
+              <div className="chat-conversations-list">
+                {isInitialLoading && conversations.length === 0 ? (
+                  <div style={{ padding: "16px" }}>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Skeleton
+                        key={i}
+                        active
+                        avatar={{ size: 48 }}
+                        title={false}
+                        paragraph={{ rows: 2 }}
+                        style={{ marginBottom: "16px" }}
+                      />
+                    ))}
+                  </div>
+                ) : filteredConversations.length === 0 ? (
+                  <Empty
+                    description="Chưa có cuộc trò chuyện nào"
+                    style={{ marginTop: "50px" }}
+                  />
+                ) : (
+                  <List
+                    dataSource={filteredConversations}
+                    loading={loading}
+                    renderItem={(conversation) => {
+                      const otherUser = getOtherUserInfo(conversation);
+                      const unreadCount = conversation.so_tin_nhan_chua_doc || 0;
+                      return (
+                        <List.Item
+                          className={`chat-conversation-item ${
+                            selectedConversation?.id_cuoc_tro_chuyen ===
+                            conversation.id_cuoc_tro_chuyen
+                              ? "active"
+                              : ""
+                          }`}
+                          onClick={() => handleSelectConversation(conversation)}
+                          style={{ cursor: "pointer", padding: "12px 16px" }}
                         >
-                          <Space>
-                            <Text strong>{otherUser.name}</Text>
-                            {otherUser.role && (
-                              <Tag color={getRoleColor(otherUser.role)}>
-                                {getRoleName(otherUser.role)}
-                              </Tag>
-                            )}
-                          </Space>
-                          {conversation.thoi_gian_tin_nhan_cuoi && (
-                            <Text
-                              type="secondary"
-                              style={{ fontSize: "12px" }}
-                            >
-                              {formatTime(conversation.thoi_gian_tin_nhan_cuoi)}
-                            </Text>
-                          )}
-                        </div>
-                      }
-                      description={
-                        <Text ellipsis style={{ fontSize: "13px" }}>
-                          {conversation.tin_nhan_cuoi || "Chưa có tin nhắn"}
-                        </Text>
-                      }
-                    />
-                  </List.Item>
-                );
-              }}
-            />
+                          <List.Item.Meta
+                            avatar={
+                              <Badge count={unreadCount} size="small">
+                                <Avatar
+                                  src={otherUser.avatar}
+                                  icon={<UserOutlined />}
+                                  size={48}
+                                />
+                              </Badge>
+                            }
+                            title={
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <Space>
+                                  <Text strong>{otherUser.name}</Text>
+                                  {otherUser.role && (
+                                    <Tag color={getRoleColor(otherUser.role)}>
+                                      {getRoleName(otherUser.role)}
+                                    </Tag>
+                                  )}
+                                </Space>
+                                {conversation.thoi_gian_tin_nhan_cuoi && (
+                                  <Text
+                                    type="secondary"
+                                    style={{ fontSize: "12px" }}
+                                  >
+                                    {formatTime(conversation.thoi_gian_tin_nhan_cuoi)}
+                                  </Text>
+                                )}
+                              </div>
+                            }
+                            description={
+                              <Text ellipsis style={{ fontSize: "13px" }}>
+                                {conversation.tin_nhan_cuoi || "Chưa có tin nhắn"}
+                              </Text>
+                            }
+                          />
+                        </List.Item>
+                      );
+                    }}
+                  />
+                )}
+              </div>
+            </Sider>
           )}
-        </div>
-      </Sider>
+
+          {/* Mobile Drawer */}
+          {isMobile && (
+            <Drawer
+              title={
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                  <Text strong style={{ fontSize: "18px" }}>
+                    Tin nhắn
+                  </Text>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    size="small"
+                    onClick={handleOpenCreateModal}
+                  >
+                    Tạo mới
+                  </Button>
+                </div>
+              }
+              placement="left"
+              onClose={() => setMobileSidebarVisible(false)}
+              open={mobileSidebarVisible}
+              bodyStyle={{ padding: 0 }}
+              width={320}
+              zIndex={1001}
+            >
+              <div className="chat-sidebar-header" style={{ padding: "16px" }}>
+                <Input
+                  prefix={<SearchOutlined />}
+                  placeholder="Tìm kiếm cuộc trò chuyện..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ marginTop: "12px" }}
+                />
+              </div>
+              <div className="chat-conversations-list">
+                {isInitialLoading && conversations.length === 0 ? (
+                  <div style={{ padding: "16px" }}>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Skeleton
+                        key={i}
+                        active
+                        avatar={{ size: 48 }}
+                        title={false}
+                        paragraph={{ rows: 2 }}
+                        style={{ marginBottom: "16px" }}
+                      />
+                    ))}
+                  </div>
+                ) : filteredConversations.length === 0 ? (
+                  <Empty
+                    description="Chưa có cuộc trò chuyện nào"
+                    style={{ marginTop: "50px" }}
+                  />
+                ) : (
+                  <List
+                    dataSource={filteredConversations}
+                    loading={loading}
+                    renderItem={(conversation) => {
+                      const otherUser = getOtherUserInfo(conversation);
+                      const unreadCount = conversation.so_tin_nhan_chua_doc || 0;
+                      return (
+                        <List.Item
+                          className={`chat-conversation-item ${
+                            selectedConversation?.id_cuoc_tro_chuyen ===
+                            conversation.id_cuoc_tro_chuyen
+                              ? "active"
+                              : ""
+                          }`}
+                          onClick={() => {
+                            handleSelectConversation(conversation);
+                            setMobileSidebarVisible(false);
+                          }}
+                          style={{ cursor: "pointer", padding: "12px 16px" }}
+                        >
+                          <List.Item.Meta
+                            avatar={
+                              <Badge count={unreadCount} size="small">
+                                <Avatar
+                                  src={otherUser.avatar}
+                                  icon={<UserOutlined />}
+                                  size={isMobile ? 40 : 48}
+                                />
+                              </Badge>
+                            }
+                            title={
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <Space>
+                                  <Text strong style={{ fontSize: isMobile ? "14px" : "16px" }}>
+                                    {otherUser.name}
+                                  </Text>
+                                  {otherUser.role && (
+                                    <Tag color={getRoleColor(otherUser.role)}>
+                                      {getRoleName(otherUser.role)}
+                                    </Tag>
+                                  )}
+                                </Space>
+                                {conversation.thoi_gian_tin_nhan_cuoi && (
+                                  <Text
+                                    type="secondary"
+                                    style={{ fontSize: "11px" }}
+                                  >
+                                    {formatTime(conversation.thoi_gian_tin_nhan_cuoi)}
+                                  </Text>
+                                )}
+                              </div>
+                            }
+                            description={
+                              <Text ellipsis style={{ fontSize: "12px" }}>
+                                {conversation.tin_nhan_cuoi || "Chưa có tin nhắn"}
+                              </Text>
+                            }
+                          />
+                        </List.Item>
+                      );
+                    }}
+                  />
+                )}
+              </div>
+            </Drawer>
+          )}
+        </>
       )}
 
       <Content
@@ -1806,32 +1952,60 @@ const Chat = ({ embedded = false }) => {
             : undefined
         }
       >
-        {selectedConversation ? (
+        {!selectedConversation && isMobile && !isEmbedded ? (
+          <div style={{ 
+            display: "flex", 
+            flexDirection: "column", 
+            alignItems: "center", 
+            justifyContent: "center", 
+            height: "100%",
+            padding: "24px"
+          }}>
+            <Button
+              type="primary"
+              icon={<MenuOutlined />}
+              size="large"
+              onClick={() => setMobileSidebarVisible(true)}
+              style={{ marginBottom: "16px" }}
+            >
+              Xem danh sách tin nhắn
+            </Button>
+            <Text type="secondary">Chọn một cuộc trò chuyện để bắt đầu</Text>
+          </div>
+        ) : selectedConversation ? (
           <>
             <div className="chat-header">
               <div className="chat-header-info">
-              {(() => {
-                const otherUser = getOtherUserInfo(selectedConversation);
-                return (
-                  <Space>
-                    <Avatar
-                      src={otherUser.avatar}
-                      icon={<UserOutlined />}
-                      size={40}
-                    />
+                {isMobile && (
+                  <Button
+                    type="text"
+                    icon={<ArrowLeftOutlined />}
+                    onClick={() => setSelectedConversation(null)}
+                    style={{ marginRight: "8px" }}
+                  />
+                )}
+                {(() => {
+                  const otherUser = getOtherUserInfo(selectedConversation);
+                  return (
                     <Space>
-                      <Text strong style={{ fontSize: "16px" }}>
-                        {otherUser.name}
-                      </Text>
-                      {otherUser.role && (
-                        <Tag color={getRoleColor(otherUser.role)}>
-                          {getRoleName(otherUser.role)}
-                        </Tag>
-                      )}
+                      <Avatar
+                        src={otherUser.avatar}
+                        icon={<UserOutlined />}
+                        size={isMobile ? 32 : 40}
+                      />
+                      <Space direction="vertical" size={0}>
+                        <Text strong style={{ fontSize: isMobile ? "14px" : "16px" }}>
+                          {otherUser.name}
+                        </Text>
+                        {otherUser.role && (
+                          <Tag color={getRoleColor(otherUser.role)} style={{ fontSize: isMobile ? "10px" : "12px" }}>
+                            {getRoleName(otherUser.role)}
+                          </Tag>
+                        )}
+                      </Space>
                     </Space>
-                  </Space>
-                );
-              })()}
+                  );
+                })()}
               </div>
               <div className="chat-header-actions">
                 <Button
@@ -1842,8 +2016,9 @@ const Chat = ({ embedded = false }) => {
                     callState !== "idle" ||
                     !!incomingCall
                   }
+                  size={isMobile ? "small" : "middle"}
                 >
-                  Gọi video
+                  {isMobile ? "" : "Gọi video"}
                 </Button>
               </div>
             </div>

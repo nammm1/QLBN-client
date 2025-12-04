@@ -3,6 +3,12 @@
   background: #f5f6fa;
 }
 
+@media (max-width: 768px) {
+  .chat-layout {
+    height: 100vh;
+  }
+}
+
 .chat-sidebar {
   background: #fff;
   border-right: 1px solid #e8e8e8;
@@ -58,6 +64,13 @@
   gap: 16px;
 }
 
+@media (max-width: 768px) {
+  .chat-header {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+}
+
 .chat-header-info {
   display: flex;
   align-items: center;
@@ -76,6 +89,12 @@
   background: #f5f6fa;
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .chat-messages {
+    padding: 16px 12px;
+  }
 }
 
 /* QUAN TRỌNG: Sửa phần này */
@@ -101,6 +120,14 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   position: relative;
   transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .message-content {
+    max-width: 80%;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
 }
 
 .chat-message.my-message .message-content {
@@ -129,6 +156,13 @@
   position: sticky;
   bottom: 0;
   z-index: 10;
+}
+
+@media (max-width: 768px) {
+  .chat-input-area {
+    padding: 12px 16px;
+    gap: 8px;
+  }
 }
 
 /* Scrollbar styling */
@@ -358,4 +392,30 @@
   justify-content: center;
   gap: 16px;
   margin-top: 16px;
+}
+
+/* Responsive cho chat sidebar */
+@media (max-width: 768px) {
+  .chat-sidebar {
+    display: none;
+  }
+
+  .chat-sidebar-header {
+    padding: 12px;
+  }
+
+  .chat-conversation-item {
+    padding: 10px 12px !important;
+  }
+}
+
+/* Responsive cho images trong messages */
+@media (max-width: 768px) {
+  .chat-message img {
+    max-width: 200px !important;
+  }
+
+  .chat-message .ant-card {
+    max-width: 200px !important;
+  }
 }
