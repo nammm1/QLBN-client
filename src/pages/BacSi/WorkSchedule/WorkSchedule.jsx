@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Card, 
   Table, 
@@ -112,6 +113,7 @@ const getMonday = (date) => {
 };
 
 const WorkSchedule = () => {
+  const navigate = useNavigate();
   const { token } = useToken();
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [weekStart, setWeekStart] = useState(getMonday(dayjs()));
@@ -824,7 +826,24 @@ const WorkSchedule = () => {
       size="small"
       dataSource={appointments}
       renderItem={(appt, index) => (
-        <List.Item>
+        <List.Item
+          actions={[
+            <Button
+              key="view"
+              type="link"
+              onClick={() => {
+                const apptId = appt?.id_cuoc_hen || appt?.id;
+                if (apptId) {
+                  navigate(`/doctor/appointment/${apptId}`);
+                } else {
+                  message.warning("Không tìm thấy mã cuộc hẹn");
+                }
+              }}
+            >
+              Khám ngay
+            </Button>
+          ]}
+        >
           <List.Item.Meta
             avatar={
               <Avatar 

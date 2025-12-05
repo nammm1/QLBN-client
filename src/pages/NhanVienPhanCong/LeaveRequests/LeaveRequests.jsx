@@ -20,7 +20,8 @@ import {
   Popconfirm,
   List,
   Empty,
-  Divider
+  Divider,
+  Statistic
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -715,7 +716,13 @@ const LeaveRequests = () => {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div
+      style={{
+        padding: '24px',
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #e9eff5 100%)'
+      }}
+    >
       <Card
         style={{
           borderRadius: "16px",
@@ -745,7 +752,7 @@ const LeaveRequests = () => {
         </Row>
       </Card>
 
-      <Card style={{ borderRadius: "16px", marginBottom: '24px' }}>
+      <Card style={{ borderRadius: "16px", marginBottom: '24px', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}>
         <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
           <Col xs={24} sm={12} md={8}>
             <Select
@@ -785,12 +792,14 @@ const LeaveRequests = () => {
           dataSource={filteredRequests}
           rowKey="id_xin_nghi"
           loading={loading}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1200, y: 520 }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
             showTotal: (total) => `Tổng ${total} đơn nghỉ phép`
           }}
+          bordered
+          size="middle"
         />
       </Card>
 
@@ -1009,8 +1018,23 @@ const LeaveRequests = () => {
               {dayjs(selectedRequest.ngay_bat_dau).format("DD/MM/YYYY")} - {dayjs(selectedRequest.ngay_ket_thuc).format("DD/MM/YYYY")}
             </Descriptions.Item>
             <Descriptions.Item label="Số ngày">
-              {dayjs(selectedRequest.ngay_ket_thuc).diff(dayjs(selectedRequest.ngay_bat_dau), 'day') + 1} ngày
+              {selectedRequest.buoi_nghi
+                ? '0.5 ngày (Nghỉ nửa buổi)'
+                : `${dayjs(selectedRequest.ngay_ket_thuc).diff(dayjs(selectedRequest.ngay_bat_dau), 'day') + 1} ngày`}
             </Descriptions.Item>
+            {selectedRequest.buoi_nghi && (
+              <Descriptions.Item label="Buổi nghỉ">
+                <Tag color="blue">
+                  {selectedRequest.buoi_nghi === 'sang'
+                    ? 'Buổi sáng'
+                    : selectedRequest.buoi_nghi === 'chieu'
+                    ? 'Buổi chiều'
+                    : selectedRequest.buoi_nghi === 'toi'
+                    ? 'Buổi tối'
+                    : selectedRequest.buoi_nghi}
+                </Tag>
+              </Descriptions.Item>
+            )}
             <Descriptions.Item label="Lý do">
               {selectedRequest.ly_do || '-'}
             </Descriptions.Item>
