@@ -1108,6 +1108,8 @@ const NutritionistAppointmentDetail = () => {
 
     try {
       setIsSubmitting(true);
+      // Giữ bản ghi lịch sử hiện tại trong biến cục bộ để tránh phụ thuộc setState async
+      let lichSuHienTai = lichSuTuVanHienTai;
 
       // Kiểm tra có thông tin bệnh nhân không
       if (!benhNhanFull || !benhNhanFull.id_benh_nhan) {
@@ -1117,7 +1119,7 @@ const NutritionistAppointmentDetail = () => {
       }
 
       // Bước 1: Nếu chưa có lịch sử tư vấn đã lưu nhưng có dữ liệu tạm thời, tự động lưu trước
-      if (!lichSuTuVanHienTai && (lichSuTamThoi || Object.values(thucDonTamThoi).some(meals => meals && meals.length > 0))) {
+      if (!lichSuHienTai && (lichSuTamThoi || Object.values(thucDonTamThoi).some(meals => meals && meals.length > 0))) {
         if (!lichSuTamThoi) {
           // Chỉ có thực đơn tạm thời mà không có lịch sử tư vấn
           message.warning("Vui lòng ghi thông tin tư vấn trước khi kết thúc");
@@ -1178,6 +1180,7 @@ const NutritionistAppointmentDetail = () => {
 
         const savedLichSu = await apiLichSuTuVan.createLichSuTuVan(submitData);
         setLichSuTuVanHienTai(savedLichSu);
+        lichSuHienTai = savedLichSu;
 
         // Lưu tất cả các món ăn tạm thời vào database
         const allMeals = ['sang', 'trua', 'chieu', 'toi', 'phu'];
@@ -1206,7 +1209,7 @@ const NutritionistAppointmentDetail = () => {
       }
 
       // Kiểm tra xem có thông tin tư vấn chưa
-      if (!lichSuTuVanHienTai) {
+      if (!lichSuHienTai) {
         message.warning("Vui lòng ghi thông tin tư vấn trước khi kết thúc");
         setModalLichSuOpen(true);
         setIsSubmitting(false);
@@ -1627,16 +1630,6 @@ const NutritionistAppointmentDetail = () => {
                   return (
                     <>
                       {hasTempData && (() => {
-                        // Tính tổng calo cả ngày từ thực đơn tạm thời
-                        const tongCaloCảNgay = Object.values(thucDonTamThoi).reduce((total, meals) => {
-                          if (Array.isArray(meals)) {
-                            return total + meals.reduce((sum, meal) => {
-                              return sum + (parseFloat(meal.calo) || 0);
-                            }, 0);
-                          }
-                          return total;
-                        }, 0);
-
                         // Lấy nhu cầu calo từ lichSuTamThoi
                         let nhuCauCalo = null;
                         if (lichSuTamThoi?.nhu_cau_calo) {
@@ -1651,35 +1644,18 @@ const NutritionistAppointmentDetail = () => {
                           }
                         }
 
-                        // Tính chênh lệch
-                        const chenhLech = nhuCauCalo ? tongCaloCảNgay - nhuCauCalo : null;
-
                         return (
                           <Card 
                             size="small" 
                             style={{ marginBottom: 16, backgroundColor: '#f0f9ff', borderColor: '#91caff' }}
                           >
                             <Space direction="vertical" style={{ width: '100%' }}>
-                              <div>
-                                <Text strong>Tổng calo cả ngày: </Text>
-                                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1890ff' }}>
-                                  {tongCaloCảNgay.toFixed(0)} kcal
-                                </Text>
-                              </div>
-                              {nhuCauCalo && (
-                                <div>
-                                  <Text strong>Nhu cầu calo: </Text>
-                                  <Text>{nhuCauCalo} kcal/ngày</Text>
-                                  {chenhLech !== null && (
-                                    <>
-                                      <Text> | </Text>
-                                      <Text strong style={{ color: chenhLech < 0 ? '#ff4d4f' : chenhLech > 0 ? '#096dd9' : '#595959' }}>
-                                        Chênh lệch: {chenhLech > 0 ? '+' : ''}{chenhLech.toFixed(0)} kcal
-                                      </Text>
-                                    </>
-                                  )}
-                                </div>
-                              )}
+                                {nhuCauCalo && (
+                                  <div>
+                                    <Text strong>Nhu cầu calo: </Text>
+                                    <Text>{nhuCauCalo} kcal/ngày</Text>
+                                  </div>
+                                )}
                             </Space>
                           </Card>
                         );
@@ -2746,68 +2722,6 @@ const NutritionistAppointmentDetail = () => {
                             </Card>
                           );
                         })}
-                        {(() => {
-                          // Tính tổng calo cả ngày
-                          const allMealsAllDay = [...thucDonChiTiet.sang || [], ...thucDonChiTiet.trua || [], 
-                                                   ...thucDonChiTiet.chieu || [], ...thucDonChiTiet.toi || [],
-                                                   ...thucDonTamThoi.sang || [], ...thucDonTamThoi.trua || [],
-                                                   ...thucDonTamThoi.chieu || [], ...thucDonTamThoi.toi || []];
-                          const tongCaloNgay = allMealsAllDay.reduce((sum, meal) => {
-                            return sum + (parseFloat(meal.calo) || 0);
-                          }, 0);
-                          
-                          if (tongCaloNgay > 0) {
-                            return (
-                              <Card size="small" style={{ backgroundColor: '#f0f9ff' }}>
-                                <Row justify="space-between" align="middle">
-                                  <Col>
-                                    <Text strong style={{ fontSize: 16 }}>Tổng calo cả ngày:</Text>
-                                  </Col>
-                                  <Col>
-                                    <Tag color="blue" style={{ fontSize: 16, padding: '4px 12px' }}>
-                                      {tongCaloNgay.toFixed(0)} kcal
-                                    </Tag>
-                                  </Col>
-                                </Row>
-                                {lichSuTamThoi?.nhu_cau_calo && (
-                                  <Row style={{ marginTop: 8 }}>
-                                    <Col span={24}>
-                                      <Text type="secondary">
-                                        Nhu cầu calo: {lichSuTamThoi.nhu_cau_calo} kcal/ngày | 
-                                        {' '}Chênh lệch: 
-                                        <Text strong style={{ 
-                                          color: tongCaloNgay > lichSuTamThoi.nhu_cau_calo ? '#ff4d4f' : 
-                                                 tongCaloNgay < lichSuTamThoi.nhu_cau_calo * 0.9 ? '#faad14' : '#096dd9'
-                                        }}>
-                                          {tongCaloNgay > lichSuTamThoi.nhu_cau_calo ? ' +' : ' '}
-                                          {(tongCaloNgay - lichSuTamThoi.nhu_cau_calo).toFixed(0)} kcal
-                                        </Text>
-                                      </Text>
-                                    </Col>
-                                  </Row>
-                                )}
-                                {lichSuTuVanHienTai?.nhu_cau_calo && (
-                                  <Row style={{ marginTop: 8 }}>
-                                    <Col span={24}>
-                                      <Text type="secondary">
-                                        Nhu cầu calo: {lichSuTuVanHienTai.nhu_cau_calo} kcal/ngày | 
-                                        {' '}Chênh lệch: 
-                                        <Text strong style={{ 
-                                          color: tongCaloNgay > lichSuTuVanHienTai.nhu_cau_calo ? '#ff4d4f' : 
-                                                 tongCaloNgay < lichSuTuVanHienTai.nhu_cau_calo * 0.9 ? '#faad14' : '#096dd9'
-                                        }}>
-                                          {tongCaloNgay > lichSuTuVanHienTai.nhu_cau_calo ? ' +' : ' '}
-                                          {(tongCaloNgay - lichSuTuVanHienTai.nhu_cau_calo).toFixed(0)} kcal
-                                        </Text>
-                                      </Text>
-                                    </Col>
-                                  </Row>
-                                )}
-                              </Card>
-                            );
-                          }
-                          return null;
-                        })()}
                       </Space>
                     </Col>
                     <Col span={24}>
@@ -2916,7 +2830,10 @@ const NutritionistAppointmentDetail = () => {
                                 title: 'BMI',
                                 dataIndex: 'bmi',
                                 key: 'bmi',
-                                render: (val) => val ? val.toFixed(1) : '-'
+                                render: (val) => {
+                                  const num = Number(val);
+                                  return Number.isFinite(num) ? num.toFixed(1) : '-';
+                                }
                               },
                               {
                                 title: 'Vòng eo (cm)',
